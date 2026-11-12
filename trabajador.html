@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal del Trabajador | Cine Majestad</title>
+  <meta name="description" content="Portal operativo para trabajadores de Cine Majestad: consulta de funciones, despacho y atención de comidas e impresión de boletos.">
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/navbar-footer.css">
+  <link rel="stylesheet" href="css/billboard.css">
+  <link rel="stylesheet" href="css/seats.css">
+  <link rel="stylesheet" href="css/trabajador.css">
+</head>
+
+<body>
+
+  <!-- Navegación Superior -->
+  <header class="site-header">
+    <div class="container navbar">
+      <a href="index.html" class="brand-logo">
+        <div class="brand-icon">👑</div>
+        Cine<span>Majestad</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-link">Cartelera Web</a></li>
+        <li><a href="trabajador.html" class="nav-link active">Portal Trabajador</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- El botón de rol se inyecta dinámicamente -->
+        <a href="index.html" class="btn btn-secondary btn-sm">Ver Cartelera</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container worker-dashboard">
+    <!-- Encabezado del Portal Operativo -->
+    <div class="worker-header">
+      <div>
+        <h1 style="font-size: 2.2rem; margin-bottom: 0.3rem;">Portal Operativo del Trabajador</h1>
+        <p style="color: var(--text-secondary);">Módulo exclusivo de taquilla, atención y despacho de comidas e impresión de entradas físicas</p>
+      </div>
+
+      <div style="display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap;">
+        <span class="badge" style="background: rgba(0, 210, 255, 0.15); color: var(--accent-blue); padding: 0.5rem 1rem; border: 1px solid rgba(0, 210, 255, 0.3);">
+          👔 Turno Activo: Taquilla & Dulcería
+        </span>
+      </div>
+    </div>
+
+    <!-- Pestañas de Navegación del Trabajador -->
+    <nav class="worker-tabs" id="workerTabsNav">
+      <button class="worker-tab-btn active" data-tab="showtimes">📅 1. Funciones del Día</button>
+      <button class="worker-tab-btn" data-tab="food">🍿 2. Atender Comidas & Despacho</button>
+      <button class="worker-tab-btn" data-tab="print">🖨️ 3. Impresión de Boletos</button>
+    </nav>
+
+    <!-- =======================================================================
+         PESTAÑA 1: VER FUNCIONES (PROGRAMACIÓN Y OCUPACIÓN EN VIVO)
+         ======================================================================= -->
+    <section class="worker-tab-pane active" id="tab-showtimes">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 class="section-title">Programación de Funciones de Hoy</h2>
+          <p style="color: var(--text-secondary); font-size: 0.88rem;">Consulta los horarios, salas y capacidad en tiempo real de cada proyección</p>
+        </div>
+
+        <div>
+          <select id="workerHallFilter" class="form-control" style="width: auto; min-width: 220px;" onchange="renderWorkerShowtimes()">
+            <option value="all">Todas las Salas</option>
+            <option value="Sala 1">Sala 1 (IMAX Laser)</option>
+            <option value="Sala 2">Sala 2 (70mm Cinema)</option>
+            <option value="Sala 3">Sala 3 (Dolby Atmos)</option>
+            <option value="Sala 4">Sala 4 (VIP Lounge)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Cuadrícula de Funciones -->
+      <div class="showtimes-grid" id="workerShowtimesGrid">
+        <!-- Renderizado dinámicamente -->
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         PESTAÑA 2: ATENDER SOBRE LAS COMIDAS (DESPACHO Y POS MOSTRADOR)
+         ======================================================================= -->
+    <section class="worker-tab-pane" id="tab-food">
+      <div style="margin-bottom: 1.5rem;">
+        <h2 class="section-title">Atención y Despacho de Comidas & Dulcería</h2>
+        <p style="color: var(--text-secondary); font-size: 0.88rem;">Atiende y despacha los pedidos comprados por clientes o registra ventas directas en mostrador</p>
+      </div>
+
+      <div class="food-orders-layout">
+        <!-- Columna Izquierda: Bandeja de Pedidos de Clientes para Despachar -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="pill-btn active" id="filterFoodPendingBtn" onclick="filterFoodOrders('PENDIENTE')">
+                ⏳ Pendientes de Entrega (<span id="countFoodPending">0</span>)
+              </button>
+              <button class="pill-btn" id="filterFoodDeliveredBtn" onclick="filterFoodOrders('ENTREGADO')">
+                ✅ Entregados / Despachados
+              </button>
+              <button class="pill-btn" id="filterFoodAllBtn" onclick="filterFoodOrders('ALL')">
+                Todos
+              </button>
+            </div>
+          </div>
+
+          <div class="food-orders-container" id="foodOrdersList">
+            <!-- Renderizado dinámico de pedidos -->
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Punto de Venta Rápido de Comidas en Mostrador -->
+        <aside class="worker-pos-card">
+          <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #fff;">🍿 Venta Directa en Mostrador</h3>
+          <p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 1.2rem;">Para clientes que piden sus snacks directamente en barra:</p>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="posClientName" style="font-size: 0.82rem; color: var(--text-secondary);">Nombre del Cliente:</label>
+            <input type="text" id="posClientName" class="form-control" placeholder="Ej. Carlos Mendoza" style="padding: 0.5rem 0.8rem; font-size: 0.85rem;">
+          </div>
+
+          <div style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">
+            Selecciona productos:
+          </div>
+          <div class="pos-snacks-selector" id="posSnacksSelector">
+            <!-- Selector dinámico de snacks con stepper -->
+          </div>
+
+          <div class="total-box" style="padding: 0.9rem; margin-bottom: 1rem;">
+            <span class="total-label" style="font-size: 0.85rem;">Total Snacks:</span>
+            <span class="total-price" id="posTotalLabel" style="font-size: 1.3rem;">$0.00</span>
+          </div>
+
+          <button class="btn btn-primary" style="width: 100%; font-size: 0.9rem;" onclick="processCounterSale()">
+            💾 Registrar y Dar Opción de Imprimir Ticket 🖨️
+          </button>
+        </aside>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         PESTAÑA 3: CENTRO DE IMPRESIÓN DE BOLETOS Y TICKETS
+         ======================================================================= -->
+    <section class="worker-tab-pane" id="tab-print">
+      <div style="margin-bottom: 1.5rem;">
+        <h2 class="section-title">Terminal de Impresión de Boletos y Comprobantes</h2>
+        <p style="color: var(--text-secondary); font-size: 0.88rem;">Busca cualquier reserva por su código oficial de Cine Majestad (CMG-XXXXXX) o cliente e imprime el ticket oficial</p>
+      </div>
+
+      <!-- Buscador de Reserva para Impresión -->
+      <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 2rem;">
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+          <input type="text" id="workerSearchTicketInput" class="form-control" style="flex: 1; min-width: 280px;" placeholder="Ingresa código de reserva (ej. CMG-748921) o nombre del cliente...">
+          <button class="btn btn-primary" onclick="searchTicketToPrint()">🔍 Buscar y Preparar Boleto</button>
+        </div>
+      </div>
+
+      <!-- Tabla de Reservas de Hoy para Impresión Inmediata -->
+      <div class="table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Hora / Fecha</th>
+              <th>Película</th>
+              <th>Sala</th>
+              <th>Butacas Reservadas</th>
+              <th>Snacks</th>
+              <th>Total</th>
+              <th>Opción de Impresión</th>
+            </tr>
+          </thead>
+          <tbody id="workerPrintTableBody">
+            <!-- Inyectado dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- =======================================================================
+       MODAL: INSPECTOR DE SALA EN VIVO PARA EL TRABAJADOR
+       ======================================================================= -->
+  <div class="modal-backdrop" id="workerSeatModal">
+    <div class="modal-content" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 id="workerSeatModalTitle" style="color: #fff;">Esquema de Sala en Tiempo Real</h3>
+        <button class="modal-close" onclick="closeWorkerSeatModal()">✕</button>
+      </div>
+      <div style="padding: 1.5rem;">
+        <div class="admin-hall-view">
+          <div class="admin-screen-indicator"></div>
+          <div class="seats-grid" id="workerSeatsGrid">
+            <!-- Grid dinámico -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODAL DE VISTA PREVIA Y DIÁLOGO DE IMPRESIÓN (PRINTABLE TICKET)
+       ======================================================================= -->
+  <div class="modal-backdrop" id="printTicketModal">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header no-print">
+        <h3 style="color: #fff;">Vista Previa de Impresión</h3>
+        <button class="modal-close" onclick="closePrintModal()">✕</button>
+      </div>
+
+      <!-- Área de Boleto Imprimible en Formato Térmico -->
+      <div class="printable-area" style="padding: 1.5rem;">
+        <div class="ticket-print-preview-box" id="ticketPrintContent">
+          <!-- Inyectado dinámicamente con plantilla térmica -->
+        </div>
+      </div>
+
+      <div class="modal-footer no-print" style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color);">
+        <button class="btn btn-secondary" onclick="closePrintModal()">Cerrar</button>
+        <button class="btn btn-primary" onclick="triggerNativePrint()">
+          🖨️ Mandar a Imprimir Boleto
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/data/mockData.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/pdf-export.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/trabajador.js"></script>
+</body>
+
+</html>

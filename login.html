@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso y Registro | Cine Majestad Multiplex</title>
+  <meta name="description" content="Inicia sesión o crea tu cuenta en Cine Majestad para reservar entradas, gestionar tus boletos y acceder a funciones exclusivas.">
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/navbar-footer.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+
+<body>
+
+  <!-- Navegación Superior -->
+  <header class="site-header">
+    <div class="container navbar">
+      <a href="index.html" class="brand-logo">
+        <div class="brand-icon">👑</div>
+        Cine<span>Majestad</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-link">Cartelera</a></li>
+        <li><a href="candybar.html" class="nav-link">Dulcería</a></li>
+        <li><a href="login.html" class="nav-link active">Acceso / Registro</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="index.html" class="btn btn-secondary btn-sm">← Volver a Cartelera</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="brand-icon">👑</div>
+        <h1 id="authMainTitle">Acceso Cine Majestad</h1>
+        <p id="authSubtitle">Ingresa tus credenciales para continuar tu experiencia cinematográfica</p>
+      </div>
+
+      <!-- Selector de Pestañas: Login / Registro -->
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" id="tabBtnLogin" onclick="switchAuthTab('login')">
+          Iniciar Sesión
+        </button>
+        <button class="auth-tab-btn" id="tabBtnRegister" onclick="switchAuthTab('register')">
+          Crear Cuenta
+        </button>
+      </div>
+
+      <!-- Alertas Dinámicas -->
+      <div class="auth-alert" id="authAlert"></div>
+
+      <!-- =====================================================================
+           FORMULARIO 1: INICIAR SESIÓN
+           ===================================================================== -->
+      <form class="auth-form-pane active" id="loginForm" onsubmit="handleLoginSubmit(event)" novalidate>
+        <div class="form-group">
+          <label for="loginEmail">Correo Electrónico</label>
+          <input type="email" id="loginEmail" class="form-control" placeholder="tu@correo.com" required autocomplete="email">
+          <span class="form-error-feedback" id="loginEmailError">Ingrese un correo válido.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword">Contraseña</label>
+          <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+          <span class="form-error-feedback" id="loginPasswordError">La contraseña debe tener al menos 6 caracteres.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="loginSubmitBtn" style="width: 100%; padding: 0.9rem; font-size: 1rem; margin-top: 0.5rem;">
+          Entrar a Cine Majestad 🎟️
+        </button>
+      </form>
+
+      <!-- =====================================================================
+           FORMULARIO 2: REGISTRO DE NUEVO CLIENTE
+           ===================================================================== -->
+      <form class="auth-form-pane" id="registerForm" onsubmit="handleRegisterSubmit(event)" novalidate>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
+          <div class="form-group">
+            <label for="regNombre">Nombre</label>
+            <input type="text" id="regNombre" class="form-control" placeholder="Carlos" required>
+            <span class="form-error-feedback" id="regNombreError">Nombre requerido.</span>
+          </div>
+          <div class="form-group">
+            <label for="regApellido">Apellido</label>
+            <input type="text" id="regApellido" class="form-control" placeholder="Gómez">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="regEmail">Correo Electrónico</label>
+          <input type="email" id="regEmail" class="form-control" placeholder="carlos@ejemplo.com" required autocomplete="email">
+          <span class="form-error-feedback" id="regEmailError">Correo electrónico no válido.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="regTelefono">Teléfono / Celular</label>
+          <input type="tel" id="regTelefono" class="form-control" placeholder="+57 300 123 4567">
+        </div>
+
+        <div class="form-group">
+          <label for="regPassword">Contraseña</label>
+          <input type="password" id="regPassword" class="form-control" placeholder="Mínimo 6 caracteres" required autocomplete="new-password">
+          <span class="form-error-feedback" id="regPasswordError">Mínimo 6 caracteres requeridos.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="regPasswordConfirm">Confirmar Contraseña</label>
+          <input type="password" id="regPasswordConfirm" class="form-control" placeholder="Repite tu contraseña" required autocomplete="new-password">
+          <span class="form-error-feedback" id="regPasswordConfirmError">Las contraseñas no coinciden.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="registerSubmitBtn" style="width: 100%; padding: 0.9rem; font-size: 1rem; margin-top: 0.5rem;">
+          Crear mi Cuenta Oficial 👑
+        </button>
+      </form>
+
+      <!-- Accesos Directos de Demostración -->
+      <div class="quick-accounts-box">
+        <p>⚡ Cuentas de Demostración con 1 Clic</p>
+        <div class="quick-roles-grid">
+          <button type="button" class="quick-role-btn" onclick="fillQuickAccount('CLIENTE')">
+            👤 Cliente
+          </button>
+          <button type="button" class="quick-role-btn" onclick="fillQuickAccount('TRABAJADOR')">
+            👔 Taquilla
+          </button>
+          <button type="button" class="quick-role-btn" onclick="fillQuickAccount('ADMIN')">
+            👑 Admin
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/data/mockData.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+
+</html>

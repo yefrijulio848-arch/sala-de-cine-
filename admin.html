@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Administrativo Supremo | Cine Majestad</title>
+  <meta name="description"
+    content="Gestión integral de películas, esquemas arquitectónicos de salas, butacas en tiempo real, dulcería, ventas y configuración en Cine Majestad.">
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/navbar-footer.css">
+  <link rel="stylesheet" href="css/billboard.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/seats.css">
+</head>
+
+<body>
+
+  <!-- Navegación Superior -->
+  <header class="site-header">
+    <div class="container navbar">
+      <a href="index.html" class="brand-logo">
+        <div class="brand-icon">👑</div>
+        Cine<span>Majestad</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-link">Cartelera</a></li>
+        <li><a href="candybar.html" class="nav-link">Dulcería</a></li>
+        <li><a href="admin.html" class="nav-link active">Panel Admin</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <button class="btn btn-primary btn-sm" onclick="openMovieModal(false)">+ Nueva Película</button>
+        <button class="btn btn-secondary btn-sm" onclick="openSnackModal(false)">+ Nuevo Snack</button>
+        <button class="btn btn-secondary btn-sm" onclick="openSupplierModal(false)">+ Proveedor</button>
+        <button class="btn btn-secondary btn-sm" onclick="openUserModal()">+ Usuario</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container admin-dashboard">
+    <!-- Encabezado del Dashboard -->
+    <div class="dashboard-header">
+      <div>
+        <h1 style="font-size: 2.2rem; margin-bottom: 0.3rem;">Panel de Control Administrativo</h1>
+        <p style="color: var(--text-secondary);">Control absoluto sobre cartelera, salas, esquema de asientos en tiempo
+          real, dulcería y ventas</p>
+      </div>
+      <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="openMovieModal(false)">
+          ➕ Programar Película
+        </button>
+        <button class="btn btn-secondary" onclick="switchAdminTab('seats-manager')">
+          💺 Esquemas de Sala
+        </button>
+      </div>
+    </div>
+
+    <!-- Métricas Clave del Negocio -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🎬</div>
+        <div class="stat-info">
+          <h3 id="statTotalMovies">0</h3>
+          <p>Películas en Cartelera</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon gold">🎟️</div>
+        <div class="stat-info">
+          <h3 id="statTotalBookings">0</h3>
+          <p>Reservas Generadas</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue">💰</div>
+        <div class="stat-info">
+          <h3 id="statEstimatedRevenue">$0.00</h3>
+          <p>Ventas Totales Estimadas</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">🍿</div>
+        <div class="stat-info">
+          <h3 id="statCandyRevenue">$0.00</h3>
+          <p>Ventas en Dulcería</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestañas del Panel de Administración -->
+    <nav class="admin-tabs" id="adminTabsNav">
+      <button class="admin-tab-btn active" data-tab="movies">🎬 Cartelera y Películas</button>
+      <button class="admin-tab-btn" data-tab="seats-manager">💺 Salas y Esquemas de Asientos</button>
+      <button class="admin-tab-btn" data-tab="candybar">🍿 Dulcería & Confitería</button>
+      <button class="admin-tab-btn" data-tab="suppliers">🚚 Proveedores</button>
+      <button class="admin-tab-btn" data-tab="financials">💰 Finanzas & Rentabilidad</button>
+      <button class="admin-tab-btn" data-tab="roles-users">👥 Roles & Usuarios</button>
+      <button class="admin-tab-btn" data-tab="bookings">🎟️ Historial de Ventas</button>
+      <button class="admin-tab-btn" data-tab="analytics">📊 Analíticas & Gráficos</button>
+      <button class="admin-tab-btn" data-tab="settings">⚙️ Configuración del Cine</button>
+    </nav>
+
+    <!-- =======================================================================
+         PESTAÑA 1: GESTIÓN DE PELÍCULAS
+         ======================================================================= -->
+    <section class="admin-tab-pane active" id="tab-movies">
+      <div class="table-toolbar">
+        <h2 class="section-title">Programación de Películas y Cartelera</h2>
+        <div style="display: flex; gap: 0.8rem; align-items: center;">
+          <input type="text" id="adminMovieSearch" class="form-control" style="width: 260px;"
+            placeholder="Buscar película por título...">
+          <button class="btn btn-primary btn-sm" onclick="openMovieModal(false)">+ Agregar Película</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Película</th>
+              <th>Género</th>
+              <th>Duración</th>
+              <th>Sala</th>
+              <th>Horarios</th>
+              <th>Precios (Est./VIP)</th>
+              <th>Destacada</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="adminMoviesTableBody">
+            <!-- Inyectado por JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         PESTAÑA 2: GESTIÓN DE SALAS Y ESQUEMAS DE ASIENTOS EN TIEMPO REAL
+         ======================================================================= -->
+    <section class="admin-tab-pane" id="tab-seats-manager">
+      <div class="table-toolbar">
+        <div>
+          <h2 class="section-title">Salas y Esquemas Arquitectónicos de Asientos</h2>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">Inspecciona y modifica en tiempo real los asientos
+            bloqueados, vendidos o en mantenimiento de cada función</p>
+        </div>
+        <div style="display: flex; gap: 0.8rem;">
+          <button class="btn btn-secondary btn-sm" onclick="clearAllTemporaryLocksHandler()">
+            🔓 Liberar Bloqueos Temporales
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjetas de Salas Configuradas -->
+      <div class="rooms-grid" id="adminRoomsGrid">
+        <!-- Renderizado dinámicamente -->
+      </div>
+
+      <!-- Inspector de Esquema en Vivo -->
+      <div class="admin-room-inspector">
+        <div class="inspector-header">
+          <div>
+            <h3 style="font-size: 1.3rem;">Esquema de Asientos en Vivo por Función</h3>
+            <p style="color: var(--text-secondary); font-size: 0.85rem;">Haz clic sobre cualquier butaca para bloquearla
+              por mantenimiento o liberarla de inmediato</p>
+          </div>
+
+          <div class="inspector-controls">
+            <label for="inspectorShowtimeSelect"
+              style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Seleccionar Función:</label>
+            <select id="inspectorShowtimeSelect" class="form-control" style="width: auto; min-width: 250px;"
+              onchange="renderAdminSeatInspector()">
+              <!-- Opciones dinámicas de funciones -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Leyenda Administrativa -->
+        <div class="seats-legend" style="margin-bottom: 1.5rem;">
+          <div class="legend-item">
+            <span class="legend-seat available"></span>
+            <span>Disponible</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-seat vip"></span>
+            <span>VIP Luxury</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-seat locked"></span>
+            <span>En Proceso de Compra (Cliente)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-seat occupied"></span>
+            <span>Vendido / Confirmado</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-seat maintenance"></span>
+            <span>Bloqueo Mantenimiento (Admin)</span>
+          </div>
+        </div>
+
+        <!-- Vista de la Sala y Butacas -->
+        <div class="admin-hall-view">
+          <div class="admin-screen-indicator"></div>
+          <div class="admin-seats-grid" id="adminSeatsGrid">
+            <!-- Grid interactivo para el admin -->
+          </div>
+        </div>
+
+        <!-- Resumen de estado de la función -->
+        <div id="inspectorStats"
+          style="display: flex; gap: 2rem; justify-content: center; margin-top: 1.2rem; font-size: 0.85rem; color: var(--text-secondary); flex-wrap: wrap;">
+          <!-- Estadísticas de la sala seleccionada -->
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         PESTAÑA 3: GESTIÓN DE CONFITERÍA Y DULCERÍA
+         ======================================================================= -->
+    <section class="admin-tab-pane" id="tab-candybar">
+      <div class="table-toolbar">
+        <h2 class="section-title">Catálogo de Dulcería y Snacks</h2>
+        <div style="display: flex; gap: 0.8rem; align-items: center;">
+          <button class="btn btn-secondary btn-sm" onclick="exportInventoryToCsv()">📑 Exportar Inventario CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="openSnackModal(false)">+ Agregar Snack / Combo</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Categoría</th>
+              <th>Costo Insumo</th>
+              <th>Precio Venta</th>
+              <th>Ganancia Ud.</th>
+              <th>Margen (%)</th>
+              <th>Stock</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="adminSnacksTableBody">
+            <!-- Inyectado por JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         PESTAÑA: GESTIÓN DE PROVEEDORES Y ACUERDOS COMERCIALES
+         ======================================================================= -->
+    <section class="admin-tab-pane" id="tab-suppliers">
+      <div class="table-toolbar">
+        <div>
+          <h2 class="section-title">Gestión de Proveedores y Acuerdos Comerciales</h2>
+          <p style="color: var(--text-secondary); font-size: 0.88rem;">Registro centralizado de proveedores de
+            confitería, materias primas y empaques con control de porcentajes de ganancia, comisiones y condiciones de
+            pago.</p>
+        </div>
+        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center;">
+          <input type="text" id="adminSupplierSearch" class="form-control" style="width: 260px;"
+            placeholder="Buscar empresa o contacto...">
+          <button class="btn btn-secondary btn-sm" onclick="exportSuppliersToCsv()">📑 Exportar CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="openSupplierModal(false)">+ Registrar Proveedor</button>
+        </div>
+      </div>
+
+      <!-- Tarjetas KPI de Proveedores -->
+      <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-bottom: 2rem;">
+        <div class="stat-card">
+          <div class="stat-icon blue">🚚</div>
+          <div class="stat-info">
+            <h3 id="statActiveSuppliers">0</h3>
+            <p>Proveedores Activos</p>
+            <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Alianzas
+              comerciales</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon gold">📈</div>
+          <div class="stat-info">
+            <h3 id="statAvgSupplierMargin">0.0%</h3>
+            <p>Margen Promedio Acordado</p>
+            <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Rentabilidad
+              comercial pactada</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon purple">📦</div>
+          <div class="stat-info">
+            <h3 id="statSupplierCategories">0</h3>
+            <p>Categorías Cubiertas</p>
+            <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Maíz, Bebidas,
+              Empaques, etc.</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon green">⏳</div>
+          <div class="stat-info">
+            <h3 id="statCreditSuppliers">0</h3>
+            <p>Proveedores con Crédito</p>
+            <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Plazos a 15,
+              30 y 45 días</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Proveedores -->
+      <div class="table-container">
+        <table class="admin-table" id="adminSuppliersTable">
+          <thead>
+            <tr>
+              <th>Empresa / Razón Social</th>
+              <th>Contacto Principal</th>
+              <th>Teléfono / WhatsApp</th>
+              <th>Correo Electrónico</th>
+              <th>Categoría</th>
+              <th>Margen Acordado (%)</th>
+              <th>Comisión (%)</th>
+              <th>Términos de Pago</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="adminSuppliersTableBody">
+            <!-- Inyectado por JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         PESTAÑA: BALANCE FINANCIERO, RENTABILIDAD & COMISIONES (NUEVO)
+         ======================================================================= -->
+    <section class="admin-tab-pane" id="tab-financials">
+      <div class="table-toolbar">
+        <div>
+          <h2 class="section-title">Balance Financiero, Rentabilidad de Ventas e Intereses</h2>
+          <p style="color: var(--text-secondary); font-size: 0.88rem;">Auditoría contable y rentabilidad neta: Ingresos
+            totales, costo de insumos (COGS), comisiones de procesadores de pago y márgenes de ganancia por producto.
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center;">
+          <button class="btn btn-secondary btn-sm" onclick="exportFinancialsToCsv()">📑 Exportar Balance Contable
+            (CSV)</button>
+          <button class="btn btn-primary btn-sm" onclick="renderFinancialDashboard()">🔄 Recalcular Balance</button>
+        </div>
+      </div>
+
+      <!-- Tarjetas KPI Financieras -->
+      <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-bottom: 2rem;">
+        <div class="stat-card">
+          <div class="stat-icon blue">💵</div>
+          <div class="stat-info">
+            <h3 id="finGrossRevenue" style="color: #00d2ff;">$0.00</h3>
+            <p>Ventas Brutas Totales</p>
+            <small id="finRevenueSplit"
+              style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Boletos: $0 |
+              Snacks: $0</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon orange">📦</div>
+          <div class="stat-info">
+            <h3 id="finTotalCogs" style="color: #ff9100;">$0.00</h3>
+            <p>Costo Insumos (COGS)</p>
+            <small id="finCogsPercent"
+              style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">0.0% de las
+              ventas</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon purple">💳</div>
+          <div class="stat-info">
+            <h3 id="finGatewayFees" style="color: #c77dff;">$0.00</h3>
+            <p>Intereses y Comisiones Pasarela</p>
+            <small id="finFeesPercent"
+              style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Retención
+              pasarelas</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon green">📈</div>
+          <div class="stat-info">
+            <h3 id="finNetProfit" style="color: #00e676;">$0.00</h3>
+            <p>Ganancia Neta Real</p>
+            <small style="font-size: 0.72rem; color: #00e676; display: block; margin-top: 2px;">Utilidad en
+              bolsillo</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon gold">🎯</div>
+          <div class="stat-info">
+            <h3 id="finNetMargin" style="color: var(--gold);">0.0%</h3>
+            <p>Margen Neto de Ganancia</p>
+            <small id="finGrossMargin"
+              style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Margen Bruto:
+              0.0%</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos de Inteligencia Financiera -->
+      <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div
+          style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem;">
+          <h3
+            style="color: #fff; font-size: 1.05rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            🥧 Distribución del Ingreso y Retenciones
+          </h3>
+          <div style="position: relative; height: 260px; width: 100%;">
+            <canvas id="chartFinancialStructure"></canvas>
+          </div>
+        </div>
+
+        <div
+          style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem;">
+          <h3
+            style="color: #fff; font-size: 1.05rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            📊 Rentabilidad Comparativa por Producto de Dulcería
+          </h3>
+          <div style="position: relative; height: 260px; width: 100%;">
+            <canvas id="chartProductMargins"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Rentabilidad del Inventario de Productos -->
+      <div style="margin-bottom: 2rem;">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.8rem;">
+          <h3 style="font-size: 1.15rem; color: #fff;">📦 Rentabilidad y Rendimiento por Producto de Confitería</h3>
+          <span style="font-size: 0.82rem; color: var(--text-muted);">Márgenes calculados dinámicamente con base en
+            costo unitario de insumos vs precio de venta</span>
+        </div>
+
+        <div class="table-container">
+          <table class="admin-table" id="tableInventoryProfitability">
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Stock</th>
+                <th>Costo Insumo</th>
+                <th>Precio Venta</th>
+                <th>Ganancia / Ud.</th>
+                <th>Margen (%)</th>
+                <th>ROI / Markup (%)</th>
+                <th>Uds. Vendidas</th>
+                <th>Ingresos Totales</th>
+                <th>Costo Total</th>
+                <th>Utilidad Neta Total</th>
+              </tr>
+            </thead>
+            <tbody id="tableFinancialProductsBody">
+              <!-- Inyectado por JavaScript -->
+            </tbody>
+            <tfoot id="tableFinancialProductsFoot"
+              style="background: rgba(255,255,255,0.03); font-weight: bold; border-top: 2px solid var(--border-color);">
+              <!-- Totales Consolidados -->
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Desglose de Tasas y Deducciones por Pasarela de Pago -->
+      <div
+        style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 1.5rem;">
+        <h4 style="color: var(--gold); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+          ℹ️ Estructura de Comisiones, Intereses Bancarios y Retenciones por Pasarela de Pago
+        </h4>
+        <div
+          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
+          <div
+            style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05);">
+            <strong style="color: #00d2ff; display: block; margin-bottom: 0.3rem;">💳 Tarjetas de Crédito /
+              Débito</strong>
+            <span>Tarifa pasarela: <strong>2.9% + $0.30 USD</strong> por reserva procesada exitosamente.</span>
+          </div>
+          <div
+            style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05);">
+            <strong style="color: var(--gold); display: block; margin-bottom: 0.3rem;">🏛️ PSE (Débito en
+              Línea)</strong>
+            <span>Tarifa bancaria: <strong>2.9% + $0.30 USD</strong> sin intereses para el cliente final.</span>
+          </div>
+          <div
+            style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05);">
+            <strong style="color: #ff007f; display: block; margin-bottom: 0.3rem;">📱 Nequi & Daviplata</strong>
+            <span>Tarifa reducida billetera digital: <strong>1.5% tarifa fija</strong> sobre el monto de la
+              compra.</span>
+          </div>
+          <div
+            style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05);">
+            <strong style="color: #00e676; display: block; margin-bottom: 0.3rem;">💵 Efectivo en Taquilla</strong>
+            <span>Cero comisiones: <strong>0.0% de deducción bancaria</strong> (100% ingresa en caja).</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         PESTAÑA 4: HISTORIAL DE VENTAS Y RESERVAS
+         ======================================================================= -->
+    <section class="admin-tab-pane" id="tab-bookings">
+      <div class="table-toolbar">
+        <h2 class="section-title">Historial de Ventas y Reservas</h2>
+        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center;">
+          <input type="text" id="adminBookingSearch" class="form-control" style="width: 250px;"
+            placeholder="Buscar por código (CMG-...)">
+          <button class="btn btn-primary btn-sm" onclick="exportSalesToCsv()">📊 Exportar CSV / Excel</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportBookingsJSON()">📥 Exportar JSON</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Fecha</th>
+              <th>Película</th>
+              <th>Sala y Horario</th>
+              <th>Butacas</th>
+              <th>Snacks</th>
+              <th>Total Pagado</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="adminBookingsTableBody">
+            <!-- Inyectado por JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         PESTAÑA NUEVA: ANALÍTICAS Y GRÁFICOS INTERACTIVOS (CHART.JS)
+         ======================================================================= -->
+    <section class="admin-tab-pane" id="tab-analytics">
+      <div class="table-toolbar">
+        <div>
+          <h2 class="section-title">Analíticas Cinematográficas en Vivo</h2>
+          <p style="color: var(--text-secondary); font-size: 0.88rem;">Métricas interactivas de recaudación por
+            película, tasa de ocupación de salas y desglose de canales de pago</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="renderAllAdminCharts()">🔄 Refrescar Métricas</button>
+      </div>
+
+      <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+        <!-- Gráfico 1: Ingresos por Película -->
+        <div
+          style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem;">
+          <h3
+            style="color: #fff; font-size: 1.05rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            🎬 Ingresos por Película ($ USD)
+          </h3>
+          <div style="position: relative; height: 260px; width: 100%;">
+            <canvas id="chartMovieRevenue"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico 2: Ocupación de Salas -->
+        <div
+          style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem;">
+          <h3
+            style="color: #fff; font-size: 1.05rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            💺 Ocupación Estimada por Sala (%)
+          </h3>
+          <div style="position: relative; height: 260px; width: 100%;">
+            <canvas id="chartRoomOccupancy"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico 3: Métodos de Pago -->
+        <div
+          style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem;">
+          <h3
+            style="color: #fff; font-size: 1.05rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            💳 Métodos de Pago más Utilizados
+          </h3>
+          <div style="position: relative; height: 260px; width: 100%;">
+            <canvas id="chartPaymentMethods"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         PESTAÑA 5: CONFIGURACIÓN GENERAL DEL CINE
+         ======================================================================= -->
+    <section class="admin-tab-pane" id="tab-settings">
+      <h2 class="section-title" style="margin-bottom: 1.5rem;">Configuración General de Cine Majestad</h2>
+
+      <div class="config-grid">
+        <!-- Tarjeta de Identidad del Cine -->
+        <div class="config-card">
+          <h3>👑 Identidad de la Marca</h3>
+          <form id="cinemaSettingsForm">
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label for="cfgCinemaName">Nombre del Cine</label>
+              <input type="text" id="cfgCinemaName" class="form-control" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label for="cfgSlogan">Lema o Slogan</label>
+              <input type="text" id="cfgSlogan" class="form-control">
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label for="cfgPhone">Teléfono de Atención</label>
+              <input type="text" id="cfgPhone" class="form-control">
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label for="cfgAddress">Dirección del Complejo</label>
+              <input type="text" id="cfgAddress" class="form-control">
+            </div>
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+              <label for="cfgHours">Horarios de Operación</label>
+              <input type="text" id="cfgHours" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">💾 Guardar Identidad</button>
+          </form>
+        </div>
+
+        <!-- Tarjeta de Parámetros de Venta y Asientos -->
+        <div class="config-card">
+          <h3>⏱️ Reglas de Concurrencia y Venta</h3>
+          <form id="concurrencySettingsForm">
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label for="cfgHoldMinutes">Tiempo de Bloqueo Temporal de Butacas (Minutos)</label>
+              <input type="number" id="cfgHoldMinutes" class="form-control" min="1" max="30" required>
+              <small style="color: var(--text-muted); font-size: 0.78rem;">Tiempo que un cliente tiene para confirmar
+                antes de que sus asientos se liberen automáticamente.</small>
+            </div>
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+              <label for="cfgMaxSeats">Límite Máximo de Butacas por Compra</label>
+              <input type="number" id="cfgMaxSeats" class="form-control" min="1" max="20" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">💾 Guardar Parámetros</button>
+          </form>
+
+          <hr style="border: none; border-top: 1px solid var(--border-color); margin: 2rem 0 1.5rem;">
+
+          <h3 style="color: #ff4757;">⚠️ Zona de Mantenimiento y Respaldo</h3>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">Herramientas para
+            administración de datos y contingencias.</p>
+          <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="exportFullDatabaseJSON()">📥 Descargar Backup
+              JSON</button>
+            <button class="btn btn-primary btn-sm" style="background: #ff334b; border-color: #ff334b;"
+              onclick="resetSystemHandler()">♻️ Resetear a Datos de Fábrica</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         PESTAÑA 6: GESTIÓN DE ROLES, PRIVILEGIOS Y PERSONAL (TABLA DE ROLES)
+         ======================================================================= -->
+    <section class="admin-tab-pane" id="tab-roles-users">
+      <div class="table-toolbar">
+        <div>
+          <h2 class="section-title">Matriz de Roles del Sistema (Control de Acceso y Jerarquía)</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
+            Estructura vinculada directamente con la base de datos MySQL (tabla <code>roles</code>, tabla
+            <code>usuarios</code> con <code>rol_id</code> y vista <code>v_usuarios_roles</code>).
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.8rem; align-items: center;">
+          <span class="badge"
+            style="background: rgba(229,9,20,0.15); color: #ff5252; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 600; border: 1px solid rgba(229,9,20,0.3);">
+            🔐 RBAC & MySQL Workbench Sync
+          </span>
+        </div>
+      </div>
+
+      <!-- Tarjetas de Roles con sus Privilegios -->
+      <div id="rolesCardsGrid" class="roles-cards-grid"
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; margin-bottom: 2rem;">
+        <!-- Inyectado dinámicamente -->
+      </div>
+
+      <!-- Tabla de Usuarios y Asignación de Roles -->
+      <div class="table-toolbar" style="margin-top: 2rem;">
+        <div>
+          <h3 style="color: #fff; font-size: 1.2rem; margin-bottom: 0.25rem;">Directorio de Personal y Asignación de
+            Roles</h3>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Usuarios conectados a la base de datos MySQL en
+            tiempo real.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+          <input type="text" id="adminUserSearch" class="form-control" style="width: 240px;"
+            placeholder="Buscar usuario por nombre o email...">
+          <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Nuevo Usuario</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre Completo</th>
+              <th>Correo Electrónico</th>
+              <th>Teléfono</th>
+              <th>Rol Actual</th>
+              <th>Nivel Jerárquico</th>
+              <th>Reasignar Rol</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="adminUsersTableBody">
+            <!-- Inyectado dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =======================================================================
+       MODAL 1: FORMULARIO DE PELÍCULA (AGREGAR / EDITAR)
+       ======================================================================= -->
+  <div class="modal-backdrop" id="movieFormModal">
+    <div class="modal-content" style="max-width: 720px;">
+      <div class="modal-header">
+        <h3 id="modalFormTitle" style="color: #fff;">Programar Película</h3>
+        <button class="modal-close" onclick="closeMovieModal()">✕</button>
+      </div>
+
+      <form id="movieForm">
+        <input type="hidden" id="movieIdInput">
+
+        <div class="form-grid">
+          <div class="form-group form-group-full">
+            <label for="inputTitle">Título de la Película *</label>
+            <input type="text" id="inputTitle" class="form-control" placeholder="Ej. Dune: Parte Dos" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputGenre">Género Principal *</label>
+            <input type="text" id="inputGenre" class="form-control" placeholder="Ej. Ciencia Ficción, Acción" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputDuration">Duración *</label>
+            <input type="text" id="inputDuration" class="form-control" placeholder="Ej. 166 min" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputRating">Calificación (0 - 10)</label>
+            <input type="number" id="inputRating" class="form-control" step="0.1" min="1" max="10"
+              placeholder="Ej. 8.8">
+          </div>
+
+          <div class="form-group">
+            <label for="inputAge">Clasificación por Edad</label>
+            <select id="inputAge" class="form-control">
+              <option value="A">A (Todo público)</option>
+              <option value="B">B (Mayores de 12)</option>
+              <option value="B-15">B-15 (Mayores de 15)</option>
+              <option value="C">C (Adultos 18+)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="inputHall">Sala de Proyección *</label>
+            <select id="inputHall" class="form-control" required>
+              <option value="Sala 1 (IMAX Laser & Dolby)">Sala 1 (IMAX Laser & Dolby)</option>
+              <option value="Sala 2 (70mm Master Cinema)">Sala 2 (70mm Master Cinema)</option>
+              <option value="Sala 3 (Dolby Atmos 360°)">Sala 3 (Dolby Atmos 360°)</option>
+              <option value="Sala 4 (VIP Royal Lounge)">Sala 4 (VIP Royal Lounge)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="inputTimes">Horarios (separados por coma) *</label>
+            <input type="text" id="inputTimes" class="form-control" placeholder="Ej. 14:30, 17:45, 21:00" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputStandardPrice">Precio Entrada Estándar ($)</label>
+            <input type="number" id="inputStandardPrice" class="form-control" step="0.5" placeholder="6.50" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputVipPrice">Precio Entrada VIP Luxury ($)</label>
+            <input type="number" id="inputVipPrice" class="form-control" step="0.5" placeholder="10.00" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputDirector">Director</label>
+            <input type="text" id="inputDirector" class="form-control" placeholder="Ej. Christopher Nolan">
+          </div>
+
+          <div class="form-group">
+            <label for="inputFeatured">¿Película Destacada en Portada?</label>
+            <select id="inputFeatured" class="form-control">
+              <option value="false">No (Normal)</option>
+              <option value="true">Sí (Hero Banner Principal)</option>
+            </select>
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="inputPoster">URL del Póster Oficial (Vertical)</label>
+            <input type="url" id="inputPoster" class="form-control" placeholder="https://images.unsplash.com/photo-...">
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="inputBackdrop">URL de Fondo Panorámico (Horizontal)</label>
+            <input type="url" id="inputBackdrop" class="form-control"
+              placeholder="https://images.unsplash.com/photo-...">
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="inputTrailer">URL Tráiler Oficial (YouTube Embed)</label>
+            <input type="url" id="inputTrailer" class="form-control"
+              placeholder="https://www.youtube.com/embed/Way9Dexny3w">
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="inputSynopsis">Sinopsis Oficial *</label>
+            <textarea id="inputSynopsis" class="form-control" placeholder="Escribe un resumen atractivo de la trama..."
+              required></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer"
+          style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color);">
+          <button type="button" class="btn btn-secondary" onclick="closeMovieModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Película</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODAL 2: FORMULARIO DE SNACK (AGREGAR / EDITAR)
+       ======================================================================= -->
+  <div class="modal-backdrop" id="snackFormModal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="modalSnackTitle" style="color: #fff;">Nuevo Producto de Confitería</h3>
+        <button class="modal-close" onclick="closeSnackModal()">✕</button>
+      </div>
+
+      <form id="snackForm">
+        <input type="hidden" id="snackIdInput">
+
+        <div class="form-grid">
+          <div class="form-group form-group-full">
+            <label for="inputSnackName">Nombre del Producto / Combo *</label>
+            <input type="text" id="inputSnackName" class="form-control" placeholder="Ej. Combo Majestad Imperial"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSnackCategory">Categoría *</label>
+            <select id="inputSnackCategory" class="form-control" required>
+              <option value="combos">Combos Especiales</option>
+              <option value="palomitas">Palomitas</option>
+              <option value="snacks">Snacks Calientes</option>
+              <option value="bebidas">Bebidas</option>
+              <option value="dulces">Dulces y Chocolates</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSnackCostPrice">Costo de Insumo / Adquisición ($) *</label>
+            <input type="number" id="inputSnackCostPrice" class="form-control" step="0.01" min="0"
+              placeholder="Ej. 3.20" required>
+            <small style="color: var(--text-muted); font-size: 0.75rem;">Margen proyectado: <strong
+                id="snackMarginPreview" style="color: var(--gold);">-</strong></small>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSnackPrice">Precio de Venta ($) *</label>
+            <input type="number" id="inputSnackPrice" class="form-control" step="0.01" min="0" placeholder="12.50"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSnackTag">Etiqueta Promocional</label>
+            <input type="text" id="inputSnackTag" class="form-control"
+              placeholder="Ej. Más Vendido, Clásico, Crujiente">
+          </div>
+
+          <div class="form-group">
+            <label for="inputSnackSupplier">Proveedor de Insumos</label>
+            <select id="inputSnackSupplier" class="form-control">
+              <option value="">-- Sin proveedor asignado --</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSnackStock">Stock Disponible (Unidades)</label>
+            <input type="number" id="inputSnackStock" class="form-control" min="0" placeholder="250" required>
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="inputSnackImg">URL de la Imagen del Producto</label>
+            <input type="url" id="inputSnackImg" class="form-control"
+              placeholder="https://images.unsplash.com/photo-...">
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="inputSnackDesc">Descripción Detallada *</label>
+            <textarea id="inputSnackDesc" class="form-control"
+              placeholder="Contenido del combo o características del producto..." required></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer"
+          style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color);">
+          <button type="button" class="btn btn-secondary" onclick="closeSnackModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Producto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODAL 3: CONFIGURACIÓN DE SALA FÍSICA
+       ======================================================================= -->
+  <div class="modal-backdrop" id="roomFormModal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="modalRoomTitle" style="color: #fff;">Configurar Sala y Distribución</h3>
+        <button class="modal-close" onclick="closeRoomModal()">✕</button>
+      </div>
+
+      <form id="roomForm">
+        <input type="hidden" id="roomIdInput">
+
+        <div class="form-grid">
+          <div class="form-group form-group-full">
+            <label for="inputRoomName">Nombre de la Sala *</label>
+            <input type="text" id="inputRoomName" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputRoomTech">Tecnología / Formato *</label>
+            <input type="text" id="inputRoomTech" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputRoomSeatsPerRow">Butacas por Fila (Columnas) *</label>
+            <input type="number" id="inputRoomSeatsPerRow" class="form-control" min="6" max="16" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputRoomRows">Filas (separadas por coma) *</label>
+            <input type="text" id="inputRoomRows" class="form-control" placeholder="A, B, C, D, E, F" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputRoomVipRows">Filas VIP (separadas por coma) *</label>
+            <input type="text" id="inputRoomVipRows" class="form-control" placeholder="E, F" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputRoomScreen">Tipo de Pantalla</label>
+            <input type="text" id="inputRoomScreen" class="form-control" placeholder="Ej. Curva Gigante 4K">
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="inputRoomSound">Sistema de Sonido</label>
+            <input type="text" id="inputRoomSound" class="form-control" placeholder="Ej. Dolby Atmos 64 Canales">
+          </div>
+        </div>
+
+        <div class="modal-footer"
+          style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color);">
+          <button type="button" class="btn btn-secondary" onclick="closeRoomModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Configuración de Sala</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODAL 4: DETALLE DE BOLETO DE RESERVA
+       ======================================================================= -->
+  <div class="modal-backdrop" id="bookingDetailModal">
+    <div class="modal-content" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 id="modalBookingTitle" style="color: #fff;">Detalle de Boleto</h3>
+        <button class="modal-close" onclick="closeBookingModal()">✕</button>
+      </div>
+      <div id="bookingModalBody" style="padding: 1.5rem;">
+        <!-- Inyectado por JS -->
+      </div>
+      <div class="modal-footer"
+        style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color);">
+        <button type="button" class="btn btn-secondary" onclick="closeBookingModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODAL 5: FORMULARIO DE USUARIO (REGISTRAR NUEVO USUARIO EN BD)
+       ======================================================================= -->
+  <div class="modal-backdrop" id="userFormModal">
+    <div class="modal-content" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 style="color: #fff;">Registrar Usuario en Base de Datos</h3>
+        <button class="modal-close" onclick="closeUserModal()">✕</button>
+      </div>
+
+      <form id="userForm" onsubmit="handleUserFormSubmit(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="inputUserNombre">Nombre *</label>
+            <input type="text" id="inputUserNombre" class="form-control" placeholder="Ej. Juan" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputUserApellido">Apellido</label>
+            <input type="text" id="inputUserApellido" class="form-control" placeholder="Ej. Pérez">
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="inputUserEmail">Correo Electrónico *</label>
+            <input type="email" id="inputUserEmail" class="form-control" placeholder="juan.perez@cinemajestad.com"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputUserTelefono">Teléfono / WhatsApp</label>
+            <input type="tel" id="inputUserTelefono" class="form-control" placeholder="+57 300 123 4567">
+          </div>
+
+          <div class="form-group">
+            <label for="inputUserRole">Rol Asignado *</label>
+            <select id="inputUserRole" class="form-control" required>
+              <!-- Inyectado por JS -->
+            </select>
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="inputUserPassword">Contraseña Inicial *</label>
+            <input type="password" id="inputUserPassword" class="form-control" placeholder="Mínimo 6 caracteres"
+              value="123456" required>
+            <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 0.25rem;">Por
+              defecto se sugiere '123456'.</small>
+          </div>
+        </div>
+
+        <div class="modal-footer"
+          style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color);">
+          <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear Usuario en BD 👑</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>if (typeof io === 'undefined') document.write('<script src="/socket.io/socket.io.js"><\/script>');</script>
+  <script src="js/data/mockData.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/socket-client.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/pdf-export.js"></script>
+  <script src="js/admin-analytics.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+
+</html>

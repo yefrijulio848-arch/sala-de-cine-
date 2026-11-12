@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confitería & Dulcería Real | Cine Majestad</title>
+  <meta name="description" content="Añade combos reales, palomitas de mantequilla dorada, bebidas frías y aperitivos a tu experiencia cinematográfica en Cine Majestad.">
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/navbar-footer.css">
+  <link rel="stylesheet" href="css/candybar.css">
+  <link rel="stylesheet" href="css/seats.css">
+  <link rel="stylesheet" href="css/payment-modal.css">
+</head>
+<body>
+
+  <!-- Navegación Superior -->
+  <header class="site-header">
+    <div class="container navbar">
+      <a href="index.html" class="brand-logo">
+        <div class="brand-icon">👑</div>
+        Cine<span>Majestad</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-link">Cartelera</a></li>
+        <li><a href="candybar.html" class="nav-link active">Dulcería</a></li>
+        <li><a href="admin.html" class="nav-link">Panel Admin</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="seats.html" class="btn btn-secondary btn-sm">← Regresar a Asientos</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Aviso de Asientos Protegidos con Temporizador -->
+    <div class="timer-sync-bar" id="candyTimerBar" style="display: none; margin-bottom: 2rem;">
+      <div class="sync-status-indicator">
+        <span class="sync-dot"></span>
+        <span id="candySeatsNotice"><strong>Tus butacas están aseguradas:</strong> Tienes tiempo para seleccionar tus snacks antes de confirmar.</span>
+      </div>
+
+      <div class="hold-timer-box active">
+        <span>⏱️ Tiempo restante:</span>
+        <span class="hold-timer-digits" id="candyHoldTimer">05:00</span>
+      </div>
+    </div>
+
+    <div class="candybar-hero">
+      <h1>🍿 Dulcería & Confitería Real</h1>
+      <p>Acompaña tu película con nuestras clásicas palomitas calientes con mantequilla dorada, bebidas heladas y combos imperiales.</p>
+      
+      <!-- Filtros de Snacks -->
+      <div class="candy-categories">
+        <button class="pill-btn active" data-category="all">Todos</button>
+        <button class="pill-btn" data-category="combos">Combos Especiales</button>
+        <button class="pill-btn" data-category="palomitas">Palomitas</button>
+        <button class="pill-btn" data-category="snacks">Snacks Calientes</button>
+        <button class="pill-btn" data-category="bebidas">Bebidas</button>
+      </div>
+    </div>
+
+    <div class="booking-layout">
+      <!-- Grid de Snacks -->
+      <section class="candy-grid" id="candyGrid">
+        <!-- Generado dinámicamente -->
+      </section>
+
+      <!-- Panel Lateral: Total del Pedido -->
+      <aside class="booking-summary-card">
+        <h3 class="summary-title">Resumen de tu Pedido</h3>
+
+        <div class="summary-details-list">
+          <div class="summary-row">
+            <span>Boletos de Cine:</span>
+            <strong id="candySummaryTickets">$0.00</strong>
+          </div>
+          <div class="summary-row">
+            <span>Snacks y Bebidas:</span>
+            <strong id="candySummarySnacks">$0.00</strong>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 0.6rem; font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase;">
+          Productos seleccionados:
+        </div>
+        <div id="candyItemsList" style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.5rem; min-height: 40px;">
+          <!-- Lista dinámica de snacks en la orden -->
+        </div>
+
+        <div class="total-box">
+          <span class="total-label">Total a Pagar:</span>
+          <span class="total-price" id="candyGrandTotal">$0.00</span>
+        </div>
+
+        <button class="btn btn-primary summary-btn" onclick="proceedToCheckout()">
+          Finalizar Compra y Emitir Ticket 💳
+        </button>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/data/mockData.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/payment-modal.js"></script>
+  <script src="js/candybar.js"></script>
+</body>
+</html>

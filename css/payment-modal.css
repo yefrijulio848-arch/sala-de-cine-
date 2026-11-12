@@ -1,0 +1,265 @@
+/* ==========================================================================
+   Cine Majestad - Pasarela de Pagos Interactiva & Tarjeta 3D
+   ========================================================================== */
+
+.payment-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 8, 0.88);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+  padding: 1.5rem;
+}
+
+.payment-modal-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.payment-modal-card {
+  width: 100%;
+  max-width: 640px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), 0 0 60px rgba(212, 175, 55, 0.12);
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-modal-header {
+  padding: 1.2rem 1.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.payment-modal-body {
+  padding: 1.8rem;
+  overflow-y: auto;
+}
+
+/* Selector de Métodos de Pago */
+.payment-methods-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1.8rem;
+}
+
+.pm-tab-btn {
+  padding: 0.8rem 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all var(--transition-fast);
+}
+
+.pm-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.pm-tab-btn.active {
+  background: rgba(212, 175, 55, 0.12);
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+}
+
+/* =============================================================================
+   TARJETA DE CRÉDITO 3D ANIMADA
+   ============================================================================= */
+.card-3d-scene {
+  width: 100%;
+  max-width: 380px;
+  height: 220px;
+  margin: 0 auto 1.8rem;
+  perspective: 1000px;
+}
+
+.card-3d-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  border-radius: 16px;
+}
+
+.card-3d-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  backface-visibility: hidden;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 20px rgba(212, 175, 55, 0.2);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.card-front {
+  background: linear-gradient(135deg, #1c1a27 0%, #2b253b 40%, #0d0c14 100%);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+
+.card-front::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.card-chip {
+  width: 44px;
+  height: 32px;
+  background: linear-gradient(135deg, #d4af37, #f7e7a9, #aa820a);
+  border-radius: 6px;
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.card-brand-label {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+.card-number-display {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.3rem;
+  letter-spacing: 2px;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  word-spacing: 4px;
+}
+
+.card-meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.card-meta-row strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+/* Reverso de la Tarjeta */
+.card-back {
+  background: linear-gradient(135deg, #12111a 0%, #1e1b29 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transform: rotateY(180deg);
+  padding: 1.5rem 0;
+}
+
+.magnetic-strip {
+  width: 100%;
+  height: 40px;
+  background: #000;
+  margin-top: 0.5rem;
+}
+
+.cvv-band {
+  background: #fff;
+  color: #000;
+  padding: 0.4rem 1rem;
+  text-align: right;
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  width: 75%;
+  margin-left: auto;
+  margin-right: 1.5rem;
+  border-radius: 4px;
+}
+
+/* Formulario Digital / PSE / Nequi */
+.payment-pane {
+  display: none;
+}
+
+.payment-pane.active {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+.digital-qr-box {
+  background: #fff;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Spinner Loader de Procesamiento */
+.payment-processing-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 15, 0.94);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+}
+
+.payment-processing-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.payment-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(212, 175, 55, 0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 1.2rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

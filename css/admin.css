@@ -1,0 +1,646 @@
+.admin-dashboard {
+  padding: 2.2rem 0 4.5rem;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+/* Pestañas de Navegación del Panel */
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.4rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.admin-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.admin-tab-btn.active {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #000;
+  box-shadow: 0 4px 14px var(--gold-glow);
+}
+
+/* Contenido de Cada Pestaña */
+.admin-tab-pane {
+  display: none;
+}
+
+.admin-tab-pane.active {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tarjetas de Estadísticas */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 2.5rem;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  backdrop-filter: blur(12px);
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: rgba(229, 9, 20, 0.12);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat-icon.gold {
+  background: rgba(245, 197, 24, 0.12);
+  color: var(--gold);
+}
+
+.stat-icon.blue {
+  background: rgba(0, 210, 255, 0.12);
+  color: var(--accent-blue);
+}
+
+.stat-icon.green {
+  background: rgba(0, 230, 118, 0.12);
+  color: #00e676;
+}
+
+.stat-icon.orange {
+  background: rgba(255, 145, 0, 0.12);
+  color: #ff9100;
+}
+
+.stat-icon.purple {
+  background: rgba(157, 78, 221, 0.15);
+  color: #c77dff;
+}
+
+.stat-info h3 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 0.15rem;
+}
+
+.stat-info p {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+/* Barra de Filtros y Búsqueda en Tablas */
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+}
+
+/* Tabla de Gestión */
+.table-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  backdrop-filter: blur(12px);
+  margin-bottom: 2.5rem;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 1rem 1.2rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-table td {
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.88rem;
+  vertical-align: middle;
+}
+
+.admin-table tr:hover td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.table-movie-info {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.table-poster {
+  width: 44px;
+  height: 62px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.table-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon-action {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: none;
+}
+
+.btn-icon-action:hover {
+  background: var(--gold);
+  color: #000;
+}
+
+.btn-icon-action.delete:hover {
+  background: #ff334b;
+  color: #fff;
+}
+
+.badge-status {
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge-status.confirmed {
+  background: rgba(0, 230, 118, 0.15);
+  color: #00e676;
+  border: 1px solid rgba(0, 230, 118, 0.3);
+}
+
+.badge-status.cancelled {
+  background: rgba(229, 9, 20, 0.15);
+  color: #ff4757;
+  border: 1px solid rgba(229, 9, 20, 0.3);
+}
+
+/* ==========================================================================
+   Gestor Visual de Esquemas de Asientos (Sala y Concurrencia en Vivo)
+   ========================================================================== */
+.admin-room-inspector {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.inspector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  margin-bottom: 1.8rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.inspector-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-hall-view {
+  background: rgba(10, 13, 20, 0.8);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.admin-screen-indicator {
+  width: 70%;
+  max-width: 450px;
+  height: 8px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  border-radius: 4px;
+  margin-bottom: 2.5rem;
+  position: relative;
+  box-shadow: 0 4px 20px var(--gold-glow);
+}
+
+.admin-screen-indicator::after {
+  content: 'PANTALLA DE PROYECCIÓN';
+  position: absolute;
+  top: 14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+}
+
+.admin-seats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.8rem;
+}
+
+.admin-seat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-seat {
+  width: 32px;
+  height: 28px;
+  border-radius: 4px;
+  background: var(--seat-available);
+  border: 1px solid var(--seat-available-border);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.admin-seat:hover {
+  transform: scale(1.15);
+  border-color: #fff;
+  z-index: 5;
+}
+
+.admin-seat.vip {
+  background: rgba(245, 197, 24, 0.2);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.admin-seat.locked {
+  background: linear-gradient(135deg, #e67e22, #d35400) !important;
+  border-color: #f39c12 !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(243, 156, 18, 0.6);
+}
+
+.admin-seat.occupied {
+  background: var(--seat-occupied) !important;
+  border-color: #e50914 !important;
+  color: #ff6b72 !important;
+}
+
+.admin-seat.maintenance {
+  background: #34495e !important;
+  border: 1px dashed #e74c3c !important;
+  color: #e74c3c !important;
+}
+
+/* Tarjetas de Salas Físicas */
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.room-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.6rem;
+  transition: transform var(--transition-fast);
+}
+
+.room-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(245, 197, 24, 0.3);
+}
+
+.room-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.room-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.4rem;
+}
+
+/* Tarjetas de Configuración */
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.8rem;
+  margin-bottom: 2.5rem;
+}
+
+.config-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.8rem;
+}
+
+.config-card h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Formulario Modal de Administración con Scroll ("Subir y Bajar") */
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+  padding: 1.5rem 1.8rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(90vh - 140px);
+  flex: 1 1 auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) rgba(255, 255, 255, 0.06);
+}
+
+.modal-content .modal-footer {
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-color);
+  padding: 1rem 1.8rem;
+  z-index: 10;
+}
+
+#bookingModalBody {
+  overflow-y: auto;
+  max-height: calc(90vh - 140px);
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) rgba(255, 255, 255, 0.06);
+}
+
+/* Scrollbar estilizada dorada para subir y bajar suavemente */
+.form-grid::-webkit-scrollbar,
+#bookingModalBody::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar,
+.modal-backdrop::-webkit-scrollbar {
+  width: 8px;
+}
+
+.form-grid::-webkit-scrollbar-track,
+#bookingModalBody::-webkit-scrollbar-track,
+.modal-content::-webkit-scrollbar-track,
+.modal-backdrop::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+}
+
+.form-grid::-webkit-scrollbar-thumb,
+#bookingModalBody::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb,
+.modal-backdrop::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 4px;
+}
+
+.form-grid::-webkit-scrollbar-thumb:hover,
+#bookingModalBody::-webkit-scrollbar-thumb:hover,
+.modal-content::-webkit-scrollbar-thumb:hover,
+.modal-backdrop::-webkit-scrollbar-thumb:hover {
+  background: #ffe066;
+}
+
+.form-group-full {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.form-control {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  transition: border-color var(--transition-fast);
+}
+
+.form-control:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 10px var(--gold-glow);
+}
+
+textarea.form-control {
+  min-height: 90px;
+  resize: vertical;
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-tabs {
+    gap: 0.3rem;
+  }
+
+  .admin-tab-btn {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.8rem;
+  }
+
+  .table-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .table-container {
+    border-radius: var(--radius-sm);
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Utilidades de Inteligencia Financiera y Rentabilidad */
+.badge-profit {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  background: rgba(0, 230, 118, 0.12);
+  color: #00e676;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.badge-cost {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  background: rgba(255, 145, 0, 0.12);
+  color: #ff9100;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.badge-margin-high {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  background: rgba(0, 210, 255, 0.12);
+  color: #00d2ff;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.badge-margin-gold {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  background: rgba(245, 197, 24, 0.14);
+  color: var(--gold);
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+/* Permisos y Tarjetas de Roles */
+.perm-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.perm-badge.active {
+  background: rgba(46, 213, 115, 0.12);
+  color: #2ed573;
+  border: 1px solid rgba(46, 213, 115, 0.3);
+}
+
+.perm-badge.inactive {
+  background: rgba(255, 255, 255, 0.05);
+  color: #888;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.role-card {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.role-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent-gold) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}

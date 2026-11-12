@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boleto Digital Confirmado | Cine Majestad</title>
+  <meta name="description" content="Tu entrada digital de cine confirmada para acceder a la sala con código QR en Cine Majestad.">
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/navbar-footer.css">
+  <link rel="stylesheet" href="css/checkout.css">
+</head>
+<body>
+
+  <!-- Navegación Superior -->
+  <header class="site-header">
+    <div class="container navbar">
+      <a href="index.html" class="brand-logo">
+        <div class="brand-icon">👑</div>
+        Cine<span>Majestad</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-link">Cartelera</a></li>
+        <li><a href="candybar.html" class="nav-link">Dulcería</a></li>
+        <li><a href="admin.html" class="nav-link">Panel Admin</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="index.html" class="btn btn-secondary btn-sm">Nueva Compra</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="checkout-container" id="checkoutContent">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <span style="font-size: 3rem;">🎉</span>
+        <h1 style="font-size: 2.2rem; margin-top: 0.5rem;">¡Tu Entrada está Lista y Asientos Confirmados!</h1>
+        <p style="color: var(--text-secondary);">Tus butacas han sido aseguradas permanentemente. Presenta este boleto digital directamente en la entrada de la sala.</p>
+      </div>
+
+      <!-- Boleto de Cine Digital Estilizado -->
+      <div class="ticket-wrapper">
+        <div class="ticket-header">
+          <div class="ticket-brand">👑 Cine Majestad Multiplex</div>
+          <span class="ticket-status">CONFIRMADO ✓</span>
+        </div>
+
+        <div class="ticket-body">
+          <h2 class="ticket-movie-title" id="ticketMovieTitle">Título de la Película</h2>
+
+          <div class="ticket-meta-grid">
+            <div class="ticket-meta-item">
+              <label>Sala de Proyección</label>
+              <span id="ticketHall">Sala 1 (IMAX)</span>
+            </div>
+            <div class="ticket-meta-item">
+              <label>Horario</label>
+              <span id="ticketShowtime">21:00 (Hoy)</span>
+            </div>
+            <div class="ticket-meta-item">
+              <label>Butacas Reservadas</label>
+              <span id="ticketSeats" style="color: var(--gold); font-weight: 800;">E-4, E-5</span>
+            </div>
+            <div class="ticket-meta-item">
+              <label>Total Pagado</label>
+              <span id="ticketTotalPaid" style="color: #00e676; font-weight: 800;">$20.00</span>
+            </div>
+          </div>
+
+          <div class="ticket-meta-item" id="ticketSnacksRow" style="display: none; padding: 0.6rem 0;">
+            <!-- Notificación de snacks -->
+          </div>
+        </div>
+
+        <!-- Muescas de Boleto Perforado -->
+        <div class="ticket-divider">
+          <div class="ticket-notch-left"></div>
+          <div class="ticket-notch-right"></div>
+        </div>
+
+        <!-- Pie del Boleto con Código QR -->
+        <div class="ticket-footer">
+          <div class="qr-box">
+            <!-- Código QR generado en SVG -->
+            <svg viewBox="0 0 100 100" fill="#000">
+              <rect x="5" y="5" width="25" height="25" fill="#000" />
+              <rect x="9" y="9" width="17" height="17" fill="#fff" />
+              <rect x="13" y="13" width="9" height="9" fill="#000" />
+              
+              <rect x="70" y="5" width="25" height="25" fill="#000" />
+              <rect x="74" y="9" width="17" height="17" fill="#fff" />
+              <rect x="78" y="13" width="9" height="9" fill="#000" />
+
+              <rect x="5" y="70" width="25" height="25" fill="#000" />
+              <rect x="9" y="74" width="17" height="17" fill="#fff" />
+              <rect x="13" y="78" width="9" height="9" fill="#000" />
+
+              <rect x="40" y="10" width="8" height="15" fill="#000" />
+              <rect x="50" y="25" width="15" height="8" fill="#000" />
+              <rect x="35" y="45" width="30" height="10" fill="#000" />
+              <rect x="40" y="70" width="12" height="20" fill="#000" />
+              <rect x="65" y="65" width="25" height="10" fill="#000" />
+              <rect x="75" y="80" width="15" height="12" fill="#000" />
+            </svg>
+          </div>
+
+          <div class="ticket-code-info">
+            <p>Código de Entrada</p>
+            <div class="ticket-booking-id" id="ticketBookingCode">CMG-948123</div>
+            <p style="margin-top: 0.3rem;">Acceso Rápido Sin Filas</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="ticket-actions">
+        <button class="btn btn-primary" id="btnDownloadPdfTicket" onclick="handleDownloadCurrentPdf()">📥 Descargar Boleto (PDF)</button>
+        <button class="btn btn-secondary" onclick="window.print()">🖨️ Imprimir Térmico</button>
+        <a href="index.html" class="btn btn-secondary">Regresar a la Cartelera</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/data/mockData.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/pdf-export.js"></script>
+  <script src="js/checkout.js"></script>
+</body>
+</html>

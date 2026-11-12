@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Selección de Butacas en Tiempo Real | Cine Majestad</title>
+  <meta name="description" content="Selecciona tus asientos interactivos en tiempo real con sistema de bloqueo concurrente en Cine Majestad.">
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/navbar-footer.css">
+  <link rel="stylesheet" href="css/seats.css">
+  <link rel="stylesheet" href="css/payment-modal.css">
+</head>
+<body>
+
+  <!-- Navegación Superior -->
+  <header class="site-header">
+    <div class="container navbar">
+      <a href="index.html" class="brand-logo">
+        <div class="brand-icon">👑</div>
+        Cine<span>Majestad</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-link">Cartelera</a></li>
+        <li><a href="candybar.html" class="nav-link">Dulcería</a></li>
+        <li><a href="admin.html" class="nav-link">Panel Admin</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="index.html" class="btn btn-secondary btn-sm" onclick="handleCancelOrder()">← Volver a Cartelera</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Barra Superior de Sincronización Concurrente y Temporizador -->
+    <div class="timer-sync-bar">
+      <div class="sync-status-indicator">
+        <span class="sync-dot"></span>
+        <span><strong>Concurrencia en Vivo:</strong> Los asientos que elijas se bloquean para ti y nadie más los podrá tomar.</span>
+      </div>
+
+      <div class="hold-timer-box" id="holdTimerBox">
+        <span>⏱️ Tiempo para comprar:</span>
+        <span class="hold-timer-digits" id="holdTimer">05:00</span>
+      </div>
+    </div>
+
+    <div class="booking-layout">
+      <!-- Sala de Cine Interactiva -->
+      <section class="cinema-hall">
+        <!-- Pantalla de Cine Curva -->
+        <div class="screen-wrapper">
+          <div class="screen-curve"></div>
+          <div class="screen-light"></div>
+          <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+        </div>
+
+        <!-- Leyenda de Estados de Butaca -->
+        <div class="seats-legend">
+          <div class="legend-item">
+            <span class="legend-seat available"></span>
+            <span id="legendPriceStandard">Estándar ($6.50)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-seat vip"></span>
+            <span id="legendPriceVip">VIP Luxury ($10.00)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-seat selected"></span>
+            <span>Tu Selección</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-seat locked"></span>
+            <span>En Selección 🔒 (Otro cliente)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-seat occupied"></span>
+            <span>Ocupado / Vendido</span>
+          </div>
+        </div>
+
+        <!-- Matriz de Asientos -->
+        <div class="seats-grid" id="seatsGrid">
+          <!-- Inyectado dinámicamente con JavaScript -->
+        </div>
+
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.8rem; text-align: center;">
+          💡 Las filas VIP cuentan con butacas reclinables de cuero y servicio preferente.
+        </p>
+
+        <!-- Botón para Probar Concurrencia -->
+        <div class="concurrency-controls">
+          <button class="btn-demo-sim" onclick="simulateConcurrentBuyer()" title="Simula que otro usuario abre la web y toma 2 asientos en tiempo real">
+            🤖 Simular compra concurrente de otro usuario
+          </button>
+        </div>
+      </section>
+
+      <!-- Panel Lateral: Resumen de Reserva -->
+      <aside class="booking-summary-card">
+        <h3 class="summary-title">Resumen de Entrada</h3>
+        
+        <div class="movie-mini-info">
+          <img src="" alt="Póster" id="summaryPoster" class="movie-mini-poster">
+          <div class="movie-mini-meta">
+            <h4 id="summaryTitle">Cargando...</h4>
+            <span class="badge badge-format" id="summaryHall" style="font-size: 0.72rem;">Sala</span>
+          </div>
+        </div>
+
+        <div class="summary-details-list">
+          <div class="summary-row">
+            <span>Horario de Función:</span>
+            <strong id="summaryTime">--:--</strong>
+          </div>
+          <div class="summary-row">
+            <span>Boletos seleccionados:</span>
+            <strong id="summarySeatsCount">0 boletos</strong>
+          </div>
+          <div class="summary-row">
+            <span>Estado de Reserva:</span>
+            <strong id="summaryLockStatus" style="color: var(--text-muted);">Sin asientos</strong>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">
+          Butacas bloqueadas para ti:
+        </div>
+        <div class="selected-seats-tags" id="selectedSeatsTags">
+          <span style="color: var(--text-muted); font-size: 0.85rem;">Ningún asiento seleccionado</span>
+        </div>
+
+        <div class="total-box">
+          <span class="total-label">Subtotal Boletos:</span>
+          <span class="total-price" id="summaryTotalPrice">$0.00</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.7rem;">
+          <button class="btn btn-primary summary-btn" id="btnProceedDirectCheckout" onclick="proceedToCheckoutDirectly()" disabled style="opacity: 0.5;">
+            Confirmar Boletos 🎟️
+          </button>
+          <button class="btn btn-secondary summary-btn" id="btnProceedCandy" onclick="proceedToCandybar()" disabled style="opacity: 0.5; font-size: 0.85rem;">
+            Añadir Dulcería (Opcional) 🍿
+          </button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Modal de Alerta por Expiración de Tiempo -->
+  <div class="modal-backdrop" id="expiredModal">
+    <div class="modal-content modal-alert" style="max-width: 480px;">
+      <div class="modal-alert-icon">⏱️</div>
+      <h3 style="color: #fff; margin-bottom: 0.8rem;">¡Tiempo de Reserva Expirado!</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5;">
+        El tiempo límite para confirmar tu compra ha terminado. Tus asientos seleccionados se han <strong>liberado automáticamente</strong> para que otros clientes puedan comprarlos.
+      </p>
+      <button class="btn btn-primary" onclick="closeExpiredModal()">Elegir Asientos Nuevamente</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>if (typeof io === 'undefined') document.write('<script src="/socket.io/socket.io.js"><\/script>');</script>
+  <script src="js/data/mockData.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/socket-client.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/payment-modal.js"></script>
+  <script src="js/seats.js"></script>
+</body>
+</html>
