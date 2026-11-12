@@ -573,9 +573,34 @@ const Store = {
     if (isDbConnected()) {
       try {
         const rows = await query(`
-          SELECT p.*, s.nombre as hall
-          FROM peliculas p
-          LEFT JOIN salas s ON s.id = p.sala_defecto_id
+          SELECT 
+            p.*, 
+            s.nombre as hall, 
+            s.id as sala_id, 
+            GROUP_CONCAT(DISTINCT g.nombre ORDER BY g.nombre SEPARATOR ', ') AS generos, 
+            GROUP_CONCAT(DISTINCT f.nombre ORDER BY f.nombre SEPARATOR ', ') AS formatos 
+          FROM peliculas p 
+          LEFT JOIN funciones fn ON fn.pelicula_id = p.id 
+          LEFT JOIN salas s ON s.id = fn.sala_id 
+          LEFT JOIN pelicula_generos pg ON p.id = pg.pelicula_id 
+          LEFT JOIN generos g ON pg.genero_id = g.id 
+          LEFT JOIN pelicula_formatos pf ON p.id = pf.pelicula_id 
+          LEFT JOIN formatos f ON pf.formato_id = f.id 
+
+
+
+
+
+
+
+
+
+          
+
+
+
+
+          GROUP BY p.id, s.nombre, s.id 
           ORDER BY p.es_destacada DESC, p.titulo ASC
         `);
         if (rows && rows.length > 0) {
@@ -594,10 +619,10 @@ const Store = {
             priceVip: parseFloat(r.precio_vip_base),
             isFeatured: Boolean(r.es_destacada),
             hall: r.hall || "Sala 1",
-            roomId: r.sala_defecto_id || "sala-1",
+            roomId: r.sala_id || "sala-1",
             showtimes: ["14:30", "17:45", "21:00"],
-            formats: ["2D", "3D", "IMAX"],
-            genre: "Acción"
+            formats: r.formatos ? r.formatos.split(", ") : ["2D", "3D"],
+            genre: r.generos ? r.generos.split(", ")[0] : "Acción"
           }));
         }
       } catch (e) {
