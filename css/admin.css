@@ -371,6 +371,73 @@
   color: #e74c3c !important;
 }
 
+/* Soporte de Maquetas Arquitectónicas en el Inspector del Admin */
+.admin-seat-row .stadium-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.admin-seat-row .motion-pod {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(0, 229, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 6px;
+  padding: 3px 5px;
+}
+
+.admin-seat-row .love-seat-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(212, 175, 55, 0.06);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 8px;
+  padding: 3px 5px;
+}
+
+.admin-seat-row .lounge-table {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  margin: 0 0.3rem;
+}
+
+.admin-seat-row .effects-aisle {
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: #00e5ff;
+}
+
+.admin-seat-row .aisle-stairs {
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f1c40f;
+  font-size: 0.6rem;
+}
+
+.admin-seat-row .carpet-aisle {
+  width: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+  font-size: 0.6rem;
+}
+
 /* Tarjetas de Salas Físicas */
 .rooms-grid {
   display: grid;

@@ -5,7 +5,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   initNavbar();
   updateCartBadge();
-  initRoleModal();
   initUserProfileModal();
   checkPageAccess();
 
@@ -44,14 +43,19 @@ function initNavbar() {
 
 // Actualizar enlaces del navbar según el rol activo y estado de autenticación
 function updateNavbarForRole() {
-  const currentRole = Storage.getActiveRole();
-  const currentPath = window.location.pathname;
   const authUser = Storage.getAuthUser();
+  const currentRole = (authUser && authUser.rol) ? authUser.rol : Storage.ROLES.CLIENTE;
+  const currentPath = window.location.pathname;
 
-  // 1. Inyectar o actualizar el botón de Rol y Usuario en la barra
+  // 1. Limpieza de elementos de cambio manual de rol (seguridad: no se puede cambiar de rol sin iniciar sesión)
+  const oldRoleBtn = document.querySelector("#roleBadgeBtn");
+  if (oldRoleBtn) oldRoleBtn.remove();
+  const oldRoleModal = document.querySelector("#roleSwitchModal");
+  if (oldRoleModal) oldRoleModal.remove();
+
+  // 2. Inyectar o actualizar el botón de Usuario / Login en la barra
   const navActions = document.querySelector(".nav-actions");
   if (navActions) {
-    // Botón de Usuario / Login
     let userBtn = document.querySelector("#userAccountNavBtn");
     if (!userBtn) {
       userBtn = document.createElement("div");
@@ -63,9 +67,15 @@ function updateNavbarForRole() {
     }
 
     if (authUser) {
+      const isStaff = ["TRABAJADOR", "TAQUILLERO", "CONFITERIA", "GERENTE", "ADMIN"].includes(authUser.rol);
+      const isAdmin = authUser.rol === "ADMIN" || authUser.rol === "GERENTE";
+      const icon = isAdmin ? "👑" : (isStaff ? "👔" : "👤");
+      const roleClass = isAdmin ? "role-admin" : (isStaff ? "role-trabajador" : "");
+      const roleText = isAdmin ? "Admin" : (isStaff ? "Personal" : "Cliente");
+
       userBtn.innerHTML = `
-        <button class="role-badge-btn" style="background: rgba(212, 175, 55, 0.15); border-color: rgba(212, 175, 55, 0.4); color: var(--gold);" onclick="openUserProfileModal()" title="Ver Mi Perfil e Historial de Boletos">
-          👤 ${authUser.nombre} ▾
+        <button class="role-badge-btn ${roleClass}" onclick="openUserProfileModal()" title="Mi Cuenta (${roleText})">
+          ${icon} ${authUser.nombre} <span style="font-size: 0.72rem; opacity: 0.85;">(${roleText})</span> ▾
         </button>
       `;
     } else {
@@ -75,53 +85,35 @@ function updateNavbarForRole() {
         </a>
       `;
     }
-
-    // Botón de Rol
-    let roleBtn = document.querySelector("#roleBadgeBtn");
-    if (!roleBtn) {
-      roleBtn = document.createElement("button");
-      roleBtn.id = "roleBadgeBtn";
-      roleBtn.className = "role-badge-btn";
-      roleBtn.onclick = openRoleModal;
-      navActions.insertBefore(roleBtn, userBtn.nextSibling);
-    }
-
-    if (currentRole === Storage.ROLES.CLIENTE) {
-      roleBtn.className = "role-badge-btn";
-      roleBtn.innerHTML = `👤 Rol: Cliente ▾`;
-      roleBtn.title = "Modo Usuario: Ver películas, horarios y asientos";
-    } else if (currentRole === Storage.ROLES.TRABAJADOR) {
-      roleBtn.className = "role-badge-btn role-trabajador";
-      roleBtn.innerHTML = `👔 Rol: Trabajador ▾`;
-      roleBtn.title = "Modo Trabajador: Ver funciones, atender comidas e imprimir";
-    } else if (currentRole === Storage.ROLES.ADMIN) {
-      roleBtn.className = "role-badge-btn role-admin";
-      roleBtn.innerHTML = `👑 Rol: Admin ▾`;
-      roleBtn.title = "Modo Administrador: Control total de la plataforma";
-    }
   }
 
-  // 2. Filtrar enlaces visibles de navegación según el rol
+  // 3. Filtrar enlaces visibles de navegación según el rol autenticado
   const navLinksContainer = document.querySelector(".nav-links");
   if (!navLinksContainer) return;
 
   let linksHtml = "";
 
-  if (currentRole === Storage.ROLES.CLIENTE) {
+  if (authUser && (currentRole === Storage.ROLES.ADMIN || currentRole === "GERENTE")) {
     linksHtml = `
       <li><a href="index.html" class="nav-link ${currentPath.endsWith('index.html') || currentPath.endsWith('/') ? 'active' : ''}">Cartelera</a></li>
-      <li><a href="checkout.html" class="nav-link ${currentPath.endsWith('checkout.html') ? 'active' : ''}">Mi Entrada</a></li>
-    `;
-  } else if (currentRole === Storage.ROLES.TRABAJADOR) {
-    linksHtml = `
-      <li><a href="index.html" class="nav-link ${currentPath.endsWith('index.html') || currentPath.endsWith('/') ? 'active' : ''}">Cartelera Web</a></li>
-      <li><a href="trabajador.html" class="nav-link ${currentPath.endsWith('trabajador.html') ? 'active' : ''}">Portal Trabajador (Funciones, Comidas & Impresión)</a></li>
-    `;
-  } else {
-    linksHtml = `
-      <li><a href="index.html" class="nav-link ${currentPath.endsWith('index.html') || currentPath.endsWith('/') ? 'active' : ''}">Cartelera</a></li>
+      <li><a href="candybar.html" class="nav-link ${currentPath.endsWith('candybar.html') ? 'active' : ''}">Dulcería</a></li>
       <li><a href="trabajador.html" class="nav-link ${currentPath.endsWith('trabajador.html') ? 'active' : ''}">Portal Trabajador</a></li>
       <li><a href="admin.html" class="nav-link ${currentPath.endsWith('admin.html') ? 'active' : ''}">Panel Admin</a></li>
+    `;
+  } else if (authUser && ["TRABAJADOR", "TAQUILLERO", "CONFITERIA"].includes(currentRole)) {
+    const workerLink = currentRole === "CONFITERIA" ? "trabajador.html?tab=food" : "trabajador.html?tab=print";
+    const workerLabel = currentRole === "CONFITERIA" ? "🍿 Portal Dulcería" : "🎟️ Portal Taquilla";
+    linksHtml = `
+      <li><a href="index.html" class="nav-link ${currentPath.endsWith('index.html') || currentPath.endsWith('/') ? 'active' : ''}">Cartelera Web</a></li>
+      <li><a href="candybar.html" class="nav-link ${currentPath.endsWith('candybar.html') ? 'active' : ''}">Dulcería</a></li>
+      <li><a href="${workerLink}" class="nav-link ${currentPath.endsWith('trabajador.html') ? 'active' : ''}">${workerLabel}</a></li>
+    `;
+  } else {
+    // Cliente o visitante anónimo
+    linksHtml = `
+      <li><a href="index.html" class="nav-link ${currentPath.endsWith('index.html') || currentPath.endsWith('/') ? 'active' : ''}">Cartelera</a></li>
+      <li><a href="candybar.html" class="nav-link ${currentPath.endsWith('candybar.html') ? 'active' : ''}">Dulcería</a></li>
+      <li><a href="checkout.html" class="nav-link ${currentPath.endsWith('checkout.html') ? 'active' : ''}">Mi Entrada</a></li>
     `;
   }
 
@@ -131,136 +123,82 @@ function updateNavbarForRole() {
 // Validación de Acceso por Página (Role Guard)
 function checkPageAccess() {
   const authUser = Storage.getAuthUser();
-  const currentRole = (authUser && authUser.rol) ? authUser.rol : Storage.getActiveRole();
   const currentPath = window.location.pathname;
 
-  // Si está en admin.html y no es ADMIN ni GERENTE
-  if (currentPath.endsWith("admin.html") && currentRole !== Storage.ROLES.ADMIN && currentRole !== "GERENTE") {
-    renderAccessRestrictedScreen("admin");
+  // Si está en admin.html
+  if (currentPath.endsWith("admin.html")) {
+    if (!authUser) {
+      renderAccessRestrictedScreen("admin", "NO_AUTH");
+      return;
+    }
+    if (authUser.rol !== Storage.ROLES.ADMIN && authUser.rol !== "GERENTE") {
+      renderAccessRestrictedScreen("admin", "FORBIDDEN");
+      return;
+    }
   }
 
-  // Si está en trabajador.html y es CLIENTE
-  if (currentPath.endsWith("trabajador.html") && currentRole === Storage.ROLES.CLIENTE) {
-    renderAccessRestrictedScreen("trabajador");
+  // Si está en trabajador.html
+  if (currentPath.endsWith("trabajador.html")) {
+    if (!authUser) {
+      renderAccessRestrictedScreen("trabajador", "NO_AUTH");
+      return;
+    }
+    if (authUser.rol === Storage.ROLES.CLIENTE) {
+      renderAccessRestrictedScreen("trabajador", "FORBIDDEN");
+      return;
+    }
   }
 }
 
 // Pantalla de Acceso Restringido para roles no autorizados
-function renderAccessRestrictedScreen(requiredRoleType) {
+function renderAccessRestrictedScreen(requiredRoleType, reason = "NO_AUTH") {
   const main = document.querySelector("main");
   if (!main) return;
 
-  const roleName = requiredRoleType === "admin" ? "Administrador" : "Trabajador";
+  const roleName = requiredRoleType === "admin" ? "Administrador" : "Trabajador / Personal";
+  const authUser = Storage.getAuthUser();
+
+  let messageHtml = "";
+  let actionsHtml = "";
+
+  if (reason === "NO_AUTH") {
+    messageHtml = `
+      <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5;">
+        Esta sección está reservada exclusivamente para el personal de <strong>${roleName}</strong> de Cine Majestad.<br>
+        Debes iniciar sesión con una cuenta autorizada creada previamente por la administración.
+      </p>
+    `;
+    actionsHtml = `
+      <a href="login.html?returnTo=${encodeURIComponent(window.location.pathname)}" class="btn btn-primary">🔐 Iniciar Sesión con Cuenta Autorizada</a>
+      <a href="index.html" class="btn btn-secondary">← Volver a la Cartelera</a>
+    `;
+  } else {
+    // FORBIDDEN: Está logueado pero es cliente
+    messageHtml = `
+      <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5;">
+        Has iniciado sesión como <strong>${authUser.nombre}</strong> con perfil de <strong>${authUser.rol || 'CLIENTE'}</strong>.<br>
+        No cuentas con los permisos para acceder a esta área de <strong>${roleName}</strong>.<br>
+        <span style="color: var(--gold); font-size: 0.85rem; display: block; margin-top: 0.5rem;">
+          Recuerda: Las cuentas y credenciales de trabajadores son creadas y gestionadas únicamente por el Administrador / Jefe del cine.
+        </span>
+      </p>
+    `;
+    actionsHtml = `
+      <button class="btn btn-secondary" onclick="logoutUser()">🚪 Cerrar Sesión e Ingresar con Otra Cuenta</button>
+      <a href="index.html" class="btn btn-primary">← Ir a la Cartelera de Películas</a>
+    `;
+  }
 
   main.innerHTML = `
     <div class="access-restricted-card">
       <div class="access-restricted-icon">🔒</div>
       <h2 style="font-size: 1.8rem; margin-bottom: 0.8rem; color: #fff;">Acceso Restringido</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5;">
-        Esta sección está reservada exclusivamente para el rol de <strong>${roleName}</strong> de Cine Majestad.<br>
-        Actualmente estás navegando con el rol de <strong>${Storage.getActiveRole()}</strong>.
-      </p>
+      ${messageHtml}
       <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-        <a href="login.html" class="btn btn-primary">🔐 Iniciar Sesión como ${roleName}</a>
-        <button class="btn btn-secondary" onclick="openRoleModal()">Cambiar a Rol ${roleName}</button>
-        <a href="index.html" class="btn btn-secondary">← Volver a la Cartelera</a>
+        ${actionsHtml}
       </div>
     </div>
   `;
-}
-
-// Modal Selector de Roles
-function initRoleModal() {
-  if (document.querySelector("#roleSwitchModal")) return;
-
-  const modalHtml = `
-    <div class="modal-backdrop" id="roleSwitchModal">
-      <div class="modal-content" style="max-width: 580px;">
-        <div class="modal-header">
-          <h3 style="color: #fff;">Seleccionar Rol de Usuario</h3>
-          <button class="modal-close" onclick="closeRoleModal()">✕</button>
-        </div>
-
-        <div style="padding: 1rem 1.5rem 0.5rem; color: var(--text-secondary); font-size: 0.88rem;">
-          Elige con qué perfil deseas navegar y operar en la plataforma de Cine Majestad:
-        </div>
-
-        <div class="role-options-grid">
-          <!-- Opción 1: Cliente -->
-          <div class="role-option-card" id="roleCardCliente" onclick="selectRole('CLIENTE')">
-            <div class="role-option-icon">👤</div>
-            <div class="role-option-info">
-              <h4>Cliente / Espectador</h4>
-              <p>Solo puede ver películas en cartelera, elegir el horario disponible y reservar sus asientos.</p>
-            </div>
-          </div>
-
-          <!-- Opción 2: Trabajador -->
-          <div class="role-option-card" id="roleCardTrabajador" onclick="selectRole('TRABAJADOR')">
-            <div class="role-option-icon" style="color: var(--accent-blue);">👔</div>
-            <div class="role-option-info">
-              <h4>Trabajador / Taquillero & Dulcería</h4>
-              <p>Puede ver funciones de salas, atender y despachar pedidos de comida en mostrador, y dar la opción de imprimir boletos físicos.</p>
-            </div>
-          </div>
-
-          <!-- Opción 3: Administrador -->
-          <div class="role-option-card" id="roleCardAdmin" onclick="selectRole('ADMIN')">
-            <div class="role-option-icon" style="color: var(--gold);">👑</div>
-            <div class="role-option-info">
-              <h4>Administrador Supremo</h4>
-              <p>Control total: programar películas, configurar salas y butacas en vivo, administrar inventario de comidas y ajustes generales.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.body.insertAdjacentHTML("beforeend", modalHtml);
-}
-
-function openRoleModal() {
-  const modal = document.querySelector("#roleSwitchModal");
-  if (!modal) return;
-
-  const currentRole = Storage.getActiveRole();
-  document.querySelectorAll(".role-option-card").forEach(c => c.classList.remove("active"));
-
-  if (currentRole === Storage.ROLES.CLIENTE) {
-    document.querySelector("#roleCardCliente")?.classList.add("active");
-  } else if (currentRole === Storage.ROLES.TRABAJADOR) {
-    document.querySelector("#roleCardTrabajador")?.classList.add("active");
-  } else if (currentRole === Storage.ROLES.ADMIN) {
-    document.querySelector("#roleCardAdmin")?.classList.add("active");
-  }
-
-  modal.classList.add("open");
-}
-
-function closeRoleModal() {
-  const modal = document.querySelector("#roleSwitchModal");
-  if (modal) modal.classList.remove("open");
-}
-
-function selectRole(newRole) {
-  Storage.setActiveRole(newRole);
-  closeRoleModal();
-  updateNavbarForRole();
-  showToast(`Rol cambiado exitosamente a: ${newRole}`, "success");
-
-  // Redirigir inteligentemente según el rol elegido
-  const currentPath = window.location.pathname;
-
-  if (newRole === Storage.ROLES.TRABAJADOR && !currentPath.endsWith("trabajador.html")) {
-    window.location.href = "trabajador.html";
-  } else if (newRole === Storage.ROLES.ADMIN && !currentPath.endsWith("admin.html")) {
-    window.location.href = "admin.html";
-  } else if (newRole === Storage.ROLES.CLIENTE && (currentPath.endsWith("admin.html") || currentPath.endsWith("trabajador.html"))) {
-    window.location.href = "index.html";
-  } else {
-    window.location.reload();
-  }
 }
 
 // Actualizar indicador del carrito / pedido
@@ -456,11 +394,17 @@ function renderUserProfileBookings(userId) {
 }
 
 function logoutUser() {
+  const authUser = Storage.getAuthUser();
+  if (authUser && ["TAQUILLERO", "CONFITERIA", "GERENTE", "TRABAJADOR"].includes(authUser.rol)) {
+    if (typeof Storage.recordWorkerCheckOut === "function") {
+      Storage.recordWorkerCheckOut(authUser.id);
+    }
+  }
   Storage.logout();
   API.setToken(null);
   closeUserProfileModal();
   updateNavbarForRole();
-  showToast("Sesión cerrada correctamente.", "info");
+  showToast("Sesión cerrada correctamente. ¡Hasta pronto!", "info");
   setTimeout(() => {
     window.location.reload();
   }, 600);

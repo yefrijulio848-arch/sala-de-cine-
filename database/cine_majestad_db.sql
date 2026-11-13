@@ -441,14 +441,14 @@ INSERT INTO roles (id, nombre, slug, descripcion, nivel_jerarquia, permisos, pue
  JSON_ARRAY('catalog:view', 'booking:create', 'profile:manage', 'orders:history'), 
  FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE);
 
--- USUARIOS DEL SISTEMA VINCULADOS A SU ROL_ID CORRESPONDIENTE
+-- USUARIOS DEL SISTEMA VINCULADOS A SU ROL_ID CORRESPONDIENTE (Contraseña inicial de demo: 123456)
 INSERT INTO usuarios (id, rol_id, nombre, apellido, email, password_hash, telefono, rol, activo) VALUES
-(1, 1, 'Administrador', 'Majestad', 'admin@cinemajestad.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRpHpXeK6j0P6L.5UqZqVdFmH0f2.', '+57 320 987 6543', 'ADMIN', TRUE),
-(2, 5, 'Yeffry', 'González', 'yeffry@cinemajestad.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRpHpXeK6j0P6L.5UqZqVdFmH0f2.', '+57 300 555 1234', 'CLIENTE', TRUE),
-(3, 2, 'María', 'Rodríguez', 'taquilla@cinemajestad.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRpHpXeK6j0P6L.5UqZqVdFmH0f2.', '+57 311 234 5678', 'TAQUILLERO', TRUE),
-(4, 4, 'Carlos', 'Gerencia', 'gerencia@cinemajestad.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRpHpXeK6j0P6L.5UqZqVdFmH0f2.', '+57 315 444 7788', 'GERENTE', TRUE),
-(5, 3, 'Sofía', 'Dulcería', 'candybar@cinemajestad.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRpHpXeK6j0P6L.5UqZqVdFmH0f2.', '+57 318 666 9900', 'CONFITERIA', TRUE),
-(6, 5, 'Carlos', 'Gómez', 'carlos@cliente.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRpHpXeK6j0P6L.5UqZqVdFmH0f2.', '+57 310 999 8877', 'CLIENTE', TRUE);
+(1, 1, 'Administrador', 'Majestad', 'admin@cinemajestad.com', '$2a$10$wg1SGN8pj2C2UHCdwz/4fu6wmG9Q0vkxm8m04SFtrzUW6Qte90g7K', '+57 320 987 6543', 'ADMIN', TRUE),
+(2, 5, 'Yeffry', 'González', 'yeffry@cinemajestad.com', '$2a$10$wg1SGN8pj2C2UHCdwz/4fu6wmG9Q0vkxm8m04SFtrzUW6Qte90g7K', '+57 300 555 1234', 'CLIENTE', TRUE),
+(3, 2, 'María', 'Rodríguez', 'taquilla@cinemajestad.com', '$2a$10$wg1SGN8pj2C2UHCdwz/4fu6wmG9Q0vkxm8m04SFtrzUW6Qte90g7K', '+57 311 234 5678', 'TAQUILLERO', TRUE),
+(4, 4, 'Carlos', 'Gerencia', 'gerencia@cinemajestad.com', '$2a$10$wg1SGN8pj2C2UHCdwz/4fu6wmG9Q0vkxm8m04SFtrzUW6Qte90g7K', '+57 315 444 7788', 'GERENTE', TRUE),
+(5, 3, 'Sofía', 'Dulcería', 'candybar@cinemajestad.com', '$2a$10$wg1SGN8pj2C2UHCdwz/4fu6wmG9Q0vkxm8m04SFtrzUW6Qte90g7K', '+57 318 666 9900', 'CONFITERIA', TRUE),
+(6, 5, 'Carlos', 'Gómez', 'carlos@cliente.com', '$2a$10$wg1SGN8pj2C2UHCdwz/4fu6wmG9Q0vkxm8m04SFtrzUW6Qte90g7K', '+57 310 999 8877', 'CLIENTE', TRUE);
 
 INSERT INTO generos (id, nombre, slug) VALUES
 (1, 'Ciencia Ficción', 'ciencia-ficcion'),

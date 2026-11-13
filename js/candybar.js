@@ -186,6 +186,16 @@ function proceedToCheckout() {
   
   Storage.saveCurrentOrder(currentOrder);
 
+  // Exigir registro o inicio de sesión como cliente antes de comprar
+  const authUser = Storage.getAuthUser();
+  if (!authUser) {
+    showToast("Para completar tu compra, debes registrarte o iniciar sesión como cliente.", "info");
+    setTimeout(() => {
+      window.location.href = `login.html?returnTo=${encodeURIComponent("candybar.html")}&tab=register`;
+    }, 800);
+    return;
+  }
+
   if (typeof PaymentModal !== "undefined") {
     PaymentModal.open(currentOrder);
   } else {

@@ -487,6 +487,226 @@
   }
 }
 
+/* =============================================================================
+   MAQUETAS Y ESQUEMAS ARQUITECTÓNICOS DIVERSIFICADOS DE SALAS
+   ============================================================================= */
+
+/* Distintivo de Maqueta Arquitectónica */
+.hall-architecture-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  padding: 0.35rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  color: var(--gold);
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+}
+
+/* 1. SALA 1: ANFITEATRO CURVO IMAX */
+.cinema-hall.layout-curved-imax {
+  background: radial-gradient(circle at 50% -25%, rgba(212, 175, 55, 0.22) 0%, rgba(10, 14, 23, 0.95) 75%);
+  border-color: rgba(212, 175, 55, 0.35);
+}
+
+.cinema-hall.layout-curved-imax .screen-curve {
+  height: 22px;
+  background: linear-gradient(90deg, transparent, #d4af37, #fff, #ffd700, transparent);
+  border-radius: 50% 50% 0 0;
+  box-shadow: 0 16px 50px rgba(212, 175, 55, 0.7);
+}
+
+.layout-curved-imax .seat-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+}
+
+/* Rotación radial tipo anfiteatro en los extremos */
+.layout-curved-imax .seat[data-col="1"] { transform: rotate(7deg) translateY(3px); }
+.layout-curved-imax .seat[data-col="2"] { transform: rotate(4deg) translateY(1.5px); }
+.layout-curved-imax .seat[data-col="9"] { transform: rotate(-4deg) translateY(1.5px); }
+.layout-curved-imax .seat[data-col="10"] { transform: rotate(-7deg) translateY(3px); }
+
+/* 2. SALA 2: ESTADIO CLÁSICO CON DOBLE PASILLO (3 BLOQUES) */
+.cinema-hall.layout-stadium-double {
+  background: radial-gradient(circle at 50% -20%, rgba(41, 128, 185, 0.18) 0%, rgba(12, 16, 28, 0.95) 75%);
+  border-color: rgba(52, 152, 219, 0.3);
+}
+
+.cinema-hall.layout-stadium-double .screen-curve {
+  border-radius: 4px;
+  height: 10px;
+  background: linear-gradient(90deg, transparent, #3498db, #ecf0f1, #3498db, transparent);
+  box-shadow: 0 10px 30px rgba(52, 152, 219, 0.5);
+}
+
+.stadium-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.stadium-block.block-left {
+  transform: perspective(300px) rotateY(6deg);
+}
+
+.stadium-block.block-right {
+  transform: perspective(300px) rotateY(-6deg);
+}
+
+.aisle-stairs {
+  width: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  user-select: none;
+}
+
+.aisle-stairs::after {
+  content: '•••';
+  font-size: 0.65rem;
+  color: #f1c40f;
+  letter-spacing: 2px;
+  opacity: 0.6;
+}
+
+/* Puesto especial silla de ruedas / discapacidad */
+.seat.seat-wheelchair {
+  background: linear-gradient(135deg, #2980b9, #1f618d) !important;
+  border-color: #5dade2 !important;
+  color: #fff !important;
+}
+
+.seat.seat-wheelchair::before {
+  content: '♿';
+  font-size: 0.8rem;
+}
+
+/* 3. SALA 3: PODS MECÁNICOS 4DX / DOLBY ATMOS */
+.cinema-hall.layout-motion-4dx {
+  background: radial-gradient(circle at 50% -25%, rgba(0, 230, 246, 0.16) 0%, rgba(9, 14, 26, 0.96) 80%);
+  border-color: rgba(0, 230, 246, 0.35);
+}
+
+.cinema-hall.layout-motion-4dx .screen-curve {
+  height: 12px;
+  background: linear-gradient(90deg, transparent, #00e5ff, #fff, #00e5ff, transparent);
+  box-shadow: 0 10px 35px rgba(0, 229, 255, 0.6);
+}
+
+.motion-pod {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(0, 229, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 8px;
+  padding: 4px 6px;
+  box-shadow: inset 0 0 10px rgba(0, 229, 255, 0.1), 0 4px 10px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+.motion-pod::before {
+  content: '4DX POD';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #00e5ff;
+  opacity: 0.75;
+}
+
+.effects-aisle {
+  width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: rgba(0, 229, 255, 0.7);
+  font-size: 0.72rem;
+  user-select: none;
+}
+
+/* 4. SALA 4: PALCOS VIP & SOFÁS DOBLES (LOVE SEATS) */
+.cinema-hall.layout-vip-lounge {
+  background: radial-gradient(circle at 50% -25%, rgba(212, 175, 55, 0.25) 0%, rgba(22, 14, 16, 0.96) 75%);
+  border-color: rgba(212, 175, 55, 0.4);
+}
+
+.cinema-hall.layout-vip-lounge .screen-curve {
+  height: 12px;
+  background: linear-gradient(90deg, transparent, var(--gold), #fff, var(--gold), transparent);
+  border-radius: 6px;
+  box-shadow: 0 8px 30px rgba(212, 175, 55, 0.5);
+}
+
+.love-seat-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(212, 175, 55, 0.06);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 10px;
+  padding: 3px 5px;
+}
+
+.seat.vip-recliner {
+  width: 42px;
+  height: 34px;
+  border-radius: 8px 8px 4px 4px;
+  background: linear-gradient(135deg, #2c1a1d, #422126);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: var(--gold);
+}
+
+.seat.vip-recliner:hover:not(.occupied):not(.locked) {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.6);
+}
+
+.lounge-table {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  margin: 0 0.35rem;
+  cursor: default;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.2);
+  user-select: none;
+}
+
+.carpet-aisle {
+  width: 40px;
+  height: 100%;
+  border-left: 1px dashed rgba(212, 175, 55, 0.3);
+  border-right: 1px dashed rgba(212, 175, 55, 0.3);
+  background: rgba(184, 15, 10, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  color: rgba(212, 175, 55, 0.6);
+  user-select: none;
+}
+
 @media (max-width: 680px) {
   .cinema-hall {
     padding: 1.5rem 0.8rem;

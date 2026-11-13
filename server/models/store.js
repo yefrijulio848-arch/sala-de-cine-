@@ -685,37 +685,135 @@ const Store = {
     return state.rooms.find(r => r.id === roomId) || state.rooms[0];
   },
 
-  // Snacks
-  getSnacks() {
+  // Snacks (Dulcería y Confitería en tiempo real con MySQL)
+  async getSnacks() {
+    if (isDbConnected()) {
+      try {
+        const rows = await query(`
+          SELECT 
+            ps.id,
+            ps.nombre as name,
+            cs.nombre as category,
+            ps.precio_costo as costPrice,
+            ps.precio as price,
+            ps.etiqueta as badge,
+            ps.imagen_url as image,
+            ps.stock_disponible as stock,
+            ps.stock_inicial as initialStock,
+            ps.descripcion as description,
+            ps.proveedor_id,
+            pv.empresa as proveedor_nombre,
+            pv.porcentaje_ganancia as proveedor_margen,
+            pv.porcentaje_comision as proveedor_comision
+          FROM productos_snack ps
+          LEFT JOIN categorias_snack cs ON ps.categoria_id = cs.id
+          LEFT JOIN proveedores pv ON ps.proveedor_id = pv.id
+          WHERE ps.activo = 1
+          ORDER BY ps.id ASC
+        `);
+        if (rows && rows.length > 0) {
+          return rows.map(r => ({
+            id: r.id,
+            name: r.name,
+            category: r.category || "snacks",
+            costPrice: parseFloat(r.costPrice) || 0,
+            price: parseFloat(r.price) || 0,
+            badge: r.badge || "",
+            image: r.image,
+            stock: parseInt(r.stock, 10) || 0,
+            initialStock: parseInt(r.initialStock, 10) || 500,
+            description: r.description || "",
+            proveedor_id: r.proveedor_id,
+            proveedor_nombre: r.proveedor_nombre || "",
+            proveedor_margen: parseFloat(r.proveedor_margen) || 0,
+            proveedor_comision: parseFloat(r.proveedor_comision) || 0
+          }));
+        }
+      } catch (e) {
+        console.warn("[DB Snacks Sync]:", e.message);
+      }
+    }
     return state.snacks;
   },
 
-  createSnack(snackData) {
+  async createSnack(snackData) {
+    const newId = snackData.id || "snk-" + Date.now().toString(36);
+    const costPrice = parseFloat(snackData.costPrice) || (parseFloat(snackData.price) * 0.35) || 1.50;
+    const price = parseFloat(snackData.price) || 5.00;
+    const stock = parseInt(snackData.stock, 10) || 100;
     const newSnack = {
-      id: "snk-" + Date.now().toString(36),
+      id: newId,
       name: snackData.name,
       category: snackData.category || "snacks",
-      price: parseFloat(snackData.price) || 5.00,
-      stock: parseInt(snackData.stock, 10) || 50,
+      costPrice: costPrice,
+      price: price,
+      stock: stock,
+      initialStock: stock,
       description: snackData.description || "",
       image: snackData.image || "https://images.unsplash.com/photo-1585647347483-22b66260dfff?auto=format&fit=crop&w=500&q=80",
-      badge: snackData.badge || ""
+      badge: snackData.badge || "",
+      proveedor_id: snackData.proveedor_id || null
     };
+
+    if (isDbConnected()) {
+      try {
+        let catId = 3;
+        const catName = (snackData.category || "").toLowerCase();
+        if (catName.includes("combo")) catId = 1;
+        else if (catName.includes("palo") || catName.includes("crisp")) catId = 2;
+        else if (catName.includes("bebida") || catName.includes("refresco")) catId = 4;
+        else if (catName.includes("dulce") || catName.includes("choc")) catId = 5;
+
+        await query(
+          `INSERT INTO productos_snack (id, categoria_id, proveedor_id, nombre, descripcion, precio_costo, precio, etiqueta, imagen_url, stock_inicial, stock_disponible, activo)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+          [newSnack.id, catId, newSnack.proveedor_id, newSnack.name, newSnack.description, newSnack.costPrice, newSnack.price, newSnack.badge, newSnack.image, newSnack.stock, newSnack.stock]
+        );
+      } catch (err) {
+        console.warn("[DB Create Snack Error]:", err.message);
+      }
+    }
+
     state.snacks.push(newSnack);
     return newSnack;
   },
 
-  updateSnack(id, data) {
+  async updateSnack(id, data) {
     const idx = state.snacks.findIndex(s => s.id === id);
-    if (idx === -1) return null;
-    state.snacks[idx] = { ...state.snacks[idx], ...data };
-    return state.snacks[idx];
+    if (idx > -1) {
+      state.snacks[idx] = { ...state.snacks[idx], ...data };
+    }
+    if (isDbConnected()) {
+      try {
+        const fields = [];
+        const values = [];
+        if (data.name) { fields.push("nombre = ?"); values.push(data.name); }
+        if (data.price != null) { fields.push("precio = ?"); values.push(parseFloat(data.price)); }
+        if (data.costPrice != null) { fields.push("precio_costo = ?"); values.push(parseFloat(data.costPrice)); }
+        if (data.stock != null) { fields.push("stock_disponible = ?"); values.push(parseInt(data.stock, 10)); }
+        if (data.description) { fields.push("descripcion = ?"); values.push(data.description); }
+        if (data.proveedor_id) { fields.push("proveedor_id = ?"); values.push(data.proveedor_id); }
+        if (fields.length > 0) {
+          values.push(id);
+          await query(`UPDATE productos_snack SET ${fields.join(", ")} WHERE id = ?`, values);
+        }
+      } catch (e) {
+        console.warn("[DB Update Snack Error]:", e.message);
+      }
+    }
+    return idx > -1 ? state.snacks[idx] : null;
   },
 
-  deleteSnack(id) {
+  async deleteSnack(id) {
     const idx = state.snacks.findIndex(s => s.id === id);
-    if (idx === -1) return false;
-    state.snacks.splice(idx, 1);
+    if (idx > -1) state.snacks.splice(idx, 1);
+    if (isDbConnected()) {
+      try {
+        await query("UPDATE productos_snack SET activo = 0 WHERE id = ?", [id]);
+      } catch (e) {
+        console.warn("[DB Delete Snack Error]:", e.message);
+      }
+    }
     return true;
   },
 
@@ -1192,6 +1290,16 @@ const Store = {
         else if (mpStr.includes("TRANSFER") || mpStr.includes("NEQUI") || mpStr.includes("PSE")) mpEnum = "TRANSFERENCIA";
         else if (mpStr.includes("EFECTIVO") || mpStr.includes("TAQUILLA")) mpEnum = "EFECTIVO";
 
+        let validUserId = null;
+        if (newBooking.userId) {
+          try {
+            const uRows = await query("SELECT id FROM usuarios WHERE id = ? LIMIT 1", [newBooking.userId]);
+            if (uRows && uRows.length > 0) validUserId = uRows[0].id;
+          } catch (uErr) {
+            validUserId = null;
+          }
+        }
+
         const resInsert = await query(
           `INSERT INTO reservas (
             codigo_reserva, usuario_id, cliente_nombre, cliente_email, funcion_id,
@@ -1201,7 +1309,7 @@ const Store = {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMADA', ?, ?)`,
           [
             newBooking.bookingCode,
-            newBooking.userId,
+            validUserId,
             newBooking.customerName,
             newBooking.customerEmail,
             funcionId,
@@ -1255,6 +1363,18 @@ const Store = {
                VALUES (?, ?, ?, ?, ?)`,
               [newReservaId, sId, sQty, sPrice, sSub]
             );
+
+            // Descontar inventario real en MySQL
+            await query(
+              `UPDATE productos_snack 
+               SET stock_disponible = GREATEST(0, stock_disponible - ?) 
+               WHERE id = ?`,
+              [sQty, sId]
+            );
+
+            // Descontar en memoria también
+            const inMem = state.snacks.find(s => s.id === sId);
+            if (inMem) inMem.stock = Math.max(0, inMem.stock - sQty);
           }
         }
       }
@@ -1298,34 +1418,60 @@ const Store = {
             );
             const seats = aRows ? aRows.map(a => a.codigo) : [];
 
+            // Obtener snacks reales de esta reserva desde MySQL
+            const sRows = await query(
+              `SELECT rs.producto_snack_id as id, ps.nombre as name, rs.cantidad as qty, rs.precio_unitario as price, ps.precio_costo as costPrice, ps.proveedor_id
+               FROM reserva_snacks rs
+               LEFT JOIN productos_snack ps ON rs.producto_snack_id = ps.id
+               WHERE rs.reserva_id = ?`,
+              [row.id]
+            );
+            const snacks = sRows ? sRows.map(s => ({
+              id: s.id,
+              name: s.name || "Snack",
+              qty: s.qty,
+              price: parseFloat(s.price) || 0,
+              costPrice: parseFloat(s.costPrice) || 0,
+              proveedor_id: s.proveedor_id
+            })) : [];
+
+            const tTickets = parseFloat(row.subtotal_boletos) || 0;
+            const tSnacks = parseFloat(row.subtotal_snacks) || 0;
+            const tTotal = parseFloat(row.total_pagado) || (tTickets + tSnacks);
+
             dbBookings.push({
               id: row.codigo_reserva,
               bookingCode: row.codigo_reserva,
+              userId: row.usuario_id || null,
               customerName: row.cliente_nombre,
+              clientName: row.cliente_nombre,
               customerEmail: row.cliente_email,
+              clientEmail: row.cliente_email,
               movieId: row.pelicula_id,
               movieTitle: row.pelicula_titulo || "Película Cine Majestad",
               hall: row.sala_nombre || "Sala 1",
+              roomId: row.sala_id ? `sala-${row.sala_id}` : "sala-1",
               showtime: row.hora_inicio ? row.hora_inicio.substring(0, 5) : "14:30",
+              showtimeDate: "Hoy",
               seats: seats,
-              subtotalTickets: parseFloat(row.subtotal_boletos) || 0,
-              ticketsTotal: parseFloat(row.subtotal_boletos) || 0,
-              subtotalSnacks: parseFloat(row.subtotal_snacks) || 0,
-              snacksTotal: parseFloat(row.subtotal_snacks) || 0,
-              total: parseFloat(row.total_pagado) || 0,
-              grandTotal: parseFloat(row.total_pagado) || 0,
-              status: row.estado,
+              snacks: snacks,
+              subtotalTickets: tTickets,
+              ticketsTotal: tTickets,
+              subtotalSnacks: tSnacks,
+              snacksTotal: tSnacks,
+              total: tTotal,
+              grandTotal: tTotal,
+              total_pagado: tTotal,
+              costoTotalProductos: parseFloat(row.costo_total_productos) || 0,
+              comisionTotalPasarela: parseFloat(row.comision_total_pasarela) || 0,
+              gananciaNeta: parseFloat(row.ganancia_neta) || 0,
+              status: row.estado || "CONFIRMADA",
+              foodStatus: (tSnacks > 0) ? "PENDIENTE" : "SIN_COMIDA",
               paymentMethod: row.metodo_pago,
               date: new Date(row.creado_en).toLocaleDateString("es-ES") + " " + new Date(row.creado_en).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
               createdAt: row.creado_en
             });
           }
-          const allCodes = new Set(dbBookings.map(b => b.bookingCode));
-          state.bookings.forEach(b => {
-            if (!allCodes.has(b.bookingCode)) {
-              dbBookings.push(b);
-            }
-          });
           return dbBookings;
         }
       } catch (err) {
@@ -1366,12 +1512,15 @@ const Store = {
     return removed;
   },
 
-  // Analíticas y Métricas
-  getAnalytics() {
-    const totalMovies = state.movies.length;
-    const totalBookings = state.bookings.length;
+  // Analíticas y Métricas en tiempo real vinculadas a MySQL
+  async getAnalytics() {
+    const movies = await this.getMovies();
+    const bookings = await this.getBookings();
+    const totalMovies = movies.length;
+    const totalBookings = bookings.length;
     let totalRevenue = 0;
     let candyRevenue = 0;
+    let ticketRevenue = 0;
 
     const movieSalesMap = {};
     const paymentMethodsMap = {
@@ -1381,35 +1530,32 @@ const Store = {
       "Efectivo en Taquilla": 0
     };
 
-    state.bookings.forEach(b => {
+    bookings.forEach(b => {
       totalRevenue += b.total || 0;
       candyRevenue += b.subtotalSnacks || 0;
+      ticketRevenue += b.subtotalTickets || 0;
 
-      // Por película
       const mTitle = b.movieTitle || "Desconocida";
       movieSalesMap[mTitle] = (movieSalesMap[mTitle] || 0) + (b.total || 0);
 
-      // Por método de pago
-      const pm = b.paymentMethod || "Tarjeta de Crédito / Débito";
-      if (pm.toLowerCase().includes("nequi") || pm.toLowerCase().includes("daviplata")) {
+      const pm = (b.paymentMethod || "Tarjeta de Crédito").toUpperCase();
+      if (pm.includes("NEQUI") || pm.includes("DAVIPLATA")) {
         paymentMethodsMap["Nequi / Daviplata"] += 1;
-      } else if (pm.toLowerCase().includes("pse")) {
+      } else if (pm.includes("PSE") || pm.includes("TRANSFER")) {
         paymentMethodsMap["PSE"] += 1;
-      } else if (pm.toLowerCase().includes("efectivo") || pm.toLowerCase().includes("taquilla")) {
+      } else if (pm.includes("EFECTIVO") || pm.includes("TAQUILLA")) {
         paymentMethodsMap["Efectivo en Taquilla"] += 1;
       } else {
         paymentMethodsMap["Tarjeta de Crédito / Débito"] += 1;
       }
     });
 
-    // Ocupación estimada por sala
     const occupancyByRoom = state.rooms.map(room => {
       let occupiedCount = 0;
       Object.keys(state.occupiedSeats).forEach(k => {
-        // Encontrar si la película/función usa este room
         occupiedCount += state.occupiedSeats[k].length;
       });
-      const maxPossible = room.capacity * 3; // 3 funciones promedio
+      const maxPossible = room.capacity * 3;
       const percent = Math.min(100, Math.round((occupiedCount / (maxPossible || 1)) * 100));
       return {
         roomName: room.name,
@@ -1424,6 +1570,7 @@ const Store = {
       totalBookings,
       totalRevenue: parseFloat(totalRevenue.toFixed(2)),
       candyRevenue: parseFloat(candyRevenue.toFixed(2)),
+      ticketRevenue: parseFloat(ticketRevenue.toFixed(2)),
       movieSales: movieSalesMap,
       paymentMethods: paymentMethodsMap,
       occupancyByRoom
@@ -1433,7 +1580,11 @@ const Store = {
   // =============================================================================
   // INTELIGENCIA FINANCIERA: VENTAS, COSTOS, GANANCIAS, MÁRGENES E INTERESES
   // =============================================================================
-  getFinancialAnalytics() {
+  async getFinancialAnalytics() {
+    const bookings = await this.getBookings();
+    const snacks = await this.getSnacks();
+    const suppliers = await this.getSuppliers();
+
     let grossRevenue = 0;
     let ticketRevenue = 0;
     let snackRevenue = 0;
@@ -1442,9 +1593,9 @@ const Store = {
 
     // Mapa para acumular unidades vendidas por producto
     const snackSalesCount = {};
-    state.snacks.forEach(s => { snackSalesCount[s.id] = 0; });
+    snacks.forEach(s => { snackSalesCount[s.id] = 0; });
 
-    state.bookings.forEach(b => {
+    bookings.forEach(b => {
       grossRevenue += b.total || 0;
       ticketRevenue += b.subtotalTickets || 0;
       snackRevenue += b.subtotalSnacks || 0;
@@ -1452,8 +1603,8 @@ const Store = {
       // Calcular costo de productos de esta venta
       if (b.snacks && Array.isArray(b.snacks)) {
         b.snacks.forEach(item => {
-          const snackDef = state.snacks.find(s => s.id === item.id || s.name === item.name);
-          const cost = snackDef ? (snackDef.costPrice || 0) : 0;
+          const snackDef = snacks.find(s => s.id === item.id || s.name === item.name);
+          const cost = snackDef ? (snackDef.costPrice || 0) : (item.costPrice || 0);
           const qty = item.qty || item.quantity || 1;
           totalCogs += cost * qty;
 
@@ -1464,16 +1615,13 @@ const Store = {
       }
 
       // Calcular comisiones / intereses financieros de pasarela
-      const pm = (b.paymentMethod || "").toLowerCase();
+      const pm = (b.paymentMethod || "").toUpperCase();
       let fee = 0;
-      if (pm.includes("nequi") || pm.includes("daviplata")) {
-        // Nequi cobra aprox 1.5%
+      if (pm.includes("NEQUI") || pm.includes("DAVIPLATA")) {
         fee = (b.total || 0) * 0.015;
-      } else if (pm.includes("efectivo") || pm.includes("taquilla")) {
-        // Efectivo presencial no tiene comisiones de pasarela digital
+      } else if (pm.includes("EFECTIVO") || pm.includes("TAQUILLA")) {
         fee = 0;
       } else {
-        // Tarjeta de crédito / débito / PSE cobra 2.9% + $0.30 USD
         fee = ((b.total || 0) * 0.029) + 0.30;
       }
       totalGatewayFees += fee;
@@ -1484,24 +1632,24 @@ const Store = {
     const grossMarginPercent = grossRevenue > 0 ? (((grossRevenue - totalCogs) / grossRevenue) * 100) : 0;
 
     // Análisis de rentabilidad producto por producto de inventario
-    const inventoryProfitability = state.snacks.map(snack => {
+    const inventoryProfitability = snacks.map(snack => {
       const soldUnits = snackSalesCount[snack.id] || 0;
-      const cost = snackDef => snack.costPrice || 0;
-      const price = snack.price;
-      const unitProfit = price - snack.costPrice;
+      const price = snack.price || 0;
+      const costPrice = snack.costPrice || 0;
+      const unitProfit = price - costPrice;
       const marginPercent = price > 0 ? ((unitProfit / price) * 100) : 0;
-      const markupRoiPercent = snack.costPrice > 0 ? ((unitProfit / snack.costPrice) * 100) : 0;
+      const markupRoiPercent = costPrice > 0 ? ((unitProfit / costPrice) * 100) : 0;
       const productTotalRevenue = soldUnits * price;
-      const productTotalCost = soldUnits * snack.costPrice;
+      const productTotalCost = soldUnits * costPrice;
       const productTotalProfit = productTotalRevenue - productTotalCost;
-      const currentStockValue = snack.stock * snack.costPrice;
+      const currentStockValue = snack.stock * costPrice;
 
       return {
         id: snack.id,
         name: snack.name,
         category: snack.category,
         stock: snack.stock,
-        costPrice: parseFloat(snack.costPrice.toFixed(2)),
+        costPrice: parseFloat(costPrice.toFixed(2)),
         salePrice: parseFloat(price.toFixed(2)),
         unitProfit: parseFloat(unitProfit.toFixed(2)),
         marginPercent: parseFloat(marginPercent.toFixed(1)),
@@ -1523,24 +1671,59 @@ const Store = {
       netProfit: parseFloat(netProfit.toFixed(2)),
       netMarginPercent: parseFloat(netMarginPercent.toFixed(1)),
       grossMarginPercent: parseFloat(grossMarginPercent.toFixed(1)),
-      inventoryProfitability
+      inventoryProfitability,
+      suppliers
     };
   },
 
   // =============================================================================
-  // GESTIÓN DE PROVEEDORES (VENDORS / SUPPLIERS)
+  // GESTIÓN DE PROVEEDORES (VENDORS / SUPPLIERS VINCULADOS A MYSQL)
   // =============================================================================
-  getSuppliers() {
+  async getSuppliers() {
+    if (isDbConnected()) {
+      try {
+        const rows = await query(`
+          SELECT 
+            pv.id, pv.empresa, pv.nit_rut, pv.contacto_nombre, pv.telefono, pv.email,
+            pv.categoria, pv.porcentaje_ganancia, pv.porcentaje_comision, pv.terminos_pago,
+            pv.estado, pv.direccion, pv.notas, pv.creado_en,
+            COALESCE(SUM(rs.cantidad), 0) AS unidades_vendidas,
+            COALESCE(SUM(rs.cantidad * ps.precio_costo), 0.00) AS total_comprado_proveedor,
+            COALESCE(SUM(rs.subtotal), 0.00) AS total_recaudado_ventas
+          FROM proveedores pv
+          LEFT JOIN productos_snack ps ON ps.proveedor_id = pv.id
+          LEFT JOIN reserva_snacks rs ON rs.producto_snack_id = ps.id
+          GROUP BY pv.id, pv.empresa, pv.nit_rut, pv.contacto_nombre, pv.telefono, pv.email,
+                   pv.categoria, pv.porcentaje_ganancia, pv.porcentaje_comision, pv.terminos_pago,
+                   pv.estado, pv.direccion, pv.notas, pv.creado_en
+          ORDER BY pv.empresa ASC
+        `);
+        if (rows && rows.length > 0) {
+          return rows.map(r => ({
+            ...r,
+            porcentaje_ganancia: parseFloat(r.porcentaje_ganancia) || 0,
+            porcentaje_comision: parseFloat(r.porcentaje_comision) || 0,
+            unidades_vendidas: parseInt(r.unidades_vendidas, 10) || 0,
+            total_comprado_proveedor: parseFloat(r.total_comprado_proveedor) || 0,
+            total_recaudado_ventas: parseFloat(r.total_recaudado_ventas) || 0
+          }));
+        }
+      } catch (err) {
+        console.warn("[DB Suppliers Sync]:", err.message);
+      }
+    }
     return state.suppliers || [];
   },
 
-  getSupplierById(id) {
-    return (state.suppliers || []).find(s => s.id === id) || null;
+  async getSupplierById(id) {
+    const list = await this.getSuppliers();
+    return list.find(s => s.id === id) || null;
   },
 
-  createSupplier(data) {
+  async createSupplier(data) {
+    const newId = data.id || "prov-" + Date.now();
     const newSupplier = {
-      id: data.id || "prov-" + Date.now(),
+      id: newId,
       empresa: data.empresa || "Proveedor Sin Nombre",
       nit_rut: data.nit_rut || "",
       contacto_nombre: data.contacto_nombre || "",
@@ -1553,28 +1736,73 @@ const Store = {
       estado: data.estado || "ACTIVO",
       direccion: data.direccion || "",
       notas: data.notas || "",
-      creado_en: new Date().toISOString()
+      unidades_vendidas: 0,
+      total_comprado_proveedor: 0,
+      total_recaudado_ventas: 0
     };
+
+    if (isDbConnected()) {
+      try {
+        await query(
+          `INSERT INTO proveedores (id, empresa, nit_rut, contacto_nombre, telefono, email, categoria, porcentaje_ganancia, porcentaje_comision, terminos_pago, estado, direccion, notas)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            newSupplier.id, newSupplier.empresa, newSupplier.nit_rut, newSupplier.contacto_nombre,
+            newSupplier.telefono, newSupplier.email, newSupplier.categoria, newSupplier.porcentaje_ganancia,
+            newSupplier.porcentaje_comision, newSupplier.terminos_pago, newSupplier.estado,
+            newSupplier.direccion, newSupplier.notas
+          ]
+        );
+      } catch (e) {
+        console.error("[DB Create Supplier]:", e.message);
+      }
+    }
+
     state.suppliers.push(newSupplier);
     return newSupplier;
   },
 
-  updateSupplier(id, data) {
+  async updateSupplier(id, data) {
+    if (isDbConnected()) {
+      try {
+        const fields = [];
+        const values = [];
+        if (data.empresa) { fields.push("empresa = ?"); values.push(data.empresa); }
+        if (data.contacto_nombre) { fields.push("contacto_nombre = ?"); values.push(data.contacto_nombre); }
+        if (data.telefono) { fields.push("telefono = ?"); values.push(data.telefono); }
+        if (data.email) { fields.push("email = ?"); values.push(data.email); }
+        if (data.categoria) { fields.push("categoria = ?"); values.push(data.categoria); }
+        if (data.porcentaje_ganancia != null) { fields.push("porcentaje_ganancia = ?"); values.push(parseFloat(data.porcentaje_ganancia)); }
+        if (data.porcentaje_comision != null) { fields.push("porcentaje_comision = ?"); values.push(parseFloat(data.porcentaje_comision)); }
+        if (data.terminos_pago) { fields.push("terminos_pago = ?"); values.push(data.terminos_pago); }
+        if (data.estado) { fields.push("estado = ?"); values.push(data.estado); }
+        if (data.direccion) { fields.push("direccion = ?"); values.push(data.direccion); }
+        if (data.notas) { fields.push("notas = ?"); values.push(data.notas); }
+        if (fields.length > 0) {
+          values.push(id);
+          await query(`UPDATE proveedores SET ${fields.join(", ")} WHERE id = ?`, values);
+        }
+      } catch (e) {
+        console.error("[DB Update Supplier]:", e.message);
+      }
+    }
+
     const idx = (state.suppliers || []).findIndex(s => s.id === id);
     if (idx > -1) {
-      state.suppliers[idx] = {
-        ...state.suppliers[idx],
-        ...data,
-        porcentaje_ganancia: data.porcentaje_ganancia != null ? parseFloat(data.porcentaje_ganancia) : state.suppliers[idx].porcentaje_ganancia,
-        porcentaje_comision: data.porcentaje_comision != null ? parseFloat(data.porcentaje_comision) : state.suppliers[idx].porcentaje_comision,
-        actualizado_en: new Date().toISOString()
-      };
+      state.suppliers[idx] = { ...state.suppliers[idx], ...data };
       return state.suppliers[idx];
     }
     return null;
   },
 
-  deleteSupplier(id) {
+  async deleteSupplier(id) {
+    if (isDbConnected()) {
+      try {
+        await query("DELETE FROM proveedores WHERE id = ?", [id]);
+      } catch (e) {
+        console.error("[DB Delete Supplier]:", e.message);
+      }
+    }
     const initialLen = (state.suppliers || []).length;
     state.suppliers = (state.suppliers || []).filter(s => s.id !== id);
     return state.suppliers.length < initialLen;

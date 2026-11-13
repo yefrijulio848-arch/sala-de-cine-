@@ -36,7 +36,7 @@
         <button class="btn btn-primary btn-sm" onclick="openMovieModal(false)">+ Nueva Película</button>
         <button class="btn btn-secondary btn-sm" onclick="openSnackModal(false)">+ Nuevo Snack</button>
         <button class="btn btn-secondary btn-sm" onclick="openSupplierModal(false)">+ Proveedor</button>
-        <button class="btn btn-secondary btn-sm" onclick="openUserModal()">+ Usuario</button>
+        <button class="btn btn-secondary btn-sm" onclick="openUserModal()" title="Contratar y crear cuenta de empleado">👔 + Trabajador</button>
       </div>
     </div>
   </header>
@@ -98,7 +98,7 @@
       <button class="admin-tab-btn" data-tab="candybar">🍿 Dulcería & Confitería</button>
       <button class="admin-tab-btn" data-tab="suppliers">🚚 Proveedores</button>
       <button class="admin-tab-btn" data-tab="financials">💰 Finanzas & Rentabilidad</button>
-      <button class="admin-tab-btn" data-tab="roles-users">👥 Roles & Usuarios</button>
+      <button class="admin-tab-btn" data-tab="roles-users">👔 Personal y Trabajadores</button>
       <button class="admin-tab-btn" data-tab="bookings">🎟️ Historial de Ventas</button>
       <button class="admin-tab-btn" data-tab="analytics">📊 Analíticas & Gráficos</button>
       <button class="admin-tab-btn" data-tab="settings">⚙️ Configuración del Cine</button>
@@ -326,6 +326,8 @@
               <th>Categoría</th>
               <th>Margen Acordado (%)</th>
               <th>Comisión (%)</th>
+              <th>Compras Insumos ($)</th>
+              <th>Unidades</th>
               <th>Términos de Pago</th>
               <th>Estado</th>
               <th>Acciones</th>
@@ -668,66 +670,169 @@
     </section>
 
     <!-- =======================================================================
-         PESTAÑA 6: GESTIÓN DE ROLES, PRIVILEGIOS Y PERSONAL (TABLA DE ROLES)
+         PESTAÑA 6: GESTIÓN DE PERSONAL, TRABAJADORES Y CONTROL DE ASISTENCIA
          ======================================================================= -->
     <section class="admin-tab-pane" id="tab-roles-users">
       <div class="table-toolbar">
         <div>
-          <h2 class="section-title">Matriz de Roles del Sistema (Control de Acceso y Jerarquía)</h2>
+          <h2 class="section-title">👔 Gestión de Personal, Trabajadores y Control de Asistencia</h2>
           <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
-            Estructura vinculada directamente con la base de datos MySQL (tabla <code>roles</code>, tabla
-            <code>usuarios</code> con <code>rol_id</code> y vista <code>v_usuarios_roles</code>).
+            Supervisión exclusiva del Administrador: directorio de empleados, horarios de entrada y salida en tiempo real y bajas por renuncia.
+            <span style="color: var(--gold); font-size: 0.85rem; display: block; margin-top: 0.2rem;">
+              Nota: Los clientes crean su propia cuenta de forma independiente por medio de la página principal.
+            </span>
           </p>
         </div>
-        <div style="display: flex; gap: 0.8rem; align-items: center;">
+        <div style="display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap;">
           <span class="badge"
-            style="background: rgba(229,9,20,0.15); color: #ff5252; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 600; border: 1px solid rgba(229,9,20,0.3);">
-            🔐 RBAC & MySQL Workbench Sync
+            style="background: rgba(0, 230, 118, 0.15); color: #00e676; padding: 0.4rem 0.8rem; border-radius: 6px; font-weight: 600; border: 1px solid rgba(0, 230, 118, 0.3);">
+            ● Personal Conectado a MySQL
           </span>
+          <button class="btn btn-primary btn-sm" onclick="openUserModal()">👔 + Contratar Nuevo Trabajador</button>
         </div>
       </div>
 
-      <!-- Tarjetas de Roles con sus Privilegios -->
-      <div id="rolesCardsGrid" class="roles-cards-grid"
-        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; margin-bottom: 2rem;">
-        <!-- Inyectado dinámicamente -->
+      <!-- Métricas KPI de Personal -->
+      <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin: 1.5rem 0;">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(0, 210, 255, 0.15); color: var(--accent-blue);">👔</div>
+          <div class="stat-info">
+            <span class="stat-value" id="kpiStaffTotal">0</span>
+            <span class="stat-label">Trabajadores Contratados</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(33, 150, 243, 0.15); color: #42a5f5;">🎟️</div>
+          <div class="stat-info">
+            <span class="stat-value" id="kpiStaffTaquilla">0</span>
+            <span class="stat-label">Personal Taquilla</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(245, 197, 24, 0.15); color: var(--gold);">🍿</div>
+          <div class="stat-info">
+            <span class="stat-value" id="kpiStaffDulceria">0</span>
+            <span class="stat-label">Personal Dulcería</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(0, 230, 118, 0.15); color: #00e676;">🟢</div>
+          <div class="stat-info">
+            <span class="stat-value" id="kpiStaffOnDuty">0</span>
+            <span class="stat-label">En Turno Activo Hoy</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Tabla de Usuarios y Asignación de Roles -->
-      <div class="table-toolbar" style="margin-top: 2rem;">
-        <div>
-          <h3 style="color: #fff; font-size: 1.2rem; margin-bottom: 0.25rem;">Directorio de Personal y Asignación de
-            Roles</h3>
-          <p style="color: var(--text-muted); font-size: 0.85rem;">Usuarios conectados a la base de datos MySQL en
-            tiempo real.</p>
+      <!-- Sub-navegación del Módulo de Personal -->
+      <div style="display: flex; gap: 0.8rem; margin: 0 0 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.8rem; flex-wrap: wrap;">
+        <button class="pill-btn active" id="subtabBtnWorkers" onclick="switchStaffSubtab('workers')">
+          👔 1. Directorio Oficial de Trabajadores
+        </button>
+        <button class="pill-btn" id="subtabBtnShifts" onclick="switchStaffSubtab('shifts')">
+          ⏱️ 2. Control de Asistencia & Horas (Entrada y Salida)
+        </button>
+        <button class="pill-btn" id="subtabBtnRoles" onclick="switchStaffSubtab('roles')">
+          🛡️ 3. Estructura de Roles y Privilegios
+        </button>
+      </div>
+
+      <!-- ==========================================
+           SUBPANEL 1: DIRECTORIO DE TRABAJADORES (DEFAULT)
+           ========================================== -->
+      <div id="subpaneWorkers" class="staff-subpane active">
+        <div class="table-toolbar" style="margin-bottom: 1rem;">
+          <div>
+            <h3 style="color: #fff; font-size: 1.15rem; margin-bottom: 0.2rem;">Personal Oficial del Cine</h3>
+            <p style="color: var(--text-muted); font-size: 0.82rem;">Información básica, cargo operativo, estado de turno de hoy y gestión de bajas por renuncia.</p>
+          </div>
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <select id="adminRoleFilterSelect" class="form-control" style="width: auto;" onchange="renderWorkersTable()">
+              <option value="ALL_WORKERS">Solo Empleados / Trabajadores</option>
+              <option value="TAQUILLERO">🎟️ Solo Taquilleros</option>
+              <option value="CONFITERIA">🍿 Solo Confitería / Dulcería</option>
+              <option value="GERENTE">💼 Solo Gerencia</option>
+              <option value="ALL_INCLUDING_CLIENTS">Ver Todos (Incluyendo Clientes)</option>
+            </select>
+            <input type="text" id="adminUserSearch" class="form-control" style="width: 230px;"
+              placeholder="Buscar por nombre, email o cargo..." oninput="renderWorkersTable()">
+          </div>
         </div>
-        <div style="display: flex; gap: 0.75rem; align-items: center;">
-          <input type="text" id="adminUserSearch" class="form-control" style="width: 240px;"
-            placeholder="Buscar usuario por nombre o email...">
-          <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Nuevo Usuario</button>
+
+        <div class="table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Empleado / Información Básica</th>
+                <th>Cargo / Puesto</th>
+                <th>Correo Corporativo</th>
+                <th>Teléfono / WhatsApp</th>
+                <th>Turno Hoy (Entrada / Salida)</th>
+                <th>Fecha de Alta</th>
+                <th>Acciones del Administrador</th>
+              </tr>
+            </thead>
+            <tbody id="adminWorkersTableBody">
+              <!-- Inyectado dinámicamente -->
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div class="table-container">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre Completo</th>
-              <th>Correo Electrónico</th>
-              <th>Teléfono</th>
-              <th>Rol Actual</th>
-              <th>Nivel Jerárquico</th>
-              <th>Reasignar Rol</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="adminUsersTableBody">
-            <!-- Inyectado dinámicamente -->
-          </tbody>
-        </table>
+      <!-- ==========================================
+           SUBPANEL 2: REGISTRO DE TURNOS (HORA ENTRADA Y SALIDA)
+           ========================================== -->
+      <div id="subpaneShifts" class="staff-subpane" style="display: none;">
+        <div class="table-toolbar" style="margin-bottom: 1rem;">
+          <div>
+            <h3 style="color: #fff; font-size: 1.15rem; margin-bottom: 0.2rem;">⏱️ Bitácora de Asistencia y Turnos de Personal</h3>
+            <p style="color: var(--text-muted); font-size: 0.82rem;">Registros de horario exacto en el que cada trabajador inicia y finaliza su jornada laboral.</p>
+          </div>
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="adminShiftSearch" class="form-control" style="width: 240px;"
+              placeholder="Buscar en bitácora por empleado..." oninput="renderWorkerShiftsTable()">
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th># Turno</th>
+                <th>Empleado</th>
+                <th>Cargo</th>
+                <th>Fecha</th>
+                <th>Hora Entrada (Check-In)</th>
+                <th>Hora Salida (Check-Out)</th>
+                <th>Tiempo Laborado</th>
+                <th>Estado del Turno</th>
+                <th>Acción Rápida</th>
+              </tr>
+            </thead>
+            <tbody id="adminShiftsTableBody">
+              <!-- Inyectado dinámicamente -->
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      <!-- ==========================================
+           SUBPANEL 3: TARJETAS DE ROLES Y PRIVILEGIOS
+           ========================================== -->
+      <div id="subpaneRoles" class="staff-subpane" style="display: none;">
+        <div class="table-toolbar" style="margin-bottom: 1rem;">
+          <div>
+            <h3 style="color: #fff; font-size: 1.15rem; margin-bottom: 0.2rem;">Matriz de Privilegios y Jerarquía de Seguridad</h3>
+            <p style="color: var(--text-muted); font-size: 0.82rem;">Estructura RBAC configurada en MySQL para los diferentes cargos del cine.</p>
+          </div>
+        </div>
+        <div id="rolesCardsGrid" class="roles-cards-grid"
+          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; margin-bottom: 2rem;">
+          <!-- Inyectado dinámicamente -->
+        </div>
+      </div>
+
     </section>
 
   </main>
@@ -1012,19 +1117,24 @@
   </div>
 
   <!-- =======================================================================
-       MODAL 5: FORMULARIO DE USUARIO (REGISTRAR NUEVO USUARIO EN BD)
+       MODAL 5: FORMULARIO DE TRABAJADOR (CREAR NUEVO EMPLEADO EN BD)
        ======================================================================= -->
   <div class="modal-backdrop" id="userFormModal">
     <div class="modal-content" style="max-width: 580px;">
       <div class="modal-header">
-        <h3 style="color: #fff;">Registrar Usuario en Base de Datos</h3>
+        <h3 style="color: #fff;">👔 Contratar Nuevo Trabajador</h3>
         <button class="modal-close" onclick="closeUserModal()">✕</button>
+      </div>
+
+      <div style="padding: 1rem 1.5rem 0.2rem; color: var(--text-secondary); font-size: 0.85rem; border-bottom: 1px solid var(--border-color);">
+        Crea la cuenta del personal del cine, selecciona su cargo operativo y asígnale su contraseña de acceso inicial.
+        <span style="color: var(--gold); display: block; margin-top: 0.2rem;">Nota: Los clientes crean su propia cuenta exclusivamente por la web pública.</span>
       </div>
 
       <form id="userForm" onsubmit="handleUserFormSubmit(event)">
         <div class="form-grid">
           <div class="form-group">
-            <label for="inputUserNombre">Nombre *</label>
+            <label for="inputUserNombre">Nombre del Trabajador *</label>
             <input type="text" id="inputUserNombre" class="form-control" placeholder="Ej. Juan" required>
           </div>
 
@@ -1034,8 +1144,8 @@
           </div>
 
           <div class="form-group form-group-full">
-            <label for="inputUserEmail">Correo Electrónico *</label>
-            <input type="email" id="inputUserEmail" class="form-control" placeholder="juan.perez@cinemajestad.com"
+            <label for="inputUserEmail">Correo Electrónico Corporativo *</label>
+            <input type="email" id="inputUserEmail" class="form-control" placeholder="juan.taquilla@cinemajestad.com"
               required>
           </div>
 
@@ -1045,25 +1155,26 @@
           </div>
 
           <div class="form-group">
-            <label for="inputUserRole">Rol Asignado *</label>
+            <label for="inputUserRole">Cargo / Puesto Operativo *</label>
             <select id="inputUserRole" class="form-control" required>
-              <!-- Inyectado por JS -->
+              <!-- Inyectado por JS: Exclusivamente cargos operativos (Taquillero / Boletería y Operador de Confitería) -->
             </select>
           </div>
 
           <div class="form-group form-group-full">
-            <label for="inputUserPassword">Contraseña Inicial *</label>
+            <label for="inputUserPassword">Contraseña Inicial Asignada por el Jefe *</label>
             <input type="password" id="inputUserPassword" class="form-control" placeholder="Mínimo 6 caracteres"
               value="123456" required>
-            <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 0.25rem;">Por
-              defecto se sugiere '123456'.</small>
+            <small style="color: var(--gold); font-size: 0.75rem; display: block; margin-top: 0.25rem;">
+              El administrador define esta contraseña y se la entrega al trabajador para que inicie sesión.
+            </small>
           </div>
         </div>
 
         <div class="modal-footer"
           style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color);">
           <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Crear Usuario en BD 👑</button>
+          <button type="submit" class="btn btn-primary">Contratar y Crear Cuenta de Trabajador 👔</button>
         </div>
       </form>
     </div>

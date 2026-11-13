@@ -52,6 +52,9 @@ const INITIAL_ROOMS = [
     id: "sala-1",
     name: "Sala 1 (IMAX Laser & Dolby)",
     technology: "IMAX Laser",
+    layoutType: "curved_imax",
+    layoutBadge: "🏛️ Anfiteatro Curvo IMAX",
+    layoutDesc: "Distribución semicircular en abanico con pantalla curva gigante y visión envolvente",
     rows: ["A", "B", "C", "D", "E", "F"],
     seatsPerRow: 10,
     vipRows: ["E", "F"],
@@ -63,9 +66,13 @@ const INITIAL_ROOMS = [
     id: "sala-2",
     name: "Sala 2 (70mm Master Cinema)",
     technology: "70mm Film",
+    layoutType: "stadium_double_aisle",
+    layoutBadge: "🏟️ Estadio 3 Bloques (Doble Pasillo)",
+    layoutDesc: "Tribuna de 3 bloques con doble pasillo de escalones iluminados y puestos accesibles ♿",
     rows: ["A", "B", "C", "D", "E", "F"],
     seatsPerRow: 10,
     vipRows: ["E", "F"],
+    wheelchairCols: [1, 10],
     capacity: 60,
     screenType: "Plana 70mm Panavision",
     soundSystem: "DTS-X Surround"
@@ -74,6 +81,9 @@ const INITIAL_ROOMS = [
     id: "sala-3",
     name: "Sala 3 (Dolby Atmos 360°)",
     technology: "Dolby Atmos",
+    layoutType: "motion_4dx",
+    layoutBadge: "🚀 Pods Mecánicos 4DX",
+    layoutDesc: "Plataformas de movimiento síncrono en pods con pasillo central para efectos climáticos",
     rows: ["A", "B", "C", "D", "E"],
     seatsPerRow: 10,
     vipRows: ["E"],
@@ -85,6 +95,9 @@ const INITIAL_ROOMS = [
     id: "sala-4",
     name: "Sala 4 (VIP Royal Lounge)",
     technology: "VIP Luxury",
+    layoutType: "vip_lounge",
+    layoutBadge: "👑 Palcos VIP & Sofás Dobles",
+    layoutDesc: "Salón boutique con sofás reclinables de cuero dobles para parejas y mesitas auxiliares",
     rows: ["A", "B", "C", "D"],
     seatsPerRow: 8,
     vipRows: ["A", "B", "C", "D"],
@@ -523,52 +536,140 @@ const USER_ROLES = {
   CLIENTE: "CLIENTE"
 };
 
+// Historial Inicial de Registro de Turnos, Asistencia y Horas (Entrada y Salida)
+const INITIAL_SHIFTS = [
+  {
+    id: 1,
+    usuario_id: 3,
+    nombre: "María Rodríguez",
+    rol: "TAQUILLERO",
+    rol_nombre: "Taquillero / Boletería",
+    fecha: new Date().toISOString().split("T")[0],
+    hora_entrada: "08:00 AM",
+    hora_salida: null,
+    horas_trabajadas: "En curso",
+    estado: "EN_TURNO"
+  },
+  {
+    id: 2,
+    usuario_id: 5,
+    nombre: "Sofía Dulcería",
+    rol: "CONFITERIA",
+    rol_nombre: "Operador de Confitería",
+    fecha: new Date().toISOString().split("T")[0],
+    hora_entrada: "09:00 AM",
+    hora_salida: "05:00 PM",
+    horas_trabajadas: "8h 00m",
+    estado: "FINALIZADO"
+  }
+];
+
 // Historial Inicial de Reservas
 const INITIAL_BOOKINGS = [
   {
-    bookingCode: "CMG-748921",
+    id: "CMG-580158",
+    bookingCode: "CMG-580158",
+    userId: 8,
+    customerName: "diego moreno",
+    clientName: "diego moreno",
+    customerEmail: "moreno@cliente.com",
+    clientEmail: "moreno@cliente.com",
+    movieId: "mov-02",
+    movieTitle: "Spider-Man: A Través del Spider-Verso",
+    hall: "Sala 3 (Dolby Atmos 360°)",
+    roomId: "sala-3",
+    showtime: "16:15",
+    showtimeKey: "mov-02_16:15",
+    showtimeDate: "Hoy",
+    seats: [
+      { code: "C-9", type: "Estándar", price: 5.50 },
+      { code: "A-7", type: "Estándar", price: 5.50 }
+    ],
+    snacks: [
+      { id: "snack-02", name: "Palomitas Mega Mantequilla Dorada", price: 5.80, costPrice: 0.90, qty: 3, proveedor_id: "prov-01" }
+    ],
+    foodStatus: "PENDIENTE",
+    subtotalTickets: 11.00,
+    ticketsTotal: 11.00,
+    subtotalSnacks: 17.40,
+    snacksTotal: 17.40,
+    total: 28.40,
+    grandTotal: 28.40,
+    total_pagado: 28.40,
+    status: "CONFIRMADA",
+    paymentMethod: "TRANSFERENCIA",
+    date: "12/11/2026 21:55",
+    createdAt: "2026-11-13T02:55:39.000Z"
+  },
+  {
+    id: "CMG-474942",
+    bookingCode: "CMG-474942",
+    userId: null,
+    customerName: "Cliente Prueba Real",
+    clientName: "Cliente Prueba Real",
+    customerEmail: "prueba@cinemajestad.com",
+    clientEmail: "prueba@cinemajestad.com",
+    movieId: "mov-01",
     movieTitle: "Dune: Parte Dos",
     hall: "Sala 1 (IMAX Laser & Dolby)",
+    roomId: "sala-1",
+    showtime: "14:30",
+    showtimeKey: "mov-01_14:30",
+    showtimeDate: "Hoy",
+    seats: [
+      { code: "C-1", type: "Estándar", price: 7.00 },
+      { code: "C-2", type: "Estándar", price: 7.00 }
+    ],
+    snacks: [
+      { id: "snack-06", name: "Hot Dog Majestad Jumbo", price: 5.90, costPrice: 1.90, qty: 1, proveedor_id: "prov-05" }
+    ],
+    foodStatus: "PENDIENTE",
+    subtotalTickets: 14.00,
+    ticketsTotal: 14.00,
+    subtotalSnacks: 5.90,
+    snacksTotal: 5.90,
+    total: 19.90,
+    grandTotal: 19.90,
+    total_pagado: 19.90,
+    status: "CONFIRMADA",
+    paymentMethod: "TRANSFERENCIA",
+    date: "12/11/2026 15:38",
+    createdAt: "2026-11-12T20:38:06.000Z"
+  },
+  {
+    id: "CMG-748921",
+    bookingCode: "CMG-748921",
+    userId: 2,
+    customerName: "Yeffry González",
+    clientName: "Yeffry González",
+    customerEmail: "yeffry@cinemajestad.com",
+    clientEmail: "yeffry@cinemajestad.com",
+    movieId: "mov-01",
+    movieTitle: "Dune: Parte Dos",
+    hall: "Sala 1 (IMAX Laser & Dolby)",
+    roomId: "sala-1",
     showtime: "21:00",
     showtimeKey: "mov-01_21:00",
+    showtimeDate: "Hoy",
     seats: [
       { code: "E-4", type: "VIP", price: 10.00 },
       { code: "E-5", type: "VIP", price: 10.00 }
     ],
     snacks: [
-      { id: "snack-01", name: "Combo Majestad Dúo Real", price: 13.50, qty: 1 }
-    ],
-    foodStatus: "PENDIENTE", // PENDIENTE o ENTREGADO
-    clientName: "Yeffry González",
-    clientEmail: "yeffry@cinemajestad.com",
-    ticketsTotal: 20.00,
-    snacksTotal: 13.50,
-    grandTotal: 33.50,
-    status: "CONFIRMADA",
-    date: new Date(Date.now() - 3600000 * 2).toLocaleDateString("es-ES") + " 19:15"
-  },
-  {
-    bookingCode: "CMG-312984",
-    movieTitle: "Oppenheimer",
-    hall: "Sala 2 (70mm Master Cinema)",
-    showtime: "18:45",
-    showtimeKey: "mov-03_18:45",
-    seats: [
-      { code: "C-5", type: "Estándar", price: 6.00 },
-      { code: "C-6", type: "Estándar", price: 6.00 }
-    ],
-    snacks: [
-      { id: "snack-02", name: "Palomitas Mega Mantequilla", price: 5.80, qty: 1 },
-      { id: "snack-04", name: "Refresco Ice Cold 32oz", price: 3.50, qty: 2 }
+      { id: "snack-01", name: "Combo Majestad Dúo Real", price: 13.50, costPrice: 3.80, qty: 1, proveedor_id: "prov-01" }
     ],
     foodStatus: "PENDIENTE",
-    clientName: "Mariana Rivera",
-    clientEmail: "mariana@gmail.com",
-    ticketsTotal: 12.00,
-    snacksTotal: 12.80,
-    grandTotal: 24.80,
+    subtotalTickets: 20.00,
+    ticketsTotal: 20.00,
+    subtotalSnacks: 13.50,
+    snacksTotal: 13.50,
+    total: 33.50,
+    grandTotal: 33.50,
+    total_pagado: 33.50,
     status: "CONFIRMADA",
-    date: new Date(Date.now() - 3600000 * 5).toLocaleDateString("es-ES") + " 16:30"
+    paymentMethod: "TARJETA_CREDITO",
+    date: "12/11/2026 09:28",
+    createdAt: "2026-11-12T14:28:41.000Z"
   }
 ];
 
@@ -580,12 +681,26 @@ const Storage = {
   ROLES: USER_ROLES,
 
   getActiveRole: () => {
-    return localStorage.getItem("cinemajestad_active_role") || USER_ROLES.CLIENTE;
+    const user = Storage.getAuthUser();
+    if (user && user.rol) {
+      return user.rol;
+    }
+    return USER_ROLES.CLIENTE;
   },
 
   setActiveRole: (role) => {
-    localStorage.setItem("cinemajestad_active_role", role);
-    Storage.broadcastChange("ROLE_CHANGED", { role });
+    const user = Storage.getAuthUser();
+    // Solo un usuario autenticado con rol administrativo puede cambiar la vista activa
+    if (user && (user.rol === USER_ROLES.ADMIN || user.rol === "GERENTE")) {
+      localStorage.setItem("cinemajestad_active_role", role);
+      Storage.broadcastChange("ROLE_CHANGED", { role });
+    } else if (user && user.rol) {
+      localStorage.setItem("cinemajestad_active_role", user.rol);
+      Storage.broadcastChange("ROLE_CHANGED", { role: user.rol });
+    } else {
+      localStorage.setItem("cinemajestad_active_role", USER_ROLES.CLIENTE);
+      Storage.broadcastChange("ROLE_CHANGED", { role: USER_ROLES.CLIENTE });
+    }
   },
   // Identificador de cliente / pestaña
   getSessionId: () => CURRENT_SESSION_ID,
@@ -617,7 +732,12 @@ const Storage = {
       return INITIAL_ROOMS;
     }
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      // Garantizar que layoutType, layoutBadge y descripciones arquitectónicas se mantengan siempre enriquecidas
+      return INITIAL_ROOMS.map(initR => {
+        const found = parsed.find(p => p.id === initR.id);
+        return found ? { ...initR, ...found, layoutType: initR.layoutType, layoutBadge: initR.layoutBadge, layoutDesc: initR.layoutDesc } : initR;
+      });
     } catch (e) {
       return INITIAL_ROOMS;
     }
@@ -841,6 +961,114 @@ const Storage = {
     return null;
   },
 
+  // Control de Asistencia, Turnos de Entrada y Salida (Exclusivo Trabajadores)
+  getWorkerShifts: () => {
+    const raw = localStorage.getItem("cinemajestad_worker_shifts");
+    if (!raw) {
+      localStorage.setItem("cinemajestad_worker_shifts", JSON.stringify(INITIAL_SHIFTS));
+      return INITIAL_SHIFTS;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return INITIAL_SHIFTS;
+    }
+  },
+
+  saveWorkerShifts: (shifts) => {
+    localStorage.setItem("cinemajestad_worker_shifts", JSON.stringify(shifts));
+    Storage.broadcastChange("SHIFTS_UPDATED", shifts);
+  },
+
+  recordWorkerCheckIn: (userId, userName, userRole) => {
+    const shifts = Storage.getWorkerShifts();
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true });
+    const dateStr = now.toISOString().split("T")[0];
+
+    // Verificar si ya tiene un turno abierto hoy
+    const existing = shifts.find(s => s.usuario_id === parseInt(userId, 10) && s.fecha === dateStr && s.estado === "EN_TURNO");
+    if (existing) {
+      return existing;
+    }
+
+    const newShift = {
+      id: shifts.length ? Math.max(...shifts.map(s => s.id || 0)) + 1 : 1,
+      usuario_id: parseInt(userId, 10),
+      nombre: userName || "Trabajador",
+      rol: userRole || "TAQUILLERO",
+      rol_nombre: userRole === "CONFITERIA" ? "Operador de Confitería" : "Taquillero / Boletería",
+      fecha: dateStr,
+      hora_entrada: timeStr,
+      hora_salida: null,
+      horas_trabajadas: "En curso",
+      estado: "EN_TURNO",
+      timestamp_entrada: now.getTime()
+    };
+
+    shifts.unshift(newShift);
+    Storage.saveWorkerShifts(shifts);
+
+    // Actualizar usuario en lista
+    const users = Storage.getUsers();
+    const uIdx = users.findIndex(u => u.id === parseInt(userId, 10));
+    if (uIdx !== -1) {
+      users[uIdx].en_turno = true;
+      users[uIdx].hora_entrada = timeStr;
+      users[uIdx].hora_salida = null;
+      users[uIdx].ultimo_ingreso = `${dateStr} ${timeStr}`;
+      Storage.saveUsers(users);
+    }
+    return newShift;
+  },
+
+  recordWorkerCheckOut: (userId) => {
+    const shifts = Storage.getWorkerShifts();
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+    const activeShift = shifts.find(s => s.usuario_id === parseInt(userId, 10) && s.estado === "EN_TURNO");
+    if (activeShift) {
+      activeShift.hora_salida = timeStr;
+      activeShift.estado = "FINALIZADO";
+      if (activeShift.timestamp_entrada) {
+        const diffMs = now.getTime() - activeShift.timestamp_entrada;
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        activeShift.horas_trabajadas = `${diffHours}h ${diffMins}m`;
+      } else {
+        activeShift.horas_trabajadas = "Completado";
+      }
+      Storage.saveWorkerShifts(shifts);
+    }
+
+    const users = Storage.getUsers();
+    const uIdx = users.findIndex(u => u.id === parseInt(userId, 10));
+    if (uIdx !== -1) {
+      users[uIdx].en_turno = false;
+      users[uIdx].hora_salida = timeStr;
+      Storage.saveUsers(users);
+    }
+    return activeShift;
+  },
+
+  deleteWorker: (userId) => {
+    const numId = parseInt(userId, 10);
+    const users = Storage.getUsers().filter(u => u.id !== numId);
+    Storage.saveUsers(users);
+
+    // Cerrar turnos abiertos de ese trabajador si los tenía
+    const shifts = Storage.getWorkerShifts();
+    shifts.forEach(s => {
+      if (s.usuario_id === numId && s.estado === "EN_TURNO") {
+        s.estado = "DADO_DE_BAJA";
+        s.hora_salida = "Baja por Renuncia";
+      }
+    });
+    Storage.saveWorkerShifts(shifts);
+    return true;
+  },
+
   // Estado del Pedido Actual en Proceso
   getCurrentOrder: () => {
     const raw = sessionStorage.getItem("cinemajestad_current_order");
@@ -898,10 +1126,12 @@ const Storage = {
     return booking;
   },
 
-  saveBookings: (bookingsList) => {
+  saveBookings: (bookingsList, silent = false) => {
     if (Array.isArray(bookingsList)) {
       localStorage.setItem("cinemajestad_completed_bookings", JSON.stringify(bookingsList));
-      Storage.broadcastChange("BOOKINGS_UPDATED", bookingsList);
+      if (!silent) {
+        Storage.broadcastChange("BOOKINGS_UPDATED", bookingsList);
+      }
     }
   },
 

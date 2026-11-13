@@ -17,8 +17,8 @@ const RealTime = {
         const port = (typeof window !== "undefined") ? window.location.port : "";
         let socketUrl = "";
 
-        if ((hostname === "localhost" || hostname === "127.0.0.1") && port && port !== "3000") {
-          socketUrl = `http://${hostname}:3000`;
+        if (port && port !== "3000") {
+          socketUrl = `http://${hostname || "localhost"}:3000`;
         } else if (typeof window !== "undefined" && window.location.protocol === "file:") {
           socketUrl = "http://localhost:3000";
         }

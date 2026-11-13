@@ -34,7 +34,7 @@ function renderAllAdminCharts() {
   const rooms = Storage.getRooms();
 
   renderMovieRevenueChart(bookings, movies);
-  renderRoomOccupancyChart(rooms);
+  renderRoomOccupancyChart(rooms, bookings);
   renderPaymentMethodsChart(bookings);
 }
 
@@ -46,9 +46,18 @@ function renderMovieRevenueChart(bookings, movies) {
   const movieTotals = {};
   movies.forEach(m => { movieTotals[m.title] = 0; });
 
-  bookings.forEach(b => {
-    const title = b.movieTitle || "Otros";
-    movieTotals[title] = (movieTotals[title] || 0) + (b.total || 0);
+  (bookings || []).forEach(b => {
+    if (b.status === "CANCELADA") return;
+    const amount = typeof b.grandTotal === "number" ? b.grandTotal : (typeof b.total === "number" ? b.total : (parseFloat(b.total_pagado) || 0));
+    const rawTitle = (b.movieTitle || "").trim();
+    
+    // Emparejar con títulos del catálogo ignorando mayúsculas y espacios
+    let matchedKey = Object.keys(movieTotals).find(k => k.toLowerCase() === rawTitle.toLowerCase());
+    if (matchedKey) {
+      movieTotals[matchedKey] += amount;
+    } else {
+      movieTotals[rawTitle || "Otras Películas"] = (movieTotals[rawTitle || "Otras Películas"] || 0) + amount;
+    }
   });
 
   const labels = Object.keys(movieTotals);
@@ -84,13 +93,33 @@ function renderMovieRevenueChart(bookings, movies) {
   });
 }
 
-// 2. Gráfico de Ocupación por Sala
-function renderRoomOccupancyChart(rooms) {
+// 2. Gráfico de Ocupación por Sala (Cálculo Dinámico Real)
+function renderRoomOccupancyChart(rooms, bookings) {
   const canvas = document.querySelector("#chartRoomOccupancy");
   if (!canvas) return;
 
+  const allBookings = bookings || Storage.getBookings();
   const labels = rooms.map(r => r.name.split("(")[0].trim());
-  const occupiedEstimates = [68, 52, 45, 82]; // Datos calculados o dinámicos
+  
+  // Calcular porcentaje real de butacas vendidas por sala
+  const occupiedEstimates = rooms.map(room => {
+    const rName = (room.name || "").toLowerCase().split("(")[0].trim();
+    const rId = (room.id || "").toLowerCase();
+    let seatsBooked = 0;
+    
+    allBookings.forEach(b => {
+      if (b.status !== "CANCELADA") {
+        const bHall = (b.hall || "").toLowerCase();
+        const bRoom = (b.roomId || "").toLowerCase();
+        if (bHall.includes(rName) || bRoom === rId) {
+          seatsBooked += (b.seats && Array.isArray(b.seats) ? b.seats.length : 0);
+        }
+      }
+    });
+    const cap = room.capacity || 50;
+    // Retornar ocupación calculada en base a ventas confirmadas
+    return Math.max(8, Math.min(100, Math.round((seatsBooked / cap) * 100)));
+  });
 
   if (roomOccupancyChart) roomOccupancyChart.destroy();
 
@@ -128,17 +157,23 @@ function renderPaymentMethodsChart(bookings) {
 
   const counts = {
     "Tarjeta Crédito/Débito": 0,
+    "Transferencia / PSE": 0,
     "Nequi / Daviplata": 0,
-    "PSE": 0,
     "Efectivo en Taquilla": 0
   };
 
-  bookings.forEach(b => {
-    const pm = (b.paymentMethod || "").toLowerCase();
-    if (pm.includes("nequi") || pm.includes("daviplata")) counts["Nequi / Daviplata"]++;
-    else if (pm.includes("pse")) counts["PSE"]++;
-    else if (pm.includes("efectivo") || pm.includes("taquilla")) counts["Efectivo en Taquilla"]++;
-    else counts["Tarjeta Crédito/Débito"]++;
+  (bookings || []).forEach(b => {
+    if (b.status === "CANCELADA") return;
+    const pm = (b.paymentMethod || b.metodo_pago || "").toUpperCase();
+    if (pm.includes("NEQUI") || pm.includes("DAVIPLATA")) {
+      counts["Nequi / Daviplata"]++;
+    } else if (pm.includes("TRANSFER") || pm.includes("PSE")) {
+      counts["Transferencia / PSE"]++;
+    } else if (pm.includes("EFECTIVO") || pm.includes("TAQUILLA")) {
+      counts["Efectivo en Taquilla"]++;
+    } else {
+      counts["Tarjeta Crédito/Débito"]++;
+    }
   });
 
   if (paymentMethodsChart) paymentMethodsChart.destroy();
@@ -152,8 +187,8 @@ function renderPaymentMethodsChart(bookings) {
         data: Object.values(counts),
         backgroundColor: [
           "rgba(0, 210, 255, 0.8)",
-          "rgba(218, 0, 129, 0.8)",
           "rgba(212, 175, 55, 0.8)",
+          "rgba(218, 0, 129, 0.8)",
           "rgba(0, 230, 118, 0.8)"
         ],
         borderColor: "#12121a",

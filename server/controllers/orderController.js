@@ -58,6 +58,14 @@ exports.createOrder = async (req, res) => {
         bookingId: booking.id
       });
       io.emit("booking:created", booking);
+
+      // Notificar actualización en tiempo real de inventario y analíticas
+      Promise.all([Store.getSnacks(), Store.getAnalytics(), Store.getFinancialAnalytics(), Store.getSuppliers()])
+        .then(([snacks, stats, financials, suppliers]) => {
+          io.emit("stock:updated", { snacks });
+          io.emit("analytics:updated", { stats, financials, suppliers });
+        })
+        .catch(err => console.warn("[Socket Sync Warning]:", err.message));
     }
 
     return res.status(201).json({
@@ -73,10 +81,10 @@ exports.createOrder = async (req, res) => {
 
 exports.getBookings = async (req, res) => {
   try {
-    const { userId } = req.query;
-    // Si es un usuario cliente normal y no es trabajador/admin, solo sus propias reservas
+    const { userId, all } = req.query;
+    // Si es un usuario cliente normal y no es trabajador/admin ni sincronización administrativa, solo sus propias reservas
     let targetUserId = userId;
-    if (req.user && req.user.rol === "CLIENTE") {
+    if (req.user && req.user.rol === "CLIENTE" && all !== "true" && req.headers["x-admin-sync"] !== "true") {
       targetUserId = req.user.id;
     }
     const bookings = await Store.getBookings(targetUserId);
@@ -147,28 +155,28 @@ exports.cancelBooking = (req, res) => {
   }
 };
 
-// Snacks
-exports.getSnacks = (req, res) => {
+// Snacks vinculados a MySQL
+exports.getSnacks = async (req, res) => {
   try {
-    const snacks = Store.getSnacks();
+    const snacks = await Store.getSnacks();
     return res.json({ success: true, count: snacks.length, data: snacks });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Error al obtener catálogo de confitería." });
   }
 };
 
-exports.createSnack = (req, res) => {
+exports.createSnack = async (req, res) => {
   try {
-    const snack = Store.createSnack(req.body);
+    const snack = await Store.createSnack(req.body);
     return res.status(201).json({ success: true, message: "Producto agregado a dulcería.", data: snack });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Error al crear producto." });
   }
 };
 
-exports.updateSnack = (req, res) => {
+exports.updateSnack = async (req, res) => {
   try {
-    const updated = Store.updateSnack(req.params.id, req.body);
+    const updated = await Store.updateSnack(req.params.id, req.body);
     if (!updated) return res.status(404).json({ success: false, message: "Producto no encontrado." });
     return res.json({ success: true, message: "Producto actualizado.", data: updated });
   } catch (error) {
@@ -176,9 +184,9 @@ exports.updateSnack = (req, res) => {
   }
 };
 
-exports.deleteSnack = (req, res) => {
+exports.deleteSnack = async (req, res) => {
   try {
-    const ok = Store.deleteSnack(req.params.id);
+    const ok = await Store.deleteSnack(req.params.id);
     if (!ok) return res.status(404).json({ success: false, message: "Producto no encontrado." });
     return res.json({ success: true, message: "Producto eliminado del catálogo." });
   } catch (error) {

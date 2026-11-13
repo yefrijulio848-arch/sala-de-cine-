@@ -1,9 +1,9 @@
 const bcrypt = require("bcryptjs");
 const Store = require("../models/store");
 
-exports.getStats = (req, res) => {
+exports.getStats = async (req, res) => {
   try {
-    const analytics = Store.getAnalytics();
+    const analytics = await Store.getAnalytics();
     return res.json({ success: true, data: analytics });
   } catch (error) {
     console.error("[Admin Stats Error]:", error);
@@ -11,9 +11,9 @@ exports.getStats = (req, res) => {
   }
 };
 
-exports.getFinancials = (req, res) => {
+exports.getFinancials = async (req, res) => {
   try {
-    const financials = Store.getFinancialAnalytics();
+    const financials = await Store.getFinancialAnalytics();
     return res.json({ success: true, data: financials });
   } catch (error) {
     console.error("[Admin Financials Error]:", error);
@@ -86,32 +86,32 @@ exports.exportCSV = (req, res) => {
   }
 };
 
-// Métodos CRUD para Proveedores
-exports.getSuppliers = (req, res) => {
+// Métodos CRUD para Proveedores vinculados a MySQL
+exports.getSuppliers = async (req, res) => {
   try {
-    const suppliers = Store.getSuppliers();
+    const suppliers = await Store.getSuppliers();
     return res.status(200).json({ success: true, data: suppliers });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Error al obtener proveedores." });
   }
 };
 
-exports.createSupplier = (req, res) => {
+exports.createSupplier = async (req, res) => {
   try {
     const { empresa, contacto_nombre, telefono, email } = req.body;
     if (!empresa || !contacto_nombre) {
       return res.status(400).json({ success: false, message: "Nombre de empresa y contacto son requeridos." });
     }
-    const newSupplier = Store.createSupplier(req.body);
+    const newSupplier = await Store.createSupplier(req.body);
     return res.status(201).json({ success: true, data: newSupplier, message: "Proveedor registrado con éxito." });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Error al registrar proveedor." });
   }
 };
 
-exports.updateSupplier = (req, res) => {
+exports.updateSupplier = async (req, res) => {
   try {
-    const updated = Store.updateSupplier(req.params.id, req.body);
+    const updated = await Store.updateSupplier(req.params.id, req.body);
     if (!updated) {
       return res.status(404).json({ success: false, message: "Proveedor no encontrado." });
     }
@@ -121,9 +121,9 @@ exports.updateSupplier = (req, res) => {
   }
 };
 
-exports.deleteSupplier = (req, res) => {
+exports.deleteSupplier = async (req, res) => {
   try {
-    const deleted = Store.deleteSupplier(req.params.id);
+    const deleted = await Store.deleteSupplier(req.params.id);
     if (!deleted) {
       return res.status(404).json({ success: false, message: "Proveedor no encontrado." });
     }

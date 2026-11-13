@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function renderDigitalTicket() {
   const urlParams = new URLSearchParams(window.location.search);
-  const paramBookingId = urlParams.get("bookingId");
+  const paramBookingId = urlParams.get("booking") || urlParams.get("bookingId") || urlParams.get("id");
 
   let booking = null;
 
@@ -26,8 +26,14 @@ function renderDigitalTicket() {
 
   // 2. Si no viene en URL pero hay una orden en sesión
   if (!booking) {
+    const user = Storage.getAuthUser();
     const order = Storage.getCurrentOrder();
     const sessionId = Storage.getSessionId();
+
+    if (!user && order && order.seats && order.seats.length > 0) {
+      window.location.href = "login.html?returnTo=checkout.html&tab=register";
+      return;
+    }
 
     if (!order || !order.movieTitle || (!order.seats || order.seats.length === 0)) {
       // Mostrar la última reserva confirmada si existe
@@ -71,14 +77,15 @@ function renderDigitalTicket() {
 
   // Desplegar datos en el boleto
   activeBookingId = booking.id || booking.bookingCode || "CMG-748921";
-  const seatsList = (booking.seats || []).join(", ");
+  const seatsList = (booking.seats || []).map(s => s.code || s).join(", ");
   const snacksCount = (booking.snacks || []).reduce((acc, s) => acc + (s.qty || s.quantity || 1), 0);
+  const paidTotal = typeof booking.grandTotal === "number" ? booking.grandTotal : (typeof booking.total === "number" ? booking.total : (parseFloat(booking.total_pagado) || 0));
 
   document.querySelector("#ticketMovieTitle").textContent = booking.movieTitle;
   document.querySelector("#ticketHall").textContent = booking.hall;
   document.querySelector("#ticketShowtime").textContent = `${booking.showtime} (${booking.showtimeDate || 'Hoy'})`;
   document.querySelector("#ticketSeats").textContent = seatsList || "Asientos Asignados";
-  document.querySelector("#ticketTotalPaid").textContent = `$${(booking.total || 0).toFixed(2)}`;
+  document.querySelector("#ticketTotalPaid").textContent = `$${paidTotal.toFixed(2)}`;
   document.querySelector("#ticketBookingCode").textContent = activeBookingId;
 
   const snacksRow = document.querySelector("#ticketSnacksRow");

@@ -10,8 +10,8 @@ const API = {
       const port = window.location.port;
 
       // Si está en Live Server local de desarrollo (puertos 5500, 5501, 8080, etc. y no es el backend 3000)
-      if ((hostname === "localhost" || hostname === "127.0.0.1") && port && port !== "3000") {
-        return `http://${hostname}:3000`;
+      if (port && port !== "3000") {
+        return `http://${hostname || "localhost"}:3000`;
       }
 
       // Si se abrió directamente como archivo local (file://)
@@ -135,7 +135,7 @@ const API = {
 
   orders: {
     create: (orderData) => API.post("/api/orders", orderData),
-    getAll: (userId) => API.get(userId ? `/api/orders?userId=${userId}` : "/api/orders"),
+    getAll: (userId) => API.get(userId ? `/api/orders?userId=${userId}` : "/api/orders?all=true"),
     getById: (id) => API.get(`/api/orders/${id}`),
     updateFoodStatus: (id, status) => API.patch(`/api/orders/${id}/food-status`, { status }),
     cancel: (id) => API.delete(`/api/orders/${id}`),

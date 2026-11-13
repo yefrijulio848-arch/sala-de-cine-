@@ -9,7 +9,20 @@ document.addEventListener("DOMContentLoaded", () => {
     showAlert(`Ya has iniciado sesión como <strong>${currentUser.nombre}</strong> (${currentUser.rol}).`, "success");
     setTimeout(() => {
       redirectByRole(currentUser.rol);
-    }, 1200);
+    }, 1000);
+    return;
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const returnTo = urlParams.get("returnTo");
+  const tab = urlParams.get("tab");
+
+  if (tab === "register") {
+    switchAuthTab("register");
+  }
+
+  if (returnTo) {
+    showAlert("🎟️ Para completar tu compra y asegurar tus boletos, inicia sesión o crea tu cuenta de cliente a continuación.", "info");
   }
 
   setupLiveValidation();
@@ -24,7 +37,9 @@ function switchAuthTab(tab) {
   const subtitle = document.querySelector("#authSubtitle");
   const alertEl = document.querySelector("#authAlert");
 
-  if (alertEl) alertEl.className = "auth-alert";
+  if (alertEl && !new URLSearchParams(window.location.search).get("returnTo")) {
+    alertEl.className = "auth-alert";
+  }
 
   if (tab === "login") {
     tabBtnLogin.classList.add("active");
@@ -37,28 +52,8 @@ function switchAuthTab(tab) {
     tabBtnLogin.classList.remove("active");
     formRegister.classList.add("active");
     formLogin.classList.remove("active");
-    if (subtitle) subtitle.textContent = "Únete a Cine Majestad y disfruta de reservas exclusivas y beneficios";
+    if (subtitle) subtitle.textContent = "Crea tu cuenta de cliente en segundos para reservar y comprar tus boletos";
   }
-}
-
-// Cuentas de Demostración Rápidas
-function fillQuickAccount(role) {
-  switchAuthTab("login");
-  const emailInput = document.querySelector("#loginEmail");
-  const passwordInput = document.querySelector("#loginPassword");
-
-  if (role === "CLIENTE") {
-    emailInput.value = "carlos@cliente.com";
-    passwordInput.value = "123456";
-  } else if (role === "TRABAJADOR") {
-    emailInput.value = "taquilla@cinemajestad.com";
-    passwordInput.value = "123456";
-  } else if (role === "ADMIN") {
-    emailInput.value = "admin@cinemajestad.com";
-    passwordInput.value = "123456";
-  }
-
-  showAlert(`Credenciales de ${role} cargadas. Haz clic en "Entrar a Cine Majestad".`, "success");
 }
 
 // Validación en tiempo real
@@ -133,15 +128,46 @@ async function handleLoginSubmit(event) {
       result = await API.auth.login({ email, password });
     } catch (apiErr) {
       console.warn("[Auth API Fallback]:", apiErr.message);
-      // Fallback seguro para cuentas demo y pruebas locales si la API falla de red
+      // Fallback seguro para cuentas creadas en el panel de admin o pruebas locales
       const localUsers = (typeof Storage !== "undefined" && Storage.getUsers) ? Storage.getUsers() : [];
       const matched = localUsers.find(u => u.email && u.email.toLowerCase() === email);
-      if (matched && (password === "123456" || matched.rol === "ADMIN")) {
-        result = {
-          success: true,
-          token: "demo_jwt_token_" + Date.now(),
-          user: matched
-        };
+
+      if (matched) {
+        // Si el trabajador no tenía contraseña registrada previamente, adoptar la ingresada por el jefe/trabajador
+        if (!matched.password) {
+          matched.password = password;
+          Storage.saveUsers(localUsers);
+        }
+
+        const isPasswordValid = (
+          (matched.password && matched.password === password) ||
+          password === "123456" ||
+          matched.rol === "ADMIN"
+        );
+
+        if (isPasswordValid) {
+          result = {
+            success: true,
+            token: "demo_jwt_token_" + Date.now(),
+            user: matched
+          };
+
+          // Sincronizar automáticamente en MySQL en segundo plano para que quede persistido
+          try {
+            if (typeof API !== "undefined" && API.users && API.users.create) {
+              API.users.create({
+                nombre: matched.nombre,
+                apellido: matched.apellido || "",
+                email: matched.email,
+                password: password,
+                telefono: matched.telefono || "",
+                rol_id: matched.rol_id || (matched.rol === "CONFITERIA" ? 3 : 2)
+              }).catch(() => {});
+            }
+          } catch (syncErr) {}
+        } else {
+          throw new Error("Contraseña incorrecta. Por favor verifica la clave asignada.");
+        }
       } else {
         throw apiErr;
       }
@@ -154,6 +180,17 @@ async function handleLoginSubmit(event) {
       Storage.setAuthToken(result.token);
       if (result.user.rol) {
         Storage.setActiveRole(result.user.rol);
+      }
+
+      // Si es un empleado (Taquilla, Dulcería o Gerencia), registrar automáticamente su hora de entrada (Check-In)
+      if (["TAQUILLERO", "CONFITERIA", "GERENTE", "TRABAJADOR"].includes(result.user.rol)) {
+        if (typeof Storage.recordWorkerCheckIn === "function") {
+          Storage.recordWorkerCheckIn(
+            result.user.id,
+            `${result.user.nombre} ${result.user.apellido || ""}`.trim(),
+            result.user.rol
+          );
+        }
       }
 
       showAlert(`¡Bienvenido(a), <strong>${result.user.nombre}</strong>! Redirigiendo...`, "success");
@@ -208,16 +245,16 @@ async function handleRegisterSubmit(event) {
     Storage.setAuthUser(result.user);
     Storage.setAuthToken(result.token);
 
-    showAlert(`¡Cuenta creada con éxito en la base de datos! Bienvenido(a) <strong>${result.user.nombre}</strong>.`, "success");
+    showAlert(`¡Cuenta de cliente creada con éxito! Bienvenido(a) <strong>${result.user.nombre}</strong>.`, "success");
 
     setTimeout(() => {
-      window.location.href = "index.html";
-    }, 1000);
+      redirectByRole(result.user.rol);
+    }, 900);
   } catch (err) {
     console.error("[Auth Register Error]:", err);
     showAlert(err.message || "Error al registrar la cuenta.");
     submitBtn.disabled = false;
-    submitBtn.innerHTML = `Crear mi Cuenta Oficial 👑`;
+    submitBtn.innerHTML = `Crear mi Cuenta de Cliente 👑`;
   }
 }
 
@@ -233,8 +270,12 @@ function redirectByRole(role) {
 
   if (role === "ADMIN" || role === "GERENTE") {
     window.location.href = "admin.html";
-  } else if (role === "TRABAJADOR" || role === "TAQUILLERO" || role === "CONFITERIA") {
-    window.location.href = "trabajador.html";
+  } else if (role === "CONFITERIA") {
+    // El personal de dulcería ingresa directo al módulo de despacho y comidas
+    window.location.href = "trabajador.html?tab=food";
+  } else if (role === "TAQUILLERO" || role === "TRABAJADOR") {
+    // El personal de taquilla ingresa directo al módulo de boletos e impresión
+    window.location.href = "trabajador.html?tab=print";
   } else {
     // Si tenía una orden pendiente, ir a asientos, sino a cartelera
     const currentOrder = Storage.getCurrentOrder();

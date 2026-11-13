@@ -236,6 +236,29 @@ const PaymentModal = {
       return;
     }
 
+    // Exigir registro o inicio de sesión como cliente antes de pagar
+    const authUser = (typeof Storage !== "undefined" && Storage.getAuthUser) ? Storage.getAuthUser() : null;
+    if (!authUser) {
+      if (this.activeOrder) Storage.saveCurrentOrder(this.activeOrder);
+      if (typeof showToast === "function") {
+        showToast("Debes registrarte o iniciar sesión como cliente para completar tu compra.", "info");
+      }
+      setTimeout(() => {
+        const returnUrl = window.location.pathname.includes("candybar.html") ? "candybar.html" : "seats.html";
+        window.location.href = `login.html?returnTo=${encodeURIComponent(returnUrl)}&tab=register`;
+      }, 700);
+      return;
+    }
+
+    // Pre-llenar nombre del titular de la tarjeta con los datos del cliente autenticado
+    const nameInput = document.querySelector("#inputCardName");
+    const nameDisplay = document.querySelector("#cardDisplayName");
+    if (authUser && nameInput && !nameInput.value) {
+      const fullName = `${authUser.nombre} ${authUser.apellido || ""}`.trim().toUpperCase();
+      nameInput.value = fullName;
+      if (nameDisplay) nameDisplay.textContent = fullName;
+    }
+
     // Calcular total
     const totalEl = document.querySelector("#modalPaymentTotalAmount");
     if (totalEl) {

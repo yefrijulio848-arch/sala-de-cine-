@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initPosSnacks();
   renderWorkerPrintTable();
 
+  // Configuración de interfaz automática según el cargo del trabajador
+  setupWorkerRoleInterface();
+
   // Suscribirse a cambios en tiempo real
   Storage.onSync((event) => {
     if (event.type === "BOOKING_SAVED" || event.type === "FOOD_STATUS_UPDATED" || event.type === "SALE_CONFIRMED") {
@@ -21,6 +24,51 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+// Configuración de acceso y pestaña inicial según rol del trabajador
+function setupWorkerRoleInterface() {
+  const authUser = Storage.getAuthUser();
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramTab = urlParams.get("tab");
+  const shiftBadge = document.querySelector("#workerShiftBadge");
+
+  // Rol Dulcería / Confitería: directo a atender comidas y despacho
+  if (authUser && authUser.rol === "CONFITERIA") {
+    if (shiftBadge) {
+      shiftBadge.innerHTML = `🍿 Turno Activo: Operador de Dulcería & Confitería`;
+      shiftBadge.style.background = "rgba(245, 197, 24, 0.15)";
+      shiftBadge.style.color = "var(--gold)";
+      shiftBadge.style.borderColor = "rgba(245, 197, 24, 0.35)";
+    }
+    switchWorkerTab(paramTab || "food");
+    if (typeof showToast === "function") {
+      showToast(`¡Bienvenido(a), ${authUser.nombre}! Tu módulo de Dulcería y Despacho está listo.`, "info");
+    }
+    return;
+  }
+
+  // Rol Taquillero / Boletería: directo a emisión e impresión de boletos
+  if (authUser && (authUser.rol === "TAQUILLERO" || authUser.rol === "TRABAJADOR")) {
+    if (shiftBadge) {
+      shiftBadge.innerHTML = `🎟️ Turno Activo: Taquillero / Boletería (Emisión e Impresión)`;
+      shiftBadge.style.background = "rgba(0, 210, 255, 0.15)";
+      shiftBadge.style.color = "var(--accent-blue)";
+      shiftBadge.style.borderColor = "rgba(0, 210, 255, 0.35)";
+    }
+    switchWorkerTab(paramTab || "print");
+    if (typeof showToast === "function") {
+      showToast(`¡Bienvenido(a), ${authUser.nombre}! Tu terminal de Taquilla e Impresión de Boletos está lista.`, "info");
+    }
+    return;
+  }
+
+  // Otros roles o admin supervisando
+  if (paramTab) {
+    switchWorkerTab(paramTab);
+  } else {
+    switchWorkerTab("showtimes");
+  }
+}
 
 // =============================================================================
 // NAVEGACIÓN DE PESTAÑAS DEL TRABAJADOR

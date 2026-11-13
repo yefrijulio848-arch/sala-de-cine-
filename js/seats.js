@@ -98,27 +98,94 @@ function initOrderAndRoom() {
   if (legendVip) legendVip.textContent = `VIP Luxury ($${currentOrder.priceVip.toFixed(2)})`;
 }
 
-// Renderizar la matriz arquitectónica de butacas
+// Renderizar la matriz arquitectónica de butacas según la maqueta de la sala
 function renderSeatsGrid() {
   const gridContainer = document.querySelector("#seatsGrid");
   if (!gridContainer || !currentRoom) return;
 
   gridContainer.innerHTML = "";
 
+  const hallSection = document.querySelector(".cinema-hall");
+  const layoutType = currentRoom.layoutType || (
+    currentRoom.id === "sala-1" ? "curved_imax" :
+    currentRoom.id === "sala-2" ? "stadium_double_aisle" :
+    currentRoom.id === "sala-3" ? "motion_4dx" : "vip_lounge"
+  );
+
+  // Aplicar clases de maqueta arquitectónica al contenedor
+  if (hallSection) {
+    hallSection.classList.remove("layout-curved-imax", "layout-stadium-double", "layout-motion-4dx", "layout-vip-lounge");
+    hallSection.classList.add(`layout-${layoutType.replace(/_/g, "-")}`);
+  }
+
+  // Actualizar distintivo de maqueta
+  const badgeEl = document.querySelector("#hallArchitectureBadge");
+  if (badgeEl) {
+    badgeEl.textContent = currentRoom.layoutBadge || (
+      layoutType === "curved_imax" ? "🏛️ Maqueta: Anfiteatro Curvo IMAX" :
+      layoutType === "stadium_double_aisle" ? "🏟️ Maqueta: Estadio 3 Bloques (Doble Pasillo)" :
+      layoutType === "motion_4dx" ? "🚀 Maqueta: Pods Mecánicos 4DX" :
+      "👑 Maqueta: Palcos VIP & Sofás Dobles"
+    );
+  }
+
   const rows = currentRoom.rows || ["A", "B", "C", "D", "E", "F"];
   const seatsPerRow = currentRoom.seatsPerRow || 10;
   const vipRows = currentRoom.vipRows || ["E", "F"];
 
-  // Obtener estados actuales de la sala
+  // Estados de ocupación y candados en tiempo real
   const occupiedSeats = Storage.getOccupiedSeats(showtimeKey);
   const overrides = Storage.getSeatOverrides(showtimeKey);
   const mySessionId = Storage.getSessionId();
 
+  // Función fábrica para crear cada botón de butaca
+  function createSeatButton(row, col, isVipRow, isWheelchair = false) {
+    const seatCode = `${row}-${col}`;
+    const isOccupied = occupiedSeats.includes(seatCode);
+    const isSelectedByMe = currentOrder.seats && currentOrder.seats.some(s => s.code === seatCode);
+    const lockedByOther = Storage.isSeatLockedByOther(showtimeKey, seatCode, mySessionId);
+    const isMaintenance = overrides[seatCode] === "MAINTENANCE";
+
+    const seat = document.createElement("button");
+    seat.className = "seat";
+    seat.setAttribute("data-seat", seatCode);
+    seat.setAttribute("data-col", col);
+    seat.setAttribute("data-row", row);
+    seat.setAttribute("data-type", isVipRow ? "vip" : "standard");
+    seat.textContent = col;
+
+    if (isVipRow) seat.classList.add("vip");
+    if (layoutType === "vip_lounge") seat.classList.add("vip-recliner");
+    if (isWheelchair) seat.classList.add("seat-wheelchair");
+
+    if (isMaintenance) {
+      seat.classList.add("maintenance");
+      seat.title = `Butaca ${seatCode}: No disponible por mantenimiento`;
+    } else if (isOccupied) {
+      seat.classList.add("occupied");
+      seat.title = `Butaca ${seatCode}: Ocupada / Vendida`;
+    } else if (isSelectedByMe) {
+      seat.classList.add("selected");
+      seat.title = `Butaca ${seatCode}: Bloqueada en tu orden`;
+    } else if (lockedByOther) {
+      seat.classList.add("locked");
+      seat.title = `Butaca ${seatCode}: Siendo seleccionada por otro cliente en este momento 🔒`;
+    } else {
+      const price = isVipRow ? currentOrder.priceVip : currentOrder.priceStandard;
+      const typeLabel = isWheelchair ? "Accesible ♿" : (layoutType === "vip_lounge" ? "Sillón VIP Reclinable" : (isVipRow ? "VIP Luxury" : "Estándar"));
+      seat.title = `Butaca ${seatCode} (${typeLabel}): $${price.toFixed(2)}`;
+    }
+
+    seat.addEventListener("click", () => handleSeatClick(seatCode, isVipRow, seat));
+    return seat;
+  }
+
+  // RENDERIZADO SEGÚN LA FORMA ARQUITECTÓNICA DE CADA SALA
   rows.forEach(row => {
     const rowEl = document.createElement("div");
     rowEl.className = "seat-row";
 
-    // Etiqueta de Fila Izquierda
+    // Etiqueta lateral izquierda
     const labelLeft = document.createElement("span");
     labelLeft.className = "row-label";
     labelLeft.textContent = row;
@@ -126,53 +193,162 @@ function renderSeatsGrid() {
 
     const isVipRow = vipRows.includes(row);
 
-    for (let col = 1; col <= seatsPerRow; col++) {
-      // Pasillo central
-      const middleCol = Math.floor(seatsPerRow / 2);
-      if (col === middleCol + 1) {
-        const aisle = document.createElement("div");
-        aisle.className = "aisle-gap";
-        rowEl.appendChild(aisle);
+    // =========================================================================
+    // MAQUETA 1: ANFITEATRO CURVO IMAX (Curved Amphitheater)
+    // =========================================================================
+    if (layoutType === "curved_imax") {
+      for (let col = 1; col <= seatsPerRow; col++) {
+        // Pasillo central
+        if (col === 6) {
+          const aisle = document.createElement("div");
+          aisle.className = "aisle-gap";
+          rowEl.appendChild(aisle);
+        }
+        rowEl.appendChild(createSeatButton(row, col, isVipRow));
       }
-
-      const seatCode = `${row}-${col}`;
-      
-      // Evaluar estados
-      const isOccupied = occupiedSeats.includes(seatCode);
-      const isSelectedByMe = currentOrder.seats && currentOrder.seats.some(s => s.code === seatCode);
-      const lockedByOther = Storage.isSeatLockedByOther(showtimeKey, seatCode, mySessionId);
-      const isMaintenance = overrides[seatCode] === "MAINTENANCE";
-
-      const seat = document.createElement("button");
-      seat.className = "seat";
-      seat.setAttribute("data-seat", seatCode);
-      seat.setAttribute("data-type", isVipRow ? "vip" : "standard");
-      seat.textContent = col;
-
-      if (isVipRow) seat.classList.add("vip");
-
-      if (isMaintenance) {
-        seat.classList.add("maintenance");
-        seat.title = `Butaca ${seatCode}: No disponible por mantenimiento`;
-      } else if (isOccupied) {
-        seat.classList.add("occupied");
-        seat.title = `Butaca ${seatCode}: Ocupada / Vendida`;
-      } else if (isSelectedByMe) {
-        seat.classList.add("selected");
-        seat.title = `Butaca ${seatCode}: Bloqueada en tu orden`;
-      } else if (lockedByOther) {
-        seat.classList.add("locked");
-        seat.title = `Butaca ${seatCode}: Siendo seleccionada por otro cliente en este momento 🔒`;
-      } else {
-        const price = isVipRow ? currentOrder.priceVip : currentOrder.priceStandard;
-        seat.title = `Butaca ${seatCode} (${isVipRow ? 'VIP Luxury' : 'Estándar'}): $${price.toFixed(2)}`;
-      }
-
-      seat.addEventListener("click", () => handleSeatClick(seatCode, isVipRow, seat));
-      rowEl.appendChild(seat);
     }
 
-    // Etiqueta de Fila Derecha
+    // =========================================================================
+    // MAQUETA 2: ESTADIO CLÁSICO 3 BLOQUES Y DOBLE PASILLO (Triple Block Stadium)
+    // =========================================================================
+    else if (layoutType === "stadium_double_aisle") {
+      // Bloque Lateral Izquierdo (cols 1 y 2)
+      const blockLeft = document.createElement("div");
+      blockLeft.className = "stadium-block block-left";
+      blockLeft.appendChild(createSeatButton(row, 1, isVipRow, row === "A"));
+      blockLeft.appendChild(createSeatButton(row, 2, isVipRow));
+      rowEl.appendChild(blockLeft);
+
+      // Pasillo 1 de escalones iluminados
+      const aisle1 = document.createElement("div");
+      aisle1.className = "aisle-stairs";
+      rowEl.appendChild(aisle1);
+
+      // Bloque Central Platea (cols 3, 4, 5, 6, 7, 8)
+      const blockCenter = document.createElement("div");
+      blockCenter.className = "stadium-block block-center";
+      for (let col = 3; col <= 8; col++) {
+        blockCenter.appendChild(createSeatButton(row, col, isVipRow));
+      }
+      rowEl.appendChild(blockCenter);
+
+      // Pasillo 2 de escalones iluminados
+      const aisle2 = document.createElement("div");
+      aisle2.className = "aisle-stairs";
+      rowEl.appendChild(aisle2);
+
+      // Bloque Lateral Derecho (cols 9 y 10)
+      const blockRight = document.createElement("div");
+      blockRight.className = "stadium-block block-right";
+      blockRight.appendChild(createSeatButton(row, 9, isVipRow));
+      blockRight.appendChild(createSeatButton(row, 10, isVipRow, row === "A"));
+      rowEl.appendChild(blockRight);
+    }
+
+    // =========================================================================
+    // MAQUETA 3: PODS MECÁNICOS 4DX (Motion Pods)
+    // =========================================================================
+    else if (layoutType === "motion_4dx") {
+      // Pod 1 (cols 1 a 4)
+      const pod1 = document.createElement("div");
+      pod1.className = "motion-pod";
+      for (let col = 1; col <= 4; col++) {
+        pod1.appendChild(createSeatButton(row, col, isVipRow));
+      }
+      rowEl.appendChild(pod1);
+
+      // Pasillo de Efectos Especiales 4DX
+      const effectsAisle = document.createElement("div");
+      effectsAisle.className = "effects-aisle";
+      effectsAisle.innerHTML = `<span>💨</span><span>💧</span>`;
+      effectsAisle.title = "Pasillo de efectos ambientales (viento, niebla y estrobos)";
+      rowEl.appendChild(effectsAisle);
+
+      // Pod 2 (cols 5 a 8)
+      const pod2 = document.createElement("div");
+      pod2.className = "motion-pod";
+      for (let col = 5; col <= 8; col++) {
+        pod2.appendChild(createSeatButton(row, col, isVipRow));
+      }
+      rowEl.appendChild(pod2);
+
+      // Si la fila tiene más de 8 asientos, agregar un pod adicional
+      if (seatsPerRow > 8) {
+        const pod3 = document.createElement("div");
+        pod3.className = "motion-pod";
+        for (let col = 9; col <= seatsPerRow; col++) {
+          pod3.appendChild(createSeatButton(row, col, isVipRow));
+        }
+        rowEl.appendChild(pod3);
+      }
+    }
+
+    // =========================================================================
+    // MAQUETA 4: PALCOS VIP & SOFÁS DOBLES PARA PAREJAS (Love Seats & Suites)
+    // =========================================================================
+    else if (layoutType === "vip_lounge") {
+      // Pareja 1: cols 1 y 2
+      const pair1 = document.createElement("div");
+      pair1.className = "love-seat-pair";
+      pair1.appendChild(createSeatButton(row, 1, true));
+      pair1.appendChild(createSeatButton(row, 2, true));
+      rowEl.appendChild(pair1);
+
+      // Mesita auxiliar con servicio
+      const table1 = document.createElement("div");
+      table1.className = "lounge-table";
+      table1.innerHTML = `🍷`;
+      table1.title = "Mesita de servicio gourmet para pareja";
+      rowEl.appendChild(table1);
+
+      // Pareja 2: cols 3 y 4
+      const pair2 = document.createElement("div");
+      pair2.className = "love-seat-pair";
+      pair2.appendChild(createSeatButton(row, 3, true));
+      pair2.appendChild(createSeatButton(row, 4, true));
+      rowEl.appendChild(pair2);
+
+      // Pasillo central con alfombra roja
+      const carpetAisle = document.createElement("div");
+      carpetAisle.className = "carpet-aisle";
+      carpetAisle.textContent = "⚜️";
+      rowEl.appendChild(carpetAisle);
+
+      // Pareja 3: cols 5 y 6
+      const pair3 = document.createElement("div");
+      pair3.className = "love-seat-pair";
+      pair3.appendChild(createSeatButton(row, 5, true));
+      pair3.appendChild(createSeatButton(row, 6, true));
+      rowEl.appendChild(pair3);
+
+      // Mesita auxiliar con servicio
+      const table2 = document.createElement("div");
+      table2.className = "lounge-table";
+      table2.innerHTML = `🍷`;
+      table2.title = "Mesita de servicio gourmet para pareja";
+      rowEl.appendChild(table2);
+
+      // Pareja 4: cols 7 y 8
+      const pair4 = document.createElement("div");
+      pair4.className = "love-seat-pair";
+      pair4.appendChild(createSeatButton(row, 7, true));
+      pair4.appendChild(createSeatButton(row, 8, true));
+      rowEl.appendChild(pair4);
+    }
+
+    // Fallback estándar
+    else {
+      for (let col = 1; col <= seatsPerRow; col++) {
+        if (col === Math.floor(seatsPerRow / 2) + 1) {
+          const aisle = document.createElement("div");
+          aisle.className = "aisle-gap";
+          rowEl.appendChild(aisle);
+        }
+        rowEl.appendChild(createSeatButton(row, col, isVipRow));
+      }
+    }
+
+    // Etiqueta lateral derecha
     const labelRight = document.createElement("span");
     labelRight.className = "row-label";
     labelRight.textContent = row;
@@ -418,6 +594,16 @@ function proceedToCheckoutDirectly() {
   currentOrder.total = currentOrder.subtotalTickets + currentOrder.subtotalSnacks;
   currentOrder.grandTotal = currentOrder.total;
   Storage.saveCurrentOrder(currentOrder);
+
+  // Exigir registro o inicio de sesión como cliente antes de comprar
+  const authUser = Storage.getAuthUser();
+  if (!authUser) {
+    showToast("Para completar tu compra, debes registrarte o iniciar sesión como cliente.", "info");
+    setTimeout(() => {
+      window.location.href = `login.html?returnTo=${encodeURIComponent("seats.html")}&tab=register`;
+    }, 800);
+    return;
+  }
 
   if (typeof PaymentModal !== "undefined") {
     PaymentModal.open(currentOrder);
