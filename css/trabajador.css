@@ -282,10 +282,60 @@
 }
 
 @media (max-width: 992px) {
-  .food-orders-layout {
-    grid-template-columns: 1fr;
+  .food-orders-layout,
+  .food-pos-grid-layout {
+    grid-template-columns: 1fr !important;
   }
   .worker-pos-card {
     position: static;
+  }
+}
+
+@media (max-width: 600px) {
+  .showtimes-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .worker-header {
+    margin-bottom: 1.2rem;
+  }
+  .worker-tabs {
+    gap: 0.4rem;
+    margin-bottom: 1.2rem;
+  }
+  .worker-tab-btn {
+    padding: 0.55rem 0.9rem;
+    font-size: 0.82rem;
+  }
+  .showtime-worker-card {
+    padding: 1rem;
+  }
+  .food-order-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.8rem;
+    padding: 1rem;
+  }
+  .ticket-print-preview-box {
+    padding: 1.2rem;
+    max-width: 100%;
+  }
+}
+
+/* ==========================================================================
+   Panel de Cobro en Efectivo en Taquilla (Modal de Sala)
+   ========================================================================== */
+#workerCheckoutPanel {
+  animation: workerFadeIn 0.25s ease-out;
+}
+
+@keyframes workerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

@@ -94,6 +94,19 @@ function initSeatSockets(io) {
         }
       }
     });
+
+    // 5. Sincronización en vivo de configuración de sala
+    socket.on("room:updated", (payload) => {
+      console.log(`[Socket.io] Sala actualizada por admin:`, payload?.roomId || payload?.room?.name);
+      if (payload && payload.roomId && payload.room) {
+        Store.updateRoom(payload.roomId, payload.room);
+      }
+      io.emit("room:updated", {
+        ...payload,
+        rooms: Store.getRooms(),
+        timestamp: Date.now()
+      });
+    });
   });
 }
 

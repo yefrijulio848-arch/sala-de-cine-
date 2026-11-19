@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initUserSearch();
   loadSettingsForms();
   initFormHandlers();
-  if (typeof initAdminCharts === "function") initAdminCharts();
+  if (typeof refreshAdminAnalytics === "function") refreshAdminAnalytics(false);
   if (typeof renderFinancialDashboard === "function") renderFinancialDashboard();
 
   // Sincronizar datos reales desde API MySQL (Reservas, Dulcería y Proveedores)
@@ -30,8 +30,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderSnacksTable();
   renderSuppliersTable();
   renderBookingsTable();
-  if (typeof renderFinancialDashboard === "function") renderFinancialDashboard();
-  if (typeof renderAllAdminCharts === "function") renderAllAdminCharts();
 
   // Suscribirse a actualizaciones por WebSocket en tiempo real
   if (typeof RealTime !== "undefined") {
@@ -50,8 +48,18 @@ document.addEventListener("DOMContentLoaded", async () => {
           renderSuppliersTable();
           renderBookingsTable();
           renderAdminSeatInspector();
-          if (typeof renderAllAdminCharts === "function") renderAllAdminCharts();
-          if (typeof renderFinancialDashboard === "function") renderFinancialDashboard();
+
+          // Si el admin está en la pestaña de analíticas, actualizar sin recargar
+          const currentTab = document.querySelector(".admin-tab-pane.active");
+          if (currentTab && currentTab.id === "tab-analytics" && typeof refreshAdminAnalytics === "function") {
+            refreshAdminAnalytics(false);
+          } else {
+            const badgeUpdated = document.querySelector("#analyticsLastUpdated");
+            if (badgeUpdated) {
+              badgeUpdated.innerHTML = `<span style="color: var(--gold); font-weight: 600;">🔔 ¡Nueva venta registrada! Haz clic en "Refrescar Métricas"</span>`;
+            }
+          }
+
           showToast(`🔔 ¡Nueva venta registrada en tiempo real! Código: ${newBooking.bookingCode || newBooking.id} ($${(newBooking.grandTotal || newBooking.total || 0).toFixed(2)})`, "success");
         }
       });
@@ -68,14 +76,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderSnacksTable();
         renderSuppliersTable();
         renderBookingsTable();
-        if (typeof renderFinancialDashboard === "function") renderFinancialDashboard();
-        if (typeof renderAllAdminCharts === "function") renderAllAdminCharts();
       });
       RealTime.socket.on("stock:updated", (payload) => {
         if (payload && payload.snacks) {
           Storage.saveSnacks(payload.snacks);
           renderSnacksTable();
-          if (typeof renderFinancialDashboard === "function") renderFinancialDashboard();
         }
       });
       RealTime.socket.on("seat:booked", () => {
@@ -85,15 +90,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Suscribirse a actualizaciones en tiempo real (BroadcastChannel entre pestañas)
-  Storage.onSync(() => {
+  Storage.onSync((event) => {
     renderStats();
     renderAdminSeatInspector();
     renderSnacksTable();
     renderSuppliersTable();
     renderBookingsTable();
     renderRolesAndUsersTab();
-    if (typeof renderAllAdminCharts === "function") renderAllAdminCharts();
-    if (typeof renderFinancialDashboard === "function") renderFinancialDashboard();
+
+    const currentTab = document.querySelector(".admin-tab-pane.active");
+    if (currentTab && currentTab.id === "tab-analytics" && typeof refreshAdminAnalytics === "function") {
+      refreshAdminAnalytics(false);
+    } else {
+      const badgeUpdated = document.querySelector("#analyticsLastUpdated");
+      if (badgeUpdated && event && (event.type === "BOOKING_SAVED" || event.type === "BOOKINGS_UPDATED")) {
+        badgeUpdated.innerHTML = `<span style="color: var(--gold); font-weight: 600;">🔔 Nueva venta detectada. Haz clic en "Refrescar Métricas"</span>`;
+      }
+    }
   });
 });
 
@@ -174,9 +187,9 @@ function switchAdminTab(tabName) {
     renderAdminSeatInspector();
   }
 
-  // Si se abre la pestaña de analíticas, refrescar gráficos
-  if (tabName === "analytics" && typeof renderAllAdminCharts === "function") {
-    renderAllAdminCharts();
+  // Si se abre la pestaña de analíticas, refrescar tablas
+  if (tabName === "analytics" && typeof refreshAdminAnalytics === "function") {
+    refreshAdminAnalytics(false);
   }
 
   // Si se abre la pestaña de proveedores, refrescar tabla y KPIs
@@ -200,7 +213,8 @@ function switchAdminTab(tabName) {
 // =============================================================================
 function renderStats() {
   const movies = Storage.getMovies();
-  const bookings = Storage.getBookings();
+  const bookings = (typeof Storage !== "undefined" && Storage.getBookings ? Storage.getBookings() : [])
+    .filter(b => b.status !== "CANCELADA" && b.status !== "REEMBOLSADA");
 
   const statMovies = document.querySelector("#statTotalMovies");
   const statBookings = document.querySelector("#statTotalBookings");
@@ -210,17 +224,21 @@ function renderStats() {
   if (statMovies) statMovies.textContent = movies.length;
   if (statBookings) statBookings.textContent = bookings.length;
 
+  const calcTotal = typeof window.getBookingTotal === "function" 
+    ? window.getBookingTotal 
+    : (b) => (typeof b.grandTotal === "number" ? b.grandTotal : (typeof b.total === "number" ? b.total : (parseFloat(b.total_pagado) || 0)));
+
+  const calcCandy = typeof window.getBookingCandyTotal === "function" 
+    ? window.getBookingCandyTotal 
+    : (b) => (typeof b.snacksTotal === "number" ? b.snacksTotal : (typeof b.subtotalSnacks === "number" ? b.subtotalSnacks : (parseFloat(b.subtotal_snacks) || 0)));
+
   if (statRevenue) {
-    const totalRev = bookings
-      .filter(b => b.status === "CONFIRMADA")
-      .reduce((sum, b) => sum + (typeof b.grandTotal === "number" ? b.grandTotal : (typeof b.total === "number" ? b.total : (parseFloat(b.total_pagado) || 0))), 0);
+    const totalRev = bookings.reduce((sum, b) => sum + calcTotal(b), 0);
     statRevenue.textContent = `$${totalRev.toFixed(2)}`;
   }
 
   if (statCandy) {
-    const candyRev = bookings
-      .filter(b => b.status === "CONFIRMADA")
-      .reduce((sum, b) => sum + (typeof b.snacksTotal === "number" ? b.snacksTotal : (typeof b.subtotalSnacks === "number" ? b.subtotalSnacks : (parseFloat(b.subtotal_snacks) || 0))), 0);
+    const candyRev = bookings.reduce((sum, b) => sum + calcCandy(b), 0);
     statCandy.textContent = `$${candyRev.toFixed(2)}`;
   }
 }
@@ -396,44 +414,362 @@ function renderAdminRooms() {
   `).join('');
 }
 
+// =============================================================================
+// DISEÑADOR VISUAL E INTERACTIVO DE SALAS Y BUTACAS
+// =============================================================================
+let roomEditorState = {
+  roomId: "sala-1",
+  layoutType: "curved_imax",
+  rowCount: 6,
+  cols: 10,
+  rows: ["A", "B", "C", "D", "E", "F"],
+  vipRows: ["E", "F"]
+};
+
 function openRoomModal(roomId) {
   const room = Storage.getRoomById(roomId);
   if (!room) return;
 
   document.querySelector("#roomIdInput").value = room.id;
-  document.querySelector("#inputRoomName").value = room.name;
-  document.querySelector("#inputRoomTech").value = room.technology;
-  document.querySelector("#inputRoomSeatsPerRow").value = room.seatsPerRow;
-  document.querySelector("#inputRoomRows").value = room.rows.join(", ");
-  document.querySelector("#inputRoomVipRows").value = room.vipRows.join(", ");
-  document.querySelector("#inputRoomScreen").value = room.screenType;
-  document.querySelector("#inputRoomSound").value = room.soundSystem;
+  document.querySelector("#inputRoomName").value = room.name || "";
+  document.querySelector("#inputRoomTech").value = room.technology || "IMAX Laser";
+  document.querySelector("#inputRoomScreen").value = room.screenType || "Curva Gigante 4K";
+  document.querySelector("#inputRoomSound").value = room.soundSystem || "Dolby Atmos 64 Canales";
+
+  // Cargar estado inicial del diseñador de butacas
+  const rawRows = (Array.isArray(room.rows) && room.rows.length > 0) ? room.rows : ["A", "B", "C", "D", "E", "F"];
+  const rawVip = Array.isArray(room.vipRows) ? room.vipRows : ["E", "F"];
+  const rawCols = parseInt(room.seatsPerRow, 10) || 10;
+
+  roomEditorState = {
+    roomId: room.id,
+    layoutType: room.layoutType || (
+      room.id === "sala-1" ? "curved_imax" :
+      room.id === "sala-2" ? "stadium_double_aisle" :
+      room.id === "sala-3" ? "motion_4dx" : "vip_lounge"
+    ),
+    rowCount: rawRows.length,
+    cols: Math.max(4, Math.min(18, rawCols)),
+    rows: [...rawRows],
+    vipRows: [...rawVip]
+  };
+
+  renderRoomSeatEditor();
 
   const modal = document.querySelector("#roomFormModal");
   if (modal) modal.classList.add("open");
 }
+
+function renderRoomSeatEditor() {
+  const lblRowCount = document.querySelector("#lblRoomRowCount");
+  const lblRowRange = document.querySelector("#lblRoomRowRange");
+  const lblSeatsPerRow = document.querySelector("#lblRoomSeatsPerRow");
+  const hiddenSeatsPerRow = document.querySelector("#inputRoomSeatsPerRow");
+  const hiddenRows = document.querySelector("#inputRoomRows");
+  const hiddenVipRows = document.querySelector("#inputRoomVipRows");
+  const gridContainer = document.querySelector("#roomEditorSeatGrid");
+  const hallSection = document.querySelector("#roomEditorCinemaHall");
+  const archBadge = document.querySelector("#roomEditorArchBadge");
+
+  const badgeTotal = document.querySelector("#badgeEditorTotalSeats");
+  const badgeStandard = document.querySelector("#badgeEditorStandardSeats");
+  const badgeVip = document.querySelector("#badgeEditorVipSeats");
+
+  // Validar y mantener coherencia de filas
+  const ALL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  if (roomEditorState.rows.length !== roomEditorState.rowCount) {
+    roomEditorState.rows = ALL_LETTERS.slice(0, roomEditorState.rowCount);
+  }
+
+  // Filtrar VIPs que no pertenezcan a las filas activas
+  roomEditorState.vipRows = roomEditorState.vipRows.filter(r => roomEditorState.rows.includes(r));
+
+  // Actualizar textos informativos
+  if (lblRowCount) lblRowCount.textContent = `${roomEditorState.rowCount} Filas`;
+  if (lblRowRange && roomEditorState.rows.length > 0) {
+    lblRowRange.textContent = `Filas ${roomEditorState.rows[0]} hasta ${roomEditorState.rows[roomEditorState.rows.length - 1]}`;
+  }
+  if (lblSeatsPerRow) lblSeatsPerRow.textContent = `${roomEditorState.cols} Butacas`;
+
+  // Sincronizar inputs ocultos para el guardado en Storage/DB
+  if (hiddenSeatsPerRow) hiddenSeatsPerRow.value = roomEditorState.cols;
+  if (hiddenRows) hiddenRows.value = roomEditorState.rows.join(", ");
+  if (hiddenVipRows) hiddenVipRows.value = roomEditorState.vipRows.join(", ");
+
+  // Calcular totales
+  const totalSeats = roomEditorState.rowCount * roomEditorState.cols;
+  const vipSeats = roomEditorState.vipRows.length * roomEditorState.cols;
+  const standardSeats = Math.max(0, totalSeats - vipSeats);
+
+  if (badgeTotal) badgeTotal.textContent = `${totalSeats} Butacas`;
+  if (badgeStandard) badgeStandard.textContent = `${standardSeats} Estándar`;
+  if (badgeVip) badgeVip.textContent = `${vipSeats} VIP`;
+
+  if (!gridContainer) return;
+
+  const layoutType = roomEditorState.layoutType || (
+    roomEditorState.roomId === "sala-1" ? "curved_imax" :
+    roomEditorState.roomId === "sala-2" ? "stadium_double_aisle" :
+    roomEditorState.roomId === "sala-3" ? "motion_4dx" : "vip_lounge"
+  );
+
+  // Sincronizar la maqueta arquitectónica exacta al contenedor
+  if (hallSection) {
+    hallSection.classList.remove("layout-curved-imax", "layout-stadium-double", "layout-motion-4dx", "layout-vip-lounge");
+    hallSection.classList.add(`layout-${layoutType.replace(/_/g, "-")}`);
+  }
+
+  if (archBadge) {
+    archBadge.textContent = 
+      layoutType === "curved_imax" ? "🏛️ Maqueta: Anfiteatro Curvo IMAX" :
+      layoutType === "stadium_double_aisle" ? "🏟️ Maqueta: Estadio 3 Bloques (Doble Pasillo)" :
+      layoutType === "motion_4dx" ? "🚀 Maqueta: Pods Mecánicos 4DX" :
+      "👑 Maqueta: Palcos VIP & Sofás Dobles";
+  }
+
+  const rows = roomEditorState.rows;
+  const seatsPerRow = roomEditorState.cols;
+  const vipRows = roomEditorState.vipRows;
+
+  // Renderizar la misma maqueta de butacas 3D idéntica a la vista del usuario
+  gridContainer.innerHTML = rows.map(row => {
+    const isVipRow = vipRows.includes(row);
+    let seatsContent = "";
+
+    // 1. ANFITEATRO CURVO IMAX (Sala 1)
+    if (layoutType === "curved_imax") {
+      const midCol = Math.floor(seatsPerRow / 2);
+      for (let col = 1; col <= seatsPerRow; col++) {
+        if (col === midCol + 1) {
+          seatsContent += `<div class="aisle-gap"></div>`;
+        }
+        let dynamicTransform = "";
+        if (col === 1) dynamicTransform = "style='transform: rotate(7deg) translateY(3px);'";
+        else if (col === 2) dynamicTransform = "style='transform: rotate(4deg) translateY(1.5px);'";
+        else if (col === seatsPerRow - 1) dynamicTransform = "style='transform: rotate(-4deg) translateY(1.5px);'";
+        else if (col === seatsPerRow) dynamicTransform = "style='transform: rotate(-7deg) translateY(3px);'";
+
+        seatsContent += `
+          <button type="button" 
+                  class="seat ${isVipRow ? 'vip' : ''}" 
+                  data-col="${col}" 
+                  data-row="${row}" 
+                  ${dynamicTransform}
+                  onclick="toggleRowVip('${row}')" 
+                  title="Fila ${row} Butaca ${col} (${isVipRow ? 'VIP Luxury' : 'Estándar'}) - Clic para alternar Fila ${row}">
+            ${col}
+          </button>
+        `;
+      }
+    }
+    // 2. ESTADIO CLÁSICO 3 BLOQUES Y DOBLE PASILLO (Sala 2)
+    else if (layoutType === "stadium_double_aisle") {
+      const leftCount = Math.max(1, Math.min(3, Math.round(seatsPerRow * 0.2)));
+      const rightCount = leftCount;
+      const centerCount = Math.max(1, seatsPerRow - leftCount - rightCount);
+
+      // Bloque izquierdo
+      seatsContent += `<div class="stadium-block block-left">`;
+      for (let col = 1; col <= leftCount; col++) {
+        seatsContent += `
+          <button type="button" class="seat ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+        `;
+      }
+      seatsContent += `</div><div class="aisle-stairs"></div><div class="stadium-block block-center">`;
+      // Bloque centro
+      for (let col = leftCount + 1; col <= leftCount + centerCount; col++) {
+        seatsContent += `
+          <button type="button" class="seat ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+        `;
+      }
+      seatsContent += `</div><div class="aisle-stairs"></div><div class="stadium-block block-right">`;
+      // Bloque derecho
+      for (let col = leftCount + centerCount + 1; col <= seatsPerRow; col++) {
+        seatsContent += `
+          <button type="button" class="seat ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+        `;
+      }
+      seatsContent += `</div>`;
+    }
+    // 3. PODS 4DX (Sala 3)
+    else if (layoutType === "motion_4dx") {
+      let inPod = false;
+      for (let col = 1; col <= seatsPerRow; col++) {
+        if (!inPod) {
+          seatsContent += `<div class="motion-pod">`;
+          inPod = true;
+        }
+        seatsContent += `
+          <button type="button" class="seat ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+        `;
+        if (col % 4 === 0 && col < seatsPerRow) {
+          seatsContent += `</div><div class="effects-aisle"><span>💨</span></div>`;
+          inPod = false;
+        }
+      }
+      if (inPod) seatsContent += `</div>`;
+    }
+    // 4. VIP LOUNGE (Sala 4)
+    else if (layoutType === "vip_lounge") {
+      const midCol = Math.floor(seatsPerRow / 2);
+      for (let col = 1; col <= seatsPerRow; col += 2) {
+        seatsContent += `<div class="love-seat-pair">`;
+        seatsContent += `
+          <button type="button" class="seat vip-recliner ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+        `;
+        if (col + 1 <= seatsPerRow) {
+          seatsContent += `
+            <button type="button" class="seat vip-recliner ${isVipRow ? 'vip' : ''}" data-col="${col + 1}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col + 1}">${col + 1}</button>
+          `;
+        }
+        seatsContent += `</div>`;
+
+        if (col + 1 === midCol || col === midCol) {
+          seatsContent += `<div class="carpet-aisle">⚜️</div>`;
+        } else if (col + 2 <= seatsPerRow) {
+          seatsContent += `<div class="lounge-table">🍷</div>`;
+        }
+      }
+    }
+    // Fallback estándar
+    else {
+      const midCol = Math.floor(seatsPerRow / 2);
+      for (let col = 1; col <= seatsPerRow; col++) {
+        if (col === midCol + 1) {
+          seatsContent += `<div class="aisle-gap"></div>`;
+        }
+        seatsContent += `
+          <button type="button" class="seat ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+        `;
+      }
+    }
+
+    return `
+      <div class="seat-row">
+        <span class="row-label" 
+              onclick="toggleRowVip('${row}')" 
+              title="Fila ${row} (${isVipRow ? 'VIP' : 'Estándar'}) - Clic para alternar Fila ${row}" 
+              style="cursor: pointer; user-select: none; transition: all 0.2s ease;">
+          ${row}
+        </span>
+        ${seatsContent}
+        <span class="row-label" 
+              onclick="toggleRowVip('${row}')" 
+              title="Fila ${row} (${isVipRow ? 'VIP' : 'Estándar'}) - Clic para alternar Fila ${row}" 
+              style="cursor: pointer; user-select: none; transition: all 0.2s ease;">
+          ${row}
+        </span>
+      </div>
+    `;
+  }).join("");
+}
+
+function adjustRoomRows(delta) {
+  const newCount = Math.max(2, Math.min(12, roomEditorState.rowCount + delta));
+  if (newCount !== roomEditorState.rowCount) {
+    roomEditorState.rowCount = newCount;
+    const ALL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    roomEditorState.rows = ALL_LETTERS.slice(0, newCount);
+    roomEditorState.vipRows = roomEditorState.vipRows.filter(r => roomEditorState.rows.includes(r));
+    renderRoomSeatEditor();
+  }
+}
+
+function adjustRoomCols(delta) {
+  const newCols = Math.max(4, Math.min(18, roomEditorState.cols + delta));
+  if (newCols !== roomEditorState.cols) {
+    roomEditorState.cols = newCols;
+    renderRoomSeatEditor();
+  }
+}
+
+function toggleRowVip(rowLetter) {
+  const idx = roomEditorState.vipRows.indexOf(rowLetter);
+  if (idx > -1) {
+    roomEditorState.vipRows.splice(idx, 1);
+  } else {
+    roomEditorState.vipRows.push(rowLetter);
+  }
+  renderRoomSeatEditor();
+}
+
+function setVipPreset(preset) {
+  if (preset === "last2") {
+    roomEditorState.vipRows = roomEditorState.rows.slice(-2);
+  } else if (preset === "last1") {
+    roomEditorState.vipRows = roomEditorState.rows.slice(-1);
+  } else if (preset === "none") {
+    roomEditorState.vipRows = [];
+  } else if (preset === "all") {
+    roomEditorState.vipRows = [...roomEditorState.rows];
+  }
+  renderRoomSeatEditor();
+}
+
+// Exponer en el objeto global para handlers de eventos en línea
+window.openRoomModal = openRoomModal;
+window.closeRoomModal = closeRoomModal;
+window.renderRoomSeatEditor = renderRoomSeatEditor;
+window.adjustRoomRows = adjustRoomRows;
+window.adjustRoomCols = adjustRoomCols;
+window.toggleRowVip = toggleRowVip;
+window.setVipPreset = setVipPreset;
 
 function closeRoomModal() {
   const modal = document.querySelector("#roomFormModal");
   if (modal) modal.classList.remove("open");
 }
 
+// Llenar selector de fechas en el inspector de asientos
+function populateInspectorDates() {
+  const dateSelect = document.querySelector("#inspectorDateSelect");
+  if (!dateSelect) return;
+
+  const today = new Date();
+  let html = "";
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const dayNum = String(d.getDate()).padStart(2, "0");
+    const iso = `${year}-${month}-${dayNum}`;
+
+    const rawWeekday = d.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "").toUpperCase();
+    const monthShort = d.toLocaleDateString("es-ES", { month: "short" }).replace(".", "").toUpperCase();
+    const label = i === 0 ? `Hoy (${dayNum} ${monthShort})` : (i === 1 ? `Mañana (${dayNum} ${monthShort})` : `${rawWeekday} ${dayNum} ${monthShort}`);
+
+    html += `<option value="${iso}">${label}</option>`;
+  }
+  const prevVal = dateSelect.value;
+  dateSelect.innerHTML = html;
+  if (prevVal) dateSelect.value = prevVal;
+}
+
 // Llenar selector de funciones en el inspector
 function populateInspectorShowtimes() {
+  populateInspectorDates();
   const select = document.querySelector("#inspectorShowtimeSelect");
+  const dateSelect = document.querySelector("#inspectorDateSelect");
   if (!select) return;
 
+  const targetDateIso = dateSelect && dateSelect.value ? dateSelect.value : new Date().toISOString().split("T")[0];
   const movies = Storage.getMovies();
   let optionsHtml = "";
 
   movies.forEach(m => {
     m.showtimes.forEach(t => {
-      const key = `${m.id}_${t}`;
+      const key = `${m.id}_${targetDateIso}_${t}`;
       optionsHtml += `<option value="${key}">${m.title} - ${t} (${m.hall})</option>`;
     });
   });
 
+  const prevVal = select.value;
   select.innerHTML = optionsHtml;
+  if (prevVal && select.querySelector(`option[value="${prevVal}"]`)) {
+    select.value = prevVal;
+  }
+  renderAdminSeatInspector();
 }
 
 // Renderizar matriz de butacas en vivo para el Administrador según su maqueta arquitectónica
@@ -445,12 +781,19 @@ function renderAdminSeatInspector() {
   if (!select || !grid || !select.value) return;
 
   const showtimeKey = select.value;
-  const [movieId, showtime] = showtimeKey.split("_");
+  const parts = showtimeKey.split("_");
+  const movieId = parts[0];
+  const showtime = parts.length >= 3 ? parts[2] : parts[1];
   const movie = Storage.getMovieById(movieId);
   if (!movie) return;
 
   const rooms = Storage.getRooms();
-  const room = rooms.find(r => r.id === movie.roomId || r.name === movie.hall) || rooms[0];
+  const room = rooms.find(r => 
+    r.id === movie.roomId || 
+    (r.id && movie.roomId && r.id.replace(/\D/g, '') === String(movie.roomId).replace(/\D/g, '')) ||
+    r.name === movie.hall ||
+    (r.name && movie.hall && (r.name.includes(movie.hall) || movie.hall.includes(r.name)))
+  ) || rooms[0];
 
   grid.innerHTML = "";
 
@@ -459,6 +802,23 @@ function renderAdminSeatInspector() {
     room.id === "sala-2" ? "stadium_double_aisle" :
     room.id === "sala-3" ? "motion_4dx" : "vip_lounge"
   );
+
+  const hallSection = document.querySelector("#adminInspectorCinemaHall");
+  const archBadge = document.querySelector("#adminInspectorArchBadge");
+
+  if (hallSection) {
+    hallSection.classList.remove("layout-curved-imax", "layout-stadium-double", "layout-motion-4dx", "layout-vip-lounge");
+    hallSection.classList.add(`layout-${layoutType.replace(/_/g, "-")}`);
+  }
+
+  if (archBadge) {
+    archBadge.textContent = room.layoutBadge || (
+      layoutType === "curved_imax" ? "🏛️ Maqueta: Anfiteatro Curvo IMAX" :
+      layoutType === "stadium_double_aisle" ? "🏟️ Maqueta: Estadio 3 Bloques (Doble Pasillo)" :
+      layoutType === "motion_4dx" ? "🚀 Maqueta: Pods Mecánicos 4DX" :
+      "👑 Maqueta: Palcos VIP & Sofás Dobles"
+    );
+  }
 
   const rows = room.rows || ["A", "B", "C", "D", "E", "F"];
   const seatsPerRow = room.seatsPerRow || 10;
@@ -483,6 +843,13 @@ function renderAdminSeatInspector() {
 
     if (isVipRow) seat.classList.add("vip");
     if (layoutType === "vip_lounge") seat.classList.add("vip-recliner");
+
+    if (layoutType === "curved_imax") {
+      if (col === 1) seat.style.transform = "rotate(7deg) translateY(3px)";
+      else if (col === 2) seat.style.transform = "rotate(4deg) translateY(1.5px)";
+      else if (col === seatsPerRow - 1) seat.style.transform = "rotate(-4deg) translateY(1.5px)";
+      else if (col === seatsPerRow) seat.style.transform = "rotate(-7deg) translateY(3px)";
+    }
 
     const isMaint = overrides[seatCode] === "MAINTENANCE";
     const isOcc = occupiedSeats.includes(seatCode);
@@ -521,12 +888,17 @@ function renderAdminSeatInspector() {
 
     const isVipRow = vipRows.includes(row);
 
-    // Maqueta 2: Estadio 3 Bloques (cols 1,2 - Pasillo - cols 3-8 - Pasillo - cols 9,10)
+    // Maqueta 2: Estadio 3 Bloques (cols dinámicas según seatsPerRow)
     if (layoutType === "stadium_double_aisle") {
+      const leftCount = Math.max(1, Math.min(3, Math.round(seatsPerRow * 0.2)));
+      const rightCount = leftCount;
+      const centerCount = Math.max(1, seatsPerRow - leftCount - rightCount);
+
       const bLeft = document.createElement("div");
       bLeft.className = "stadium-block";
-      bLeft.appendChild(createAdminSeatBtn(row, 1, isVipRow));
-      bLeft.appendChild(createAdminSeatBtn(row, 2, isVipRow));
+      for (let col = 1; col <= leftCount; col++) {
+        bLeft.appendChild(createAdminSeatBtn(row, col, isVipRow));
+      }
       rowEl.appendChild(bLeft);
 
       const aisle1 = document.createElement("div");
@@ -535,7 +907,7 @@ function renderAdminSeatInspector() {
 
       const bCenter = document.createElement("div");
       bCenter.className = "stadium-block";
-      for (let col = 3; col <= 8; col++) {
+      for (let col = leftCount + 1; col <= leftCount + centerCount; col++) {
         bCenter.appendChild(createAdminSeatBtn(row, col, isVipRow));
       }
       rowEl.appendChild(bCenter);
@@ -546,85 +918,65 @@ function renderAdminSeatInspector() {
 
       const bRight = document.createElement("div");
       bRight.className = "stadium-block";
-      bRight.appendChild(createAdminSeatBtn(row, 9, isVipRow));
-      bRight.appendChild(createAdminSeatBtn(row, 10, isVipRow));
+      for (let col = leftCount + centerCount + 1; col <= seatsPerRow; col++) {
+        bRight.appendChild(createAdminSeatBtn(row, col, isVipRow));
+      }
       rowEl.appendChild(bRight);
     }
-    // Maqueta 3: Pods 4DX (Pods de 4)
+    // Maqueta 3: Pods 4DX (Pods de 4 dinámicos)
     else if (layoutType === "motion_4dx") {
-      const pod1 = document.createElement("div");
-      pod1.className = "motion-pod";
-      for (let col = 1; col <= 4; col++) {
-        pod1.appendChild(createAdminSeatBtn(row, col, isVipRow));
-      }
-      rowEl.appendChild(pod1);
+      let pod = document.createElement("div");
+      pod.className = "motion-pod";
 
-      const effAisle = document.createElement("div");
-      effAisle.className = "effects-aisle";
-      effAisle.innerHTML = `<span>💨</span>`;
-      rowEl.appendChild(effAisle);
+      for (let col = 1; col <= seatsPerRow; col++) {
+        pod.appendChild(createAdminSeatBtn(row, col, isVipRow));
 
-      const pod2 = document.createElement("div");
-      pod2.className = "motion-pod";
-      for (let col = 5; col <= 8; col++) {
-        pod2.appendChild(createAdminSeatBtn(row, col, isVipRow));
-      }
-      rowEl.appendChild(pod2);
+        if (col % 4 === 0 && col < seatsPerRow) {
+          rowEl.appendChild(pod);
 
-      if (seatsPerRow > 8) {
-        const pod3 = document.createElement("div");
-        pod3.className = "motion-pod";
-        for (let col = 9; col <= seatsPerRow; col++) {
-          pod3.appendChild(createAdminSeatBtn(row, col, isVipRow));
+          const effAisle = document.createElement("div");
+          effAisle.className = "effects-aisle";
+          effAisle.innerHTML = `<span>💨</span>`;
+          rowEl.appendChild(effAisle);
+
+          pod = document.createElement("div");
+          pod.className = "motion-pod";
         }
-        rowEl.appendChild(pod3);
+      }
+      if (pod.children.length > 0) {
+        rowEl.appendChild(pod);
       }
     }
-    // Maqueta 4: VIP Lounge (Sofás dobles y mesitas)
+    // Maqueta 4: VIP Lounge (Sofás dobles y mesitas dinámicas)
     else if (layoutType === "vip_lounge") {
-      const p1 = document.createElement("div");
-      p1.className = "love-seat-pair";
-      p1.appendChild(createAdminSeatBtn(row, 1, true));
-      p1.appendChild(createAdminSeatBtn(row, 2, true));
-      rowEl.appendChild(p1);
+      const midCol = Math.floor(seatsPerRow / 2);
+      for (let col = 1; col <= seatsPerRow; col += 2) {
+        const pair = document.createElement("div");
+        pair.className = "love-seat-pair";
+        pair.appendChild(createAdminSeatBtn(row, col, isVipRow));
+        if (col + 1 <= seatsPerRow) {
+          pair.appendChild(createAdminSeatBtn(row, col + 1, isVipRow));
+        }
+        rowEl.appendChild(pair);
 
-      const t1 = document.createElement("div");
-      t1.className = "lounge-table";
-      t1.innerHTML = `🍷`;
-      rowEl.appendChild(t1);
-
-      const p2 = document.createElement("div");
-      p2.className = "love-seat-pair";
-      p2.appendChild(createAdminSeatBtn(row, 3, true));
-      p2.appendChild(createAdminSeatBtn(row, 4, true));
-      rowEl.appendChild(p2);
-
-      const cp = document.createElement("div");
-      cp.className = "carpet-aisle";
-      cp.textContent = "⚜️";
-      rowEl.appendChild(cp);
-
-      const p3 = document.createElement("div");
-      p3.className = "love-seat-pair";
-      p3.appendChild(createAdminSeatBtn(row, 5, true));
-      p3.appendChild(createAdminSeatBtn(row, 6, true));
-      rowEl.appendChild(p3);
-
-      const t2 = document.createElement("div");
-      t2.className = "lounge-table";
-      t2.innerHTML = `🍷`;
-      rowEl.appendChild(t2);
-
-      const p4 = document.createElement("div");
-      p4.className = "love-seat-pair";
-      p4.appendChild(createAdminSeatBtn(row, 7, true));
-      p4.appendChild(createAdminSeatBtn(row, 8, true));
-      rowEl.appendChild(p4);
+        if (col + 1 === midCol || col === midCol) {
+          const cp = document.createElement("div");
+          cp.className = "carpet-aisle";
+          cp.textContent = "⚜️";
+          rowEl.appendChild(cp);
+        } else if (col + 2 <= seatsPerRow) {
+          const t = document.createElement("div");
+          t.className = "lounge-table";
+          t.innerHTML = `🍷`;
+          rowEl.appendChild(t);
+        }
+      }
     }
     // Fallback o Anfiteatro IMAX
     else {
+      const midCol = Math.floor(seatsPerRow / 2);
       for (let col = 1; col <= seatsPerRow; col++) {
-        if (col === Math.floor(seatsPerRow / 2) + 1) {
+        if (col === midCol + 1) {
           const gap = document.createElement("div");
           gap.style.width = "20px";
           rowEl.appendChild(gap);
@@ -1140,6 +1492,20 @@ function loadSettingsForms() {
   if (cfgHours) cfgHours.value = settings.hours || "";
   if (cfgHold) cfgHold.value = settings.seatHoldMinutes || 5;
   if (cfgMaxSeats) cfgMaxSeats.value = settings.maxSeatsPerTransaction || 8;
+
+  // Cargar parámetros de tarifas dinámicas y promoción 2x1
+  const rules = settings.pricingRules || {
+    weekendSurchargeStandard: 1.50,
+    weekendSurchargeVip: 2.00,
+    wednesdayPromo2x1: true
+  };
+  const cfgWkStd = document.querySelector("#cfgWeekendSurchargeStd");
+  const cfgWkVip = document.querySelector("#cfgWeekendSurchargeVip");
+  const cfgWed2x1 = document.querySelector("#cfgWednesdayPromo2x1");
+
+  if (cfgWkStd) cfgWkStd.value = typeof rules.weekendSurchargeStandard === "number" ? rules.weekendSurchargeStandard : 1.50;
+  if (cfgWkVip) cfgWkVip.value = typeof rules.weekendSurchargeVip === "number" ? rules.weekendSurchargeVip : 2.00;
+  if (cfgWed2x1) cfgWed2x1.checked = rules.wednesdayPromo2x1 !== false;
 }
 
 function initFormHandlers() {
@@ -1298,16 +1664,51 @@ function initFormHandlers() {
       const rooms = Storage.getRooms();
       const idx = rooms.findIndex(r => r.id === roomId);
       if (idx > -1) {
+        const oldName = rooms[idx].name;
         rooms[idx] = {
           ...rooms[idx],
           name, technology, seatsPerRow, rows, vipRows, screenType, soundSystem,
           capacity: rows.length * seatsPerRow
         };
         Storage.saveRooms(rooms);
-        showToast("Configuración de sala guardada.", "success");
+
+        // Si cambió el nombre de la sala, actualizar las películas vinculadas
+        if (oldName && oldName !== name) {
+          const movies = Storage.getMovies();
+          let moviesChanged = false;
+          movies.forEach(m => {
+            if (m.roomId === roomId || m.hall === oldName) {
+              m.hall = name;
+              m.roomId = roomId;
+              moviesChanged = true;
+            }
+          });
+          if (moviesChanged) {
+            Storage.saveMovies(movies);
+          }
+        }
+
+        // Emitir difusión inmediata vía Socket.io para clientes y taquilla en vivo
+        if (typeof RealTime !== "undefined" && RealTime.socket) {
+          RealTime.socket.emit("room:updated", {
+            roomId,
+            room: rooms[idx],
+            rooms
+          });
+        }
+
+        // Persistir en backend API REST
+        if (typeof API !== "undefined" && API.functions && API.functions.updateRoom) {
+          API.functions.updateRoom(roomId, rooms[idx]).catch(err => {
+            console.warn("[Room Sync API Warning]:", err.message);
+          });
+        }
+
+        showToast("Configuración de sala guardada y sincronizada en vivo con todos los usuarios.", "success");
         closeRoomModal();
         renderAdminRooms();
         renderAdminSeatInspector();
+        populateInspectorShowtimes();
       }
     });
   }
@@ -1344,6 +1745,33 @@ function initFormHandlers() {
       };
       Storage.saveSettings(updated);
       showToast("Parámetros de concurrencia y venta actualizados.", "success");
+    });
+  }
+
+  // 6. Guardar Tarifas Dinámicas y Promoción Miércoles 2x1
+  const pricingRulesForm = document.querySelector("#pricingRulesSettingsForm");
+  if (pricingRulesForm) {
+    pricingRulesForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const current = Storage.getSettings();
+      const wkStd = parseFloat(document.querySelector("#cfgWeekendSurchargeStd").value);
+      const wkVip = parseFloat(document.querySelector("#cfgWeekendSurchargeVip").value);
+      const wed2x1 = document.querySelector("#cfgWednesdayPromo2x1").checked;
+
+      const updated = {
+        ...current,
+        pricingRules: {
+          ...(current.pricingRules || {}),
+          weekendSurchargeStandard: isNaN(wkStd) ? 1.50 : wkStd,
+          weekendSurchargeVip: isNaN(wkVip) ? 2.00 : wkVip,
+          wednesdayPromo2x1: wed2x1,
+          weekendNotice: "Tarifa Fin de Semana (+alta demanda)",
+          calmDayNotice: "Tarifa Días Calmados (Económica)",
+          wednesdayPromoNotice: "¡Miércoles 2x1 en Boletería!"
+        }
+      };
+      Storage.saveSettings(updated);
+      showToast("Tarifas de fin de semana y promoción Miércoles 2x1 guardadas correctamente.", "success");
     });
   }
 }

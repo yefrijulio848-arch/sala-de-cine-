@@ -169,13 +169,23 @@
               por mantenimiento o liberarla de inmediato</p>
           </div>
 
-          <div class="inspector-controls">
-            <label for="inspectorShowtimeSelect"
-              style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Seleccionar Función:</label>
-            <select id="inspectorShowtimeSelect" class="form-control" style="width: auto; min-width: 250px;"
-              onchange="renderAdminSeatInspector()">
-              <!-- Opciones dinámicas de funciones -->
-            </select>
+          <div class="inspector-controls" style="display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <label for="inspectorDateSelect"
+                style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">📅 Día:</label>
+              <select id="inspectorDateSelect" class="form-control" style="width: auto; min-width: 150px;"
+                onchange="populateInspectorShowtimes()">
+                <!-- Opciones dinámicas de fechas -->
+              </select>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <label for="inspectorShowtimeSelect"
+                style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Función:</label>
+              <select id="inspectorShowtimeSelect" class="form-control" style="width: auto; min-width: 250px;"
+                onchange="renderAdminSeatInspector()">
+                <!-- Opciones dinámicas de funciones -->
+              </select>
+            </div>
           </div>
         </div>
 
@@ -203,13 +213,24 @@
           </div>
         </div>
 
-        <!-- Vista de la Sala y Butacas -->
-        <div class="admin-hall-view">
-          <div class="admin-screen-indicator"></div>
-          <div class="admin-seats-grid" id="adminSeatsGrid">
-            <!-- Grid interactivo para el admin -->
+        <!-- Vista de la Sala y Butacas con Maqueta y Pantalla Curva Real -->
+        <section class="cinema-hall layout-curved-imax" id="adminInspectorCinemaHall" style="padding: 1.5rem 1rem 1.8rem; border-radius: var(--radius-md); width: 100%; box-sizing: border-box; overflow-x: auto;">
+          <!-- Distintivo Arquitectónico -->
+          <div class="hall-architecture-badge" id="adminInspectorArchBadge" style="margin-bottom: 1.2rem;">
+            🏛️ Maqueta: Anfiteatro Curvo IMAX
           </div>
-        </div>
+
+          <!-- Pantalla de Cine Curva Idéntica al Usuario y Trabajador -->
+          <div class="screen-wrapper" style="width: 82%; margin-bottom: 1.6rem;">
+            <div class="screen-curve"></div>
+            <div class="screen-light"></div>
+            <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+          </div>
+
+          <!-- Grid interactivo para el admin -->
+          <div class="admin-seats-grid" id="adminSeatsGrid" style="width: 100%; display: flex; flex-direction: column; gap: 0.85rem; align-items: center; perspective: 600px;">
+          </div>
+        </section>
 
         <!-- Resumen de estado de la función -->
         <div id="inspectorStats"
@@ -550,53 +571,72 @@
     </section>
 
     <!-- =======================================================================
-         PESTAÑA NUEVA: ANALÍTICAS Y GRÁFICOS INTERACTIVOS (CHART.JS)
+         PESTAÑA: ANALÍTICAS Y RENDIMIENTO CINEMATOGRÁFICO
          ======================================================================= -->
     <section class="admin-tab-pane" id="tab-analytics">
       <div class="table-toolbar">
         <div>
-          <h2 class="section-title">Analíticas Cinematográficas en Vivo</h2>
-          <p style="color: var(--text-secondary); font-size: 0.88rem;">Métricas interactivas de recaudación por
-            película, tasa de ocupación de salas y desglose de canales de pago</p>
+          <h2 class="section-title">Analíticas Cinematográficas</h2>
+          <p style="color: var(--text-secondary); font-size: 0.88rem;">
+            Rendimiento real de recaudación por película y desglose de canales de pago en tiempo real.
+          </p>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="renderAllAdminCharts()">🔄 Refrescar Métricas</button>
+        <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+          <span id="analyticsLastUpdated" style="color: var(--text-muted); font-size: 0.8rem;">Actualizado al ingresar</span>
+          <button id="btnRefreshAnalytics" class="btn btn-primary btn-sm" onclick="refreshAdminAnalytics(true)">
+            🔄 Refrescar Métricas
+          </button>
+        </div>
       </div>
 
-      <div
-        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
-        <!-- Gráfico 1: Ingresos por Película -->
-        <div
-          style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem;">
-          <h3
-            style="color: #fff; font-size: 1.05rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-            🎬 Ingresos por Película ($ USD)
-          </h3>
-          <div style="position: relative; height: 260px; width: 100%;">
-            <canvas id="chartMovieRevenue"></canvas>
+      <div class="analytics-tables-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; margin-top: 1.2rem;">
+        <!-- Tabla 1: Ingresos por Película -->
+        <div class="analytics-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; display: flex; flex-direction: column;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+            <h3 style="color: #fff; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+              🎬 Ingresos por Película ($ USD)
+            </h3>
+            <span id="movieRevenueTotalBadge" class="badge" style="background: rgba(212, 175, 55, 0.15); color: var(--gold); font-weight: 700;">$0.00</span>
+          </div>
+          <div style="overflow-x: auto; flex: 1;">
+            <table class="data-table" style="font-size: 0.85rem; width: 100%;">
+              <thead>
+                <tr>
+                  <th>Película</th>
+                  <th style="text-align: right;">Boletos</th>
+                  <th style="text-align: right;">Recaudado</th>
+                  <th style="text-align: right;">% Total</th>
+                </tr>
+              </thead>
+              <tbody id="tableMovieRevenueBody">
+                <!-- Inyectado por JavaScript -->
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <!-- Gráfico 2: Ocupación de Salas -->
-        <div
-          style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem;">
-          <h3
-            style="color: #fff; font-size: 1.05rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-            💺 Ocupación Estimada por Sala (%)
-          </h3>
-          <div style="position: relative; height: 260px; width: 100%;">
-            <canvas id="chartRoomOccupancy"></canvas>
+        <!-- Tabla 2: Métodos de Pago -->
+        <div class="analytics-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; display: flex; flex-direction: column;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+            <h3 style="color: #fff; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+              💳 Métodos de Pago más Utilizados
+            </h3>
+            <span id="paymentTotalBadge" class="badge" style="background: rgba(0, 230, 118, 0.15); color: #00e676; font-weight: 700;">0 Ventas</span>
           </div>
-        </div>
-
-        <!-- Gráfico 3: Métodos de Pago -->
-        <div
-          style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem;">
-          <h3
-            style="color: #fff; font-size: 1.05rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-            💳 Métodos de Pago más Utilizados
-          </h3>
-          <div style="position: relative; height: 260px; width: 100%;">
-            <canvas id="chartPaymentMethods"></canvas>
+          <div style="overflow-x: auto; flex: 1;">
+            <table class="data-table" style="font-size: 0.85rem; width: 100%;">
+              <thead>
+                <tr>
+                  <th>Canal de Pago</th>
+                  <th style="text-align: right;">Operaciones</th>
+                  <th style="text-align: right;">Total ($)</th>
+                  <th style="text-align: right;">% Uso</th>
+                </tr>
+              </thead>
+              <tbody id="tablePaymentMethodsBody">
+                <!-- Inyectado por JavaScript -->
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -634,6 +674,44 @@
               <input type="text" id="cfgHours" class="form-control">
             </div>
             <button type="submit" class="btn btn-primary btn-sm">💾 Guardar Identidad</button>
+          </form>
+        </div>
+
+        <!-- Tarjeta de Tarifas Dinámicas y Promociones por Día -->
+        <div class="config-card">
+          <h3>🎟️ Tarifas por Día y Promociones (Fines de Semana & Miércoles 2x1)</h3>
+          <p style="color: var(--text-secondary); font-size: 0.84rem; margin-bottom: 1.2rem;">
+            Ajusta los precios de fines de semana (días de alta demanda) y la promoción especial de Miércoles 2x1 en boletería.
+          </p>
+          <form id="pricingRulesSettingsForm">
+            <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: var(--radius-sm); padding: 0.9rem; margin-bottom: 1rem;">
+              <h4 style="color: #f59e0b; font-size: 0.92rem; margin-bottom: 0.6rem;">⭐ Fines de Semana (Sábados y Domingos)</h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;">
+                <div class="form-group">
+                  <label for="cfgWeekendSurchargeStd" style="font-size: 0.8rem;">Recargo Butaca Estándar ($):</label>
+                  <input type="number" step="0.25" id="cfgWeekendSurchargeStd" class="form-control" min="0" required>
+                  <small style="color: var(--text-muted); font-size: 0.72rem;">Suma sobre precio base (Ej: +$1.50)</small>
+                </div>
+                <div class="form-group">
+                  <label for="cfgWeekendSurchargeVip" style="font-size: 0.8rem;">Recargo Butaca VIP ($):</label>
+                  <input type="number" step="0.25" id="cfgWeekendSurchargeVip" class="form-control" min="0" required>
+                  <small style="color: var(--text-muted); font-size: 0.72rem;">Suma sobre precio base (Ej: +$2.00)</small>
+                </div>
+              </div>
+            </div>
+
+            <div style="background: rgba(255, 0, 85, 0.08); border: 1px solid rgba(255, 0, 85, 0.25); border-radius: var(--radius-sm); padding: 0.9rem; margin-bottom: 1.2rem;">
+              <h4 style="color: #ff4d88; font-size: 0.92rem; margin-bottom: 0.4rem;">🎉 Miércoles de Cine: Promoción 2x1</h4>
+              <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.7rem;">
+                Por cada 2 butacas seleccionadas los miércoles, la segunda entrada sale a costo $0.00 (Gratis).
+              </p>
+              <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: #fff; font-size: 0.88rem; font-weight: 600;">
+                <input type="checkbox" id="cfgWednesdayPromo2x1" style="width: 18px; height: 18px; accent-color: #ff0055;">
+                Activar Promoción Miércoles 2x1 en Boletería
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm">💾 Guardar Tarifas y Promociones</button>
           </form>
         </div>
 
@@ -1039,59 +1117,175 @@
   </div>
 
   <!-- =======================================================================
-       MODAL 3: CONFIGURACIÓN DE SALA FÍSICA
+       MODAL 3: CONFIGURACIÓN Y MAQUETADO VISUAL DE SALA
        ======================================================================= -->
   <div class="modal-backdrop" id="roomFormModal">
-    <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-content" style="max-width: 960px; width: 95%;">
       <div class="modal-header">
-        <h3 id="modalRoomTitle" style="color: #fff;">Configurar Sala y Distribución</h3>
+        <div>
+          <h3 id="modalRoomTitle" style="color: #fff; margin: 0; font-size: 1.25rem;">🛠️ Configurar Sala y Maqueta de Butacas</h3>
+          <p style="color: var(--text-secondary); font-size: 0.82rem; margin: 0.25rem 0 0;">
+            Ajusta filas, asientos y zonas VIP de forma visual e interactiva en tiempo real.
+          </p>
+        </div>
         <button class="modal-close" onclick="closeRoomModal()">✕</button>
       </div>
 
       <form id="roomForm">
         <input type="hidden" id="roomIdInput">
+        <input type="hidden" id="inputRoomSeatsPerRow" value="10">
+        <input type="hidden" id="inputRoomRows" value="A, B, C, D, E, F">
+        <input type="hidden" id="inputRoomVipRows" value="E, F">
 
-        <div class="form-grid">
-          <div class="form-group form-group-full">
-            <label for="inputRoomName">Nombre de la Sala *</label>
-            <input type="text" id="inputRoomName" class="form-control" required>
+        <div class="room-editor-container">
+          <!-- Columna Izquierda: Parámetros y Controles Sencillos -->
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <!-- Nombre de Sala -->
+            <div class="form-group" style="margin: 0;">
+              <label for="inputRoomName" style="font-size: 0.82rem;">Nombre de la Sala *</label>
+              <input type="text" id="inputRoomName" class="form-control" placeholder="Ej. Sala 1 (IMAX Laser)" required>
+            </div>
+
+            <!-- Formato / Tecnología con lista desplegable sugerida -->
+            <div class="form-group" style="margin: 0;">
+              <label for="inputRoomTech" style="font-size: 0.82rem;">Tecnología / Formato *</label>
+              <input type="text" id="inputRoomTech" class="form-control" list="techFormatsList" placeholder="Ej. IMAX Laser, 70mm, 3D..." required>
+              <datalist id="techFormatsList">
+                <option value="IMAX Laser">
+                <option value="70mm Film">
+                <option value="Dolby Atmos 360°">
+                <option value="VIP Royal Lounge">
+                <option value="4DX Real Motion">
+                <option value="Digital 2D / 3D">
+              </datalist>
+            </div>
+
+            <!-- Stepper: Cantidad de Filas -->
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem;">
+              <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">
+                📏 Cantidad de Filas
+              </label>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.8rem;">
+                <button type="button" class="editor-stepper-btn" onclick="adjustRoomRows(-1)" title="Restar fila">−</button>
+                <div style="text-align: center; flex: 1;">
+                  <span id="lblRoomRowCount" style="font-size: 1.15rem; font-weight: 800; color: #fff;">6 Filas</span>
+                  <div id="lblRoomRowRange" style="font-size: 0.72rem; color: var(--gold); font-weight: 600;">Filas A hasta F</div>
+                </div>
+                <button type="button" class="editor-stepper-btn" onclick="adjustRoomRows(1)" title="Agregar fila">+</button>
+              </div>
+            </div>
+
+            <!-- Stepper: Butacas por Fila (Columnas) -->
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem;">
+              <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">
+                💺 Butacas por Fila (Columnas)
+              </label>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.8rem;">
+                <button type="button" class="editor-stepper-btn" onclick="adjustRoomCols(-1)" title="Restar asiento por fila">−</button>
+                <div style="text-align: center; flex: 1;">
+                  <span id="lblRoomSeatsPerRow" style="font-size: 1.15rem; font-weight: 800; color: #fff;">10 Butacas</span>
+                  <div style="font-size: 0.72rem; color: var(--text-muted);">Columnas 1 al 10</div>
+                </div>
+                <button type="button" class="editor-stepper-btn" onclick="adjustRoomCols(1)" title="Agregar asiento por fila">+</button>
+              </div>
+            </div>
+
+            <!-- Acciones Rápidas VIP -->
+            <div style="background: rgba(212, 175, 55, 0.05); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 8px; padding: 0.85rem;">
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--gold); margin-bottom: 0.5rem;">
+                ⭐ Asignación Rápida de Zona VIP
+              </label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem;">
+                <button type="button" class="btn btn-secondary btn-xs" onclick="setVipPreset('last2')" style="font-size: 0.72rem; padding: 0.45rem 0.3rem;">
+                  👑 Últimas 2 Filas VIP
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="setVipPreset('last1')" style="font-size: 0.72rem; padding: 0.45rem 0.3rem;">
+                  ⭐ Solo Última Fila
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="setVipPreset('none')" style="font-size: 0.72rem; padding: 0.45rem 0.3rem;">
+                  💺 Todo Estándar
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="setVipPreset('all')" style="font-size: 0.72rem; padding: 0.45rem 0.3rem;">
+                  ✨ Toda la Sala VIP
+                </button>
+              </div>
+            </div>
+
+            <!-- Opciones Técnicas (Pantalla y Sonido) -->
+            <details style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.55rem 0.8rem;">
+              <summary style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); cursor: pointer;">
+                ⚙️ Pantalla y Sonido (Opcional)
+              </summary>
+              <div style="margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div>
+                  <label style="font-size: 0.72rem; color: var(--text-muted); display: block;">Tipo de Pantalla</label>
+                  <input type="text" id="inputRoomScreen" class="form-control" style="font-size: 0.8rem; padding: 0.45rem;" placeholder="Ej. Curva Gigante 4K">
+                </div>
+                <div>
+                  <label style="font-size: 0.72rem; color: var(--text-muted); display: block;">Sistema de Sonido</label>
+                  <input type="text" id="inputRoomSound" class="form-control" style="font-size: 0.8rem; padding: 0.45rem;" placeholder="Ej. Dolby Atmos 64 Canales">
+                </div>
+              </div>
+            </details>
           </div>
 
-          <div class="form-group">
-            <label for="inputRoomTech">Tecnología / Formato *</label>
-            <input type="text" id="inputRoomTech" class="form-control" required>
-          </div>
+          <!-- Columna Derecha: Vista Previa y Maqueta Idéntica a la del Usuario -->
+          <div style="background: #080b13; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; display: flex; flex-direction: column; min-height: 440px; overflow: hidden;">
+            <!-- Encabezado de la maqueta -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.65rem; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.4rem;">
+                👁️ Vista Idéntica a la Pantalla de los Usuarios
+              </span>
+              <div style="display: flex; gap: 0.4rem; align-items: center; font-size: 0.72rem;">
+                <span id="badgeEditorTotalSeats" class="badge" style="background: rgba(255,255,255,0.08); color: #fff; font-weight: 700;">60 Butacas</span>
+                <span id="badgeEditorStandardSeats" class="badge" style="background: rgba(37, 46, 66, 0.8); border: 1px solid #3b4766; color: #8be5ff; font-weight: 700;">40 Estándar</span>
+                <span id="badgeEditorVipSeats" class="badge" style="background: rgba(245, 197, 24, 0.15); border: 1px solid rgba(245, 197, 24, 0.4); color: var(--gold); font-weight: 700;">20 VIP</span>
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label for="inputRoomSeatsPerRow">Butacas por Fila (Columnas) *</label>
-            <input type="number" id="inputRoomSeatsPerRow" class="form-control" min="6" max="16" required>
-          </div>
+            <!-- Sala de Cine Interactiva con Estructura Idéntica a seats.html -->
+            <section class="cinema-hall layout-curved-imax" id="roomEditorCinemaHall" style="padding: 1.5rem 1rem 1.8rem; border-radius: var(--radius-md); width: 100%; box-sizing: border-box; overflow-x: auto; flex: 1;">
+              <!-- Distintivo Arquitectónico -->
+              <div class="hall-architecture-badge" id="roomEditorArchBadge" style="margin-bottom: 1rem;">
+                🏛️ Maqueta: Anfiteatro Curvo IMAX
+              </div>
 
-          <div class="form-group">
-            <label for="inputRoomRows">Filas (separadas por coma) *</label>
-            <input type="text" id="inputRoomRows" class="form-control" placeholder="A, B, C, D, E, F" required>
-          </div>
+              <!-- Pantalla de Cine Curva Idéntica al Usuario -->
+              <div class="screen-wrapper" style="width: 82%; margin-bottom: 1.5rem;">
+                <div class="screen-curve"></div>
+                <div class="screen-light"></div>
+                <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+              </div>
 
-          <div class="form-group">
-            <label for="inputRoomVipRows">Filas VIP (separadas por coma) *</label>
-            <input type="text" id="inputRoomVipRows" class="form-control" placeholder="E, F" required>
-          </div>
+              <!-- Leyenda de Estados Idéntica al Usuario -->
+              <div class="seats-legend" style="margin-bottom: 1.4rem; justify-content: center; gap: 1.8rem;">
+                <div class="legend-item" style="cursor: pointer;" onclick="setVipPreset('none')" title="Clic para poner toda la sala en Estándar">
+                  <span class="legend-seat available"></span>
+                  <span id="editorLegendStd">Estándar</span>
+                </div>
+                <div class="legend-item" style="cursor: pointer;" onclick="setVipPreset('all')" title="Clic para poner toda la sala en VIP">
+                  <span class="legend-seat vip"></span>
+                  <span id="editorLegendVip">VIP Luxury</span>
+                </div>
+              </div>
 
-          <div class="form-group">
-            <label for="inputRoomScreen">Tipo de Pantalla</label>
-            <input type="text" id="inputRoomScreen" class="form-control" placeholder="Ej. Curva Gigante 4K">
-          </div>
+              <!-- Matriz de Asientos Exacta con perspectiva y 3D -->
+              <div class="seats-grid" id="roomEditorSeatGrid" style="width: 100%; display: flex; flex-direction: column; gap: 0.85rem; align-items: center; perspective: 600px;">
+                <!-- Renderizado idéntico por JS -->
+              </div>
 
-          <div class="form-group form-group-full">
-            <label for="inputRoomSound">Sistema de Sonido</label>
-            <input type="text" id="inputRoomSound" class="form-control" placeholder="Ej. Dolby Atmos 64 Canales">
+              <!-- Tip interactivo -->
+              <div style="margin-top: 1.5rem; font-size: 0.78rem; color: var(--gold); display: flex; align-items: center; justify-content: center; gap: 0.4rem; text-align: center;">
+                <span>💡 Clic en la letra de la fila o en cualquier butaca para alternar entre Estándar y VIP</span>
+              </div>
+            </section>
           </div>
         </div>
 
         <div class="modal-footer"
           style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color);">
           <button type="button" class="btn btn-secondary" onclick="closeRoomModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Guardar Configuración de Sala</button>
+          <button type="submit" class="btn btn-primary">💾 Guardar Configuración de Sala</button>
         </div>
       </form>
     </div>

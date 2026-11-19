@@ -50,7 +50,9 @@ function renderDigitalTicket() {
       const user = Storage.getAuthUser();
       const seatsArr = order.seats.map(s => s.code || s);
       const snacksArr = order.snacks || [];
-      const showtimeKey = `${order.movieId}_${order.showtime}`;
+      const todayIso = new Date().toISOString().split("T")[0];
+      const targetDate = order.date || todayIso;
+      const showtimeKey = order.showtimeKey || `${order.movieId}_${targetDate}_${order.showtime}`;
       const grandTotal = order.total || order.grandTotal || (order.ticketsTotal || 0);
 
       booking = {
@@ -59,7 +61,9 @@ function renderDigitalTicket() {
         movieTitle: order.movieTitle,
         hall: order.hall,
         showtime: order.showtime,
-        showtimeDate: "Hoy",
+        date: targetDate,
+        showtimeDate: order.dateFormatted || targetDate,
+        showtimeKey: showtimeKey,
         seats: seatsArr,
         snacks: snacksArr,
         total: grandTotal,

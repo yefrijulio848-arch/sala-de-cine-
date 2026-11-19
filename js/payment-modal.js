@@ -30,10 +30,11 @@ const PaymentModal = {
 
           <div class="payment-modal-body">
             <!-- Total a Pagar Destacado -->
-            <div style="background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: var(--radius-sm); padding: 0.9rem 1.2rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div style="background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: var(--radius-sm); padding: 0.9rem 1.2rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
               <span style="color: var(--text-secondary); font-size: 0.9rem;">Total a Pagar:</span>
               <strong id="modalPaymentTotalAmount" style="color: var(--gold); font-size: 1.5rem;">$0.00</strong>
             </div>
+            <div id="modalPaymentPromoDetails" style="font-size: 0.82rem; margin-bottom: 1.2rem; padding: 0.45rem 0.9rem; border-radius: 4px; display: none;"></div>
 
             <!-- Selector de Métodos de Pago -->
             <div class="payment-methods-tabs">
@@ -45,9 +46,9 @@ const PaymentModal = {
                 <span style="font-size: 1.3rem;">📱</span>
                 <span>PSE / Nequi / Daviplata</span>
               </button>
-              <button class="pm-tab-btn" id="pmBtnCash" onclick="PaymentModal.switchMethod('cash')">
+              <button class="pm-tab-btn" id="pmBtnCash" onclick="PaymentModal.switchMethod('cash')" style="display: none;">
                 <span style="font-size: 1.3rem;">🎟️</span>
-                <span>Efectivo en Taquilla</span>
+                <span>Efectivo en Taquilla (Personal)</span>
               </button>
             </div>
 
@@ -227,12 +228,27 @@ const PaymentModal = {
     this.setupCardInputs();
   },
 
+  // Determinar si el usuario actual es personal o si está en el portal del trabajador para habilitar efectivo
+  canShowCashOption() {
+    const authUser = (typeof Storage !== "undefined" && Storage.getAuthUser) ? Storage.getAuthUser() : null;
+    const isStaff = authUser && ["TRABAJADOR", "TAQUILLERO", "CONFITERIA", "ADMIN", "GERENTE"].includes(authUser.rol);
+    const isWorkerPortal = typeof window !== "undefined" && window.location.pathname.includes("trabajador.html");
+    return Boolean(isStaff || isWorkerPortal);
+  },
+
   open(orderData) {
     this.init();
     this.activeOrder = orderData || Storage.getCurrentOrder();
 
-    if (!this.activeOrder || !this.activeOrder.seats || this.activeOrder.seats.length === 0) {
-      alert("Por favor selecciona al menos una butaca antes de pagar.");
+    const hasSeats = this.activeOrder && this.activeOrder.seats && this.activeOrder.seats.length > 0;
+    const hasSnacks = this.activeOrder && this.activeOrder.snacks && this.activeOrder.snacks.length > 0;
+
+    if (!hasSeats && !hasSnacks) {
+      if (typeof showToast === "function") {
+        showToast("Por favor selecciona tus butacas o productos antes de pagar.", "info");
+      } else {
+        alert("Por favor selecciona tus butacas o productos antes de pagar.");
+      }
       return;
     }
 
@@ -250,6 +266,29 @@ const PaymentModal = {
       return;
     }
 
+    // El trabajador solo puede realizar la venta en efectivo (nada de transferencias ni tarjetas).
+    // Los clientes en la web solo realizan pagos virtuales (tarjeta o transferencia PSE/Nequi).
+    const allowCash = this.canShowCashOption();
+    const cashBtn = document.querySelector("#pmBtnCash");
+    const cardBtn = document.querySelector("#pmBtnCard");
+    const digitalBtn = document.querySelector("#pmBtnDigital");
+
+    if (allowCash) {
+      // Portal del Trabajador / Taquilla: EXCLUSIVO EFECTIVO
+      if (cashBtn) cashBtn.style.display = "flex";
+      if (cardBtn) cardBtn.style.display = "none";
+      if (digitalBtn) digitalBtn.style.display = "none";
+      this.switchMethod("cash");
+    } else {
+      // Clientes Web: EXCLUSIVO PAGO VIRTUAL
+      if (cashBtn) cashBtn.style.display = "none";
+      if (cardBtn) cardBtn.style.display = "flex";
+      if (digitalBtn) digitalBtn.style.display = "flex";
+      if (this.currentTab === "cash") {
+        this.switchMethod("card");
+      }
+    }
+
     // Pre-llenar nombre del titular de la tarjeta con los datos del cliente autenticado
     const nameInput = document.querySelector("#inputCardName");
     const nameDisplay = document.querySelector("#cardDisplayName");
@@ -259,10 +298,33 @@ const PaymentModal = {
       if (nameDisplay) nameDisplay.textContent = fullName;
     }
 
-    // Calcular total
+    // Calcular total y detalles de tarifas
     const totalEl = document.querySelector("#modalPaymentTotalAmount");
+    const promoDetailsEl = document.querySelector("#modalPaymentPromoDetails");
     if (totalEl) {
       totalEl.textContent = `$${(this.activeOrder.total || 0).toFixed(2)}`;
+    }
+
+    if (promoDetailsEl) {
+      if (this.activeOrder.discount2x1 > 0) {
+        promoDetailsEl.style.display = "block";
+        promoDetailsEl.style.background = "rgba(0, 230, 118, 0.12)";
+        promoDetailsEl.style.border = "1px solid rgba(0, 230, 118, 0.3)";
+        promoDetailsEl.style.color = "#00e676";
+        promoDetailsEl.innerHTML = `🎉 <strong>¡Promoción Miércoles 2x1 aplicada!</strong> Descuento de <strong>-$${this.activeOrder.discount2x1.toFixed(2)}</strong> incluido.`;
+      } else if (this.activeOrder.isWeekend) {
+        promoDetailsEl.style.display = "block";
+        promoDetailsEl.style.background = "rgba(245, 158, 11, 0.12)";
+        promoDetailsEl.style.border = "1px solid rgba(245, 158, 11, 0.3)";
+        promoDetailsEl.style.color = "#fef3c7";
+        promoDetailsEl.innerHTML = `⭐ <strong>Función Fin de Semana:</strong> Tarifa estelar fin de semana aplicada.`;
+      } else {
+        promoDetailsEl.style.display = "block";
+        promoDetailsEl.style.background = "rgba(16, 185, 129, 0.08)";
+        promoDetailsEl.style.border = "1px solid rgba(16, 185, 129, 0.2)";
+        promoDetailsEl.style.color = "#a7f3d0";
+        promoDetailsEl.innerHTML = `🌿 <strong>Tarifa Días Calmados:</strong> Tarifa económica entre semana.`;
+      }
     }
 
     // Generar códigos aleatorios para PSE / Taquilla
@@ -302,6 +364,9 @@ const PaymentModal = {
   },
 
   switchMethod(method) {
+    if (method === "cash" && !this.canShowCashOption()) {
+      method = "card";
+    }
     this.currentTab = method;
     document.querySelectorAll(".pm-tab-btn").forEach(b => b.classList.remove("active"));
     document.querySelectorAll(".payment-pane").forEach(p => p.classList.remove("active"));
@@ -460,7 +525,16 @@ const PaymentModal = {
   },
 
   processCashBooking() {
-    this.executePaymentTransaction("Efectivo en Taquilla (Reserva Pendiente)");
+    if (!this.canShowCashOption()) {
+      if (typeof showToast === "function") {
+        showToast("El pago en efectivo solo está disponible para atención presencial por el personal de taquilla.", "warning");
+      } else {
+        alert("El pago en efectivo solo está disponible para atención presencial por el personal de taquilla.");
+      }
+      this.switchMethod("card");
+      return;
+    }
+    this.executePaymentTransaction("Efectivo en Taquilla (Cobrado en Mostrador)");
   },
 
   async executePaymentTransaction(paymentMethodTitle) {
@@ -481,10 +555,14 @@ const PaymentModal = {
       const userId = user ? user.id : null;
 
       const seatCodes = (this.activeOrder.seats || []).map(s => (typeof s === "string" ? s : (s.code || s)));
-      const showtimeKey = this.activeOrder.showtimeKey || `${this.activeOrder.movieId}_${this.activeOrder.showtime}`;
+      const todayIso = new Date().toISOString().split("T")[0];
+      const targetDate = this.activeOrder.date || todayIso;
+      const showtimeKey = this.activeOrder.showtimeKey || `${this.activeOrder.movieId}_${targetDate}_${this.activeOrder.showtime}`;
 
       const bookingPayload = {
         ...this.activeOrder,
+        date: targetDate,
+        showtimeDate: this.activeOrder.dateFormatted || targetDate,
         showtimeKey,
         seats: seatCodes,
         userId,
@@ -556,10 +634,17 @@ const PaymentModal = {
         `;
       }
 
-      // Redirigir al cliente a checkout.html con su entrada generada
+      // Redirigir al cliente a checkout.html con su entrada generada o abrir diálogo de impresión en portal trabajador
       setTimeout(() => {
         const targetId = finalBooking.id || finalBooking.bookingCode || "";
-        window.location.href = `checkout.html?bookingId=${targetId}`;
+        if (typeof window !== "undefined" && window.location.pathname.includes("trabajador.html")) {
+          PaymentModal.close();
+          if (typeof openPrintModalForTicket === "function") {
+            openPrintModalForTicket(targetId);
+          }
+        } else {
+          window.location.href = `checkout.html?bookingId=${targetId}`;
+        }
       }, 900);
 
     } catch (criticalErr) {

@@ -56,6 +56,24 @@
           🏛️ Maqueta: Anfiteatro Curvo IMAX
         </div>
 
+        <!-- Selector Rápido de Días y Horarios para la Función -->
+        <div class="seat-view-schedule-bar" id="seatViewScheduleBar">
+          <div class="schedule-bar-header">
+            <span class="schedule-bar-title">📅 Día y Horario de Función:</span>
+            <span class="schedule-bar-current" id="lblSeatScheduleCurrent">Cargando fecha...</span>
+          </div>
+          <div class="schedule-selectors-row">
+            <div class="schedule-dates-strip" id="seatViewDatesStrip">
+              <!-- Inyectado dinámicamente con los próximos 7 días -->
+            </div>
+            <div class="schedule-times-strip" id="seatViewTimesStrip">
+              <!-- Inyectado dinámicamente con los horarios de la película -->
+            </div>
+          </div>
+          <!-- Banner de Tarifas Dinámicas y Promoción 2x1 en Sala -->
+          <div id="seatSchedulePromoAlert"></div>
+        </div>
+
         <!-- Pantalla de Cine Curva -->
         <div class="screen-wrapper">
           <div class="screen-curve"></div>
@@ -118,12 +136,28 @@
 
         <div class="summary-details-list">
           <div class="summary-row">
+            <span>Fecha de Función:</span>
+            <strong id="summaryDate">Hoy</strong>
+          </div>
+          <div class="summary-row">
+            <span>Tarifa del Día:</span>
+            <strong id="summaryTariffLabel" style="color: var(--gold);">Tarifa Regular</strong>
+          </div>
+          <div class="summary-row">
             <span>Horario de Función:</span>
             <strong id="summaryTime">--:--</strong>
           </div>
           <div class="summary-row">
             <span>Boletos seleccionados:</span>
             <strong id="summarySeatsCount">0 boletos</strong>
+          </div>
+          <div class="summary-row" id="rowSummarySubtotal" style="display: none;">
+            <span>Subtotal:</span>
+            <strong id="summarySubtotalAmount">$0.00</strong>
+          </div>
+          <div class="summary-row" id="rowSummaryDiscount" style="display: none; color: #00e676;">
+            <span>Descuento Miércoles 2x1:</span>
+            <strong id="summaryDiscountAmount">-$0.00</strong>
           </div>
           <div class="summary-row">
             <span>Estado de Reserva:</span>
@@ -138,8 +172,11 @@
           <span style="color: var(--text-muted); font-size: 0.85rem;">Ningún asiento seleccionado</span>
         </div>
 
+        <!-- Tip de Promoción Miércoles 2x1 si seleccionan número impar -->
+        <div id="wednesdayPromoTip" style="display: none; margin: 0.8rem 0; padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.82rem; background: rgba(255, 0, 85, 0.12); border: 1px solid rgba(255, 0, 85, 0.35); color: #ffb3c6;"></div>
+
         <div class="total-box">
-          <span class="total-label">Subtotal Boletos:</span>
+          <span class="total-label">Total Boletos:</span>
           <span class="total-price" id="summaryTotalPrice">$0.00</span>
         </div>
 

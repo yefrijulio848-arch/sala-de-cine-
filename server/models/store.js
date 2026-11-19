@@ -685,6 +685,22 @@ const Store = {
     return state.rooms.find(r => r.id === roomId) || state.rooms[0];
   },
 
+  updateRoom(roomId, roomData) {
+    const idx = state.rooms.findIndex(r => r.id === roomId);
+    if (idx !== -1) {
+      state.rooms[idx] = { ...state.rooms[idx], ...roomData };
+      if (roomData.name) {
+        state.movies.forEach(m => {
+          if (m.roomId === roomId) {
+            m.hall = roomData.name;
+          }
+        });
+      }
+      return state.rooms[idx];
+    }
+    return null;
+  },
+
   // Snacks (Dulcería y Confitería en tiempo real con MySQL)
   async getSnacks() {
     if (isDbConnected()) {
@@ -712,28 +728,55 @@ const Store = {
           ORDER BY ps.id ASC
         `);
         if (rows && rows.length > 0) {
-          return rows.map(r => ({
-            id: r.id,
-            name: r.name,
-            category: r.category || "snacks",
-            costPrice: parseFloat(r.costPrice) || 0,
-            price: parseFloat(r.price) || 0,
-            badge: r.badge || "",
-            image: r.image,
-            stock: parseInt(r.stock, 10) || 0,
-            initialStock: parseInt(r.initialStock, 10) || 500,
-            description: r.description || "",
-            proveedor_id: r.proveedor_id,
-            proveedor_nombre: r.proveedor_nombre || "",
-            proveedor_margen: parseFloat(r.proveedor_margen) || 0,
-            proveedor_comision: parseFloat(r.proveedor_comision) || 0
-          }));
+          return rows.map(r => {
+            const imgUrl = r.image || "https://images.unsplash.com/photo-1585647347384-2593bc35786b?auto=format&fit=crop&w=600&q=80";
+            const descStr = r.description || "Delicioso snack preparado con ingredientes de primera calidad.";
+            const badgeStr = r.badge || "Popular";
+            return {
+              id: r.id,
+              name: r.name,
+              category: (r.category || "snacks").toLowerCase(),
+              costPrice: parseFloat(r.costPrice) || 0,
+              price: parseFloat(r.price) || 0,
+              badge: badgeStr,
+              tag: badgeStr,
+              etiqueta: badgeStr,
+              image: imgUrl,
+              img: imgUrl,
+              imagen_url: imgUrl,
+              stock: parseInt(r.stock, 10) || 0,
+              initialStock: parseInt(r.initialStock, 10) || 500,
+              description: descStr,
+              desc: descStr,
+              descripcion: descStr,
+              proveedor_id: r.proveedor_id,
+              proveedor_nombre: r.proveedor_nombre || "",
+              proveedor_margen: parseFloat(r.proveedor_margen) || 0,
+              proveedor_comision: parseFloat(r.proveedor_comision) || 0
+            };
+          });
         }
       } catch (e) {
         console.warn("[DB Snacks Sync]:", e.message);
       }
     }
-    return state.snacks;
+    return (state.snacks || []).map(s => {
+      const img = s.image || s.img || "https://images.unsplash.com/photo-1585647347384-2593bc35786b?auto=format&fit=crop&w=600&q=80";
+      const desc = s.description || s.desc || "Delicioso snack preparado con ingredientes de primera calidad.";
+      const badge = s.badge || s.tag || "Popular";
+      return {
+        ...s,
+        image: img,
+        img: img,
+        imagen_url: img,
+        description: desc,
+        desc: desc,
+        descripcion: desc,
+        badge: badge,
+        tag: badge,
+        etiqueta: badge
+      };
+    });
   },
 
   async createSnack(snackData) {
@@ -1251,8 +1294,12 @@ const Store = {
       createdAt: new Date().toISOString()
     };
 
-    // Marcar asientos ocupados permanentemente en la función
-    const showtimeKey = `${newBooking.movieId}_${newBooking.showtime}`;
+    // Marcar asientos ocupados permanentemente en la función por día
+    const targetDate = bookingData.date || bookingData.dateIso || new Date().toISOString().split("T")[0];
+    const showtimeKey = bookingData.showtimeKey || `${newBooking.movieId}_${targetDate}_${newBooking.showtime}`;
+    newBooking.showtimeKey = showtimeKey;
+    newBooking.date = targetDate;
+
     if (!state.occupiedSeats[showtimeKey]) {
       state.occupiedSeats[showtimeKey] = [];
     }

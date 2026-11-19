@@ -1,208 +1,343 @@
 /* ==========================================================================
-   Cine Majestad - Analíticas con Chart.js y Exportación CSV / Excel
+   Cine Majestad - Tablas de Analíticas de Rendimiento & Inteligencia Financiera
+   Cálculo robusto, sincronización en vivo con Base de Datos MySQL
    ========================================================================== */
 
-let movieRevenueChart = null;
-let roomOccupancyChart = null;
-let paymentMethodsChart = null;
-let financialStructureChart = null;
-let productMarginsChart = null;
+// Helpers globales unificados para cálculo exacto de ingresos y asientos
+function getBookingTotal(b) {
+  if (!b) return 0;
+  if (typeof b.grandTotal === "number" && !isNaN(b.grandTotal)) return b.grandTotal;
+  if (typeof b.total === "number" && !isNaN(b.total)) return b.total;
+  if (typeof b.total_pagado === "number" && !isNaN(b.total_pagado)) return b.total_pagado;
 
-function ensureChartJsLoaded() {
-  return new Promise((resolve, reject) => {
-    if (window.Chart) return resolve(window.Chart);
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/chart.js";
-    script.onload = () => resolve(window.Chart);
-    script.onerror = () => reject(new Error("No se pudo cargar Chart.js."));
-    document.head.appendChild(script);
-  });
+  const pGrand = parseFloat(b.grandTotal);
+  if (!isNaN(pGrand)) return pGrand;
+  const pTotal = parseFloat(b.total);
+  if (!isNaN(pTotal)) return pTotal;
+  const pPagado = parseFloat(b.total_pagado);
+  if (!isNaN(pPagado)) return pPagado;
+
+  const sTickets = parseFloat(b.subtotalTickets || b.ticketsTotal || 0) || 0;
+  const sSnacks = parseFloat(b.subtotalSnacks || b.snacksTotal || b.subtotal_snacks || 0) || 0;
+  return sTickets + sSnacks;
+}
+window.getBookingTotal = getBookingTotal;
+
+function getBookingCandyTotal(b) {
+  if (!b) return 0;
+  if (typeof b.snacksTotal === "number" && !isNaN(b.snacksTotal)) return b.snacksTotal;
+  if (typeof b.subtotalSnacks === "number" && !isNaN(b.subtotalSnacks)) return b.subtotalSnacks;
+  if (typeof b.subtotal_snacks === "number" && !isNaN(b.subtotal_snacks)) return b.subtotal_snacks;
+
+  const pSnacks = parseFloat(b.snacksTotal || b.subtotalSnacks || b.subtotal_snacks);
+  if (!isNaN(pSnacks)) return pSnacks;
+
+  if (Array.isArray(b.snacks)) {
+    return b.snacks.reduce((acc, s) => acc + ((parseFloat(s.price) || 0) * (parseInt(s.qty || s.quantity || 1, 10))), 0);
+  }
+  return 0;
+}
+window.getBookingCandyTotal = getBookingCandyTotal;
+
+function getBookingTicketCount(b) {
+  if (!b) return 0;
+  if (Array.isArray(b.seats)) return b.seats.length;
+  if (typeof b.seats === "string" && b.seats.trim()) {
+    try {
+      const parsed = JSON.parse(b.seats);
+      if (Array.isArray(parsed)) return parsed.length;
+    } catch (e) {
+      return b.seats.split(",").filter(s => s.trim().length > 0).length;
+    }
+  }
+  const count = parseInt(b.ticketCount || b.boletos || 0, 10);
+  return !isNaN(count) && count > 0 ? count : ((parseFloat(b.subtotalTickets) || 0) > 0 ? 1 : 0);
+}
+window.getBookingTicketCount = getBookingTicketCount;
+
+async function syncSalesDataFromAPI() {
+  try {
+    if (typeof API !== "undefined" && API.orders && API.orders.getAll) {
+      const res = await API.orders.getAll();
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        Storage.saveBookings(res.data, true);
+        return res.data;
+      }
+    }
+  } catch (err) {
+    console.warn("[Analytics API Direct Fetch Warning]:", err.message);
+  }
+  return null;
 }
 
-async function initAdminCharts() {
+async function refreshAdminAnalytics(isManual = false) {
+  const btn = document.querySelector("#btnRefreshAnalytics");
+  const badgeUpdated = document.querySelector("#analyticsLastUpdated");
+
+  if (btn && isManual) {
+    btn.disabled = true;
+    btn.innerHTML = `<span style="display: inline-block; animation: spin 1s infinite linear;">🔄</span> Sincronizando con BD...`;
+  }
+
   try {
-    await ensureChartJsLoaded();
-    renderAllAdminCharts();
+    // 1. Sincronizar en vivo con la Base de Datos MySQL
+    if (typeof syncBookingsFromAPI === "function") {
+      await syncBookingsFromAPI();
+    } else {
+      await syncSalesDataFromAPI();
+    }
+
+    // 2. Refrescar los 4 KPIs superiores de la cabecera
+    if (typeof renderStats === "function") {
+      renderStats();
+    }
+
+    // 3. Sincronizar tabla de Historial de Ventas si está presente
+    if (typeof renderBookingsTable === "function") {
+      renderBookingsTable();
+    }
+
+    // 4. Obtener las reservas activas (no canceladas ni reembolsadas)
+    const bookings = (typeof Storage !== "undefined" && Storage.getBookings ? Storage.getBookings() : [])
+      .filter(b => b.status !== "CANCELADA" && b.status !== "REEMBOLSADA");
+    const movies = (typeof Storage !== "undefined" && Storage.getMovies) ? Storage.getMovies() : [];
+    const rooms = (typeof Storage !== "undefined" && Storage.getRooms) ? Storage.getRooms() : [];
+
+    // 5. Renderizar tablas analíticas (Ingresos por Película y Métodos de Pago)
+    renderMovieRevenueTable(bookings, movies);
+    renderPaymentMethodsTable(bookings);
+
+    // 6. Calcular recaudación total
+    const grandTotal = bookings.reduce((sum, b) => sum + getBookingTotal(b), 0);
+    const timeStr = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+    if (badgeUpdated) {
+      badgeUpdated.innerHTML = `<span style="color: #00e676; font-weight: 600;">● Sincronizado</span> Último refresco: ${timeStr} (${bookings.length} ventas | $${grandTotal.toFixed(2)})`;
+    }
+
+    if (isManual && typeof showToast === "function") {
+      showToast(`✅ Métricas actualizadas: ${bookings.length} ventas sincronizadas desde MySQL ($${grandTotal.toFixed(2)} USD).`, "success");
+    }
   } catch (err) {
-    console.warn("[Analytics] Error cargando Chart.js:", err.message);
+    console.error("[Analytics Refresh Error]:", err);
+    if (isManual && typeof showToast === "function") {
+      showToast("Error al refrescar analíticas: " + err.message, "error");
+    }
+  } finally {
+    if (btn && isManual) {
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = `🔄 Refrescar Métricas`;
+      }, 400);
+    }
   }
 }
 
-function renderAllAdminCharts() {
-  const bookings = Storage.getBookings();
-  const movies = Storage.getMovies();
-  const rooms = Storage.getRooms();
+// 1. Tabla: Ingresos y Recaudación por Película
+function renderMovieRevenueTable(bookings, movies) {
+  const tbody = document.querySelector("#tableMovieRevenueBody");
+  const totalBadge = document.querySelector("#movieRevenueTotalBadge");
+  if (!tbody) return;
 
-  renderMovieRevenueChart(bookings, movies);
-  renderRoomOccupancyChart(rooms, bookings);
-  renderPaymentMethodsChart(bookings);
-}
-
-// 1. Gráfico de Ingresos por Película
-function renderMovieRevenueChart(bookings, movies) {
-  const canvas = document.querySelector("#chartMovieRevenue");
-  if (!canvas) return;
-
-  const movieTotals = {};
-  movies.forEach(m => { movieTotals[m.title] = 0; });
-
-  (bookings || []).forEach(b => {
-    if (b.status === "CANCELADA") return;
-    const amount = typeof b.grandTotal === "number" ? b.grandTotal : (typeof b.total === "number" ? b.total : (parseFloat(b.total_pagado) || 0));
-    const rawTitle = (b.movieTitle || "").trim();
-    
-    // Emparejar con títulos del catálogo ignorando mayúsculas y espacios
-    let matchedKey = Object.keys(movieTotals).find(k => k.toLowerCase() === rawTitle.toLowerCase());
-    if (matchedKey) {
-      movieTotals[matchedKey] += amount;
-    } else {
-      movieTotals[rawTitle || "Otras Películas"] = (movieTotals[rawTitle || "Otras Películas"] || 0) + amount;
-    }
+  const movieMap = {};
+  movies.forEach(m => {
+    movieMap[m.title] = {
+      title: m.title,
+      tickets: 0,
+      revenue: 0
+    };
   });
 
-  const labels = Object.keys(movieTotals);
-  const data = Object.values(movieTotals);
+  let grandTotal = 0;
 
-  if (movieRevenueChart) movieRevenueChart.destroy();
+  bookings.forEach(b => {
+    const amount = getBookingTotal(b);
+    const ticketCount = getBookingTicketCount(b);
+    const rawTitle = (b.movieTitle || "").trim();
 
-  const ctx = canvas.getContext("2d");
-  movieRevenueChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: labels.map(l => l.length > 18 ? l.substring(0, 18) + "..." : l),
-      datasets: [{
-        label: "Ingresos Totales ($ USD)",
-        data: data,
-        backgroundColor: "rgba(212, 175, 55, 0.7)",
-        borderColor: "#d4af37",
-        borderWidth: 1.5,
-        borderRadius: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: "#a0a0af", font: { family: "Inter, sans-serif" } } }
-      },
-      scales: {
-        x: { ticks: { color: "#a0a0af" }, grid: { color: "rgba(255,255,255,0.05)" } },
-        y: { ticks: { color: "#a0a0af", callback: (v) => "$" + v }, grid: { color: "rgba(255,255,255,0.05)" } }
+    let matched = Object.keys(movieMap).find(k => k.toLowerCase() === rawTitle.toLowerCase());
+    if (!matched) {
+      matched = rawTitle || ((b.snacks && b.snacks.length > 0) ? "Ventas Directas de Confitería" : "Otras Ventas");
+      if (!movieMap[matched]) {
+        movieMap[matched] = { title: matched, tickets: 0, revenue: 0 };
       }
     }
+
+    movieMap[matched].tickets += ticketCount;
+    movieMap[matched].revenue += amount;
+    grandTotal += amount;
   });
+
+  if (totalBadge) {
+    totalBadge.textContent = `$${grandTotal.toFixed(2)}`;
+  }
+
+  const list = Object.values(movieMap).sort((a, b) => b.revenue - a.revenue);
+
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No hay películas con ventas registradas aún.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(item => {
+    const pct = grandTotal > 0 ? ((item.revenue / grandTotal) * 100).toFixed(1) : "0.0";
+    return `
+      <tr>
+        <td>
+          <strong style="color: #fff;">${item.title}</strong>
+          <div style="background: rgba(255,255,255,0.06); border-radius: 999px; height: 5px; width: 100%; margin-top: 5px; overflow: hidden;">
+            <div style="background: var(--gold); height: 100%; width: ${Math.min(pct, 100)}%;"></div>
+          </div>
+        </td>
+        <td style="text-align: right; color: var(--text-secondary); font-weight: 600;">${item.tickets} boles.</td>
+        <td style="text-align: right; font-weight: 700; color: #00e676;">$${item.revenue.toFixed(2)}</td>
+        <td style="text-align: right;">
+          <span class="badge" style="background: rgba(212, 175, 55, 0.15); color: var(--gold); font-size: 0.75rem;">${pct}%</span>
+        </td>
+      </tr>
+    `;
+  }).join("");
 }
 
-// 2. Gráfico de Ocupación por Sala (Cálculo Dinámico Real)
-function renderRoomOccupancyChart(rooms, bookings) {
-  const canvas = document.querySelector("#chartRoomOccupancy");
-  if (!canvas) return;
+// 2. Tabla: Ocupación Real por Sala
+function renderRoomOccupancyTable(rooms, bookings) {
+  const tbody = document.querySelector("#tableRoomOccupancyBody");
+  const avgBadge = document.querySelector("#avgOccupancyBadge");
+  if (!tbody) return;
 
-  const allBookings = bookings || Storage.getBookings();
-  const labels = rooms.map(r => r.name.split("(")[0].trim());
-  
-  // Calcular porcentaje real de butacas vendidas por sala
-  const occupiedEstimates = rooms.map(room => {
-    const rName = (room.name || "").toLowerCase().split("(")[0].trim();
-    const rId = (room.id || "").toLowerCase();
-    let seatsBooked = 0;
-    
-    allBookings.forEach(b => {
-      if (b.status !== "CANCELADA") {
-        const bHall = (b.hall || "").toLowerCase();
-        const bRoom = (b.roomId || "").toLowerCase();
-        if (bHall.includes(rName) || bRoom === rId) {
-          seatsBooked += (b.seats && Array.isArray(b.seats) ? b.seats.length : 0);
-        }
+  if (rooms.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No hay salas configuradas.</td></tr>`;
+    return;
+  }
+
+  let totalPctSum = 0;
+
+  const rowsHtml = rooms.map(room => {
+    const rName = (room.name || "").toLowerCase().trim();
+    const rCleanName = rName.split("(")[0].trim();
+    const rId = (room.id || "").toLowerCase().trim();
+    const rNum = rId.replace(/\D/g, "");
+    let occupiedCount = 0;
+
+    bookings.forEach(b => {
+      const bHall = (b.hall || "").toLowerCase().trim();
+      const bRoom = (b.roomId || "").toLowerCase().trim();
+      const isMatch = (bRoom === rId) || 
+                      (rNum && (bRoom === rNum || bRoom === `sala-${rNum}`)) || 
+                      (bHall && (bHall.includes(rCleanName) || rName.includes(bHall)));
+
+      if (isMatch) {
+        occupiedCount += getBookingTicketCount(b);
       }
     });
+
     const cap = room.capacity || 50;
-    // Retornar ocupación calculada en base a ventas confirmadas
-    return Math.max(8, Math.min(100, Math.round((seatsBooked / cap) * 100)));
-  });
+    const pct = Math.min(100, Math.round((occupiedCount / cap) * 100));
+    totalPctSum += pct;
 
-  if (roomOccupancyChart) roomOccupancyChart.destroy();
+    let barColor = "#00e676";
+    let statusBadge = `<span class="badge" style="background: rgba(0, 230, 118, 0.12); color: #00e676; font-size: 0.72rem;">Disponible</span>`;
 
-  const ctx = canvas.getContext("2d");
-  roomOccupancyChart = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels: labels,
-      datasets: [{
-        data: occupiedEstimates,
-        backgroundColor: [
-          "#d4af37", // Oro
-          "#00d2ff", // Azul
-          "#9d4edd", // Violeta
-          "#00e676"  // Verde
-        ],
-        borderColor: "#12121a",
-        borderWidth: 3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "bottom", labels: { color: "#a0a0af", boxWidth: 12 } }
-      }
+    if (pct >= 75) {
+      barColor = "#e50914";
+      statusBadge = `<span class="badge" style="background: rgba(229, 9, 20, 0.15); color: #ff5252; font-size: 0.72rem;">Alta Demanda</span>`;
+    } else if (pct >= 30) {
+      barColor = "#00d2ff";
+      statusBadge = `<span class="badge" style="background: rgba(0, 210, 255, 0.15); color: #00d2ff; font-size: 0.72rem;">Moderada</span>`;
     }
-  });
+
+    return `
+      <tr>
+        <td>
+          <strong style="color: #fff;">${room.name}</strong>
+          <div style="background: rgba(255,255,255,0.06); border-radius: 999px; height: 5px; width: 100%; margin-top: 5px; overflow: hidden;">
+            <div style="background: ${barColor}; height: 100%; width: ${pct}%;"></div>
+          </div>
+        </td>
+        <td style="text-align: center; color: var(--text-secondary);">${cap}</td>
+        <td style="text-align: center; font-weight: 700; color: var(--gold);">${occupiedCount}</td>
+        <td style="text-align: right;">
+          <span style="font-weight: 800; color: #fff; margin-right: 0.4rem;">${pct}%</span>
+          ${statusBadge}
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  tbody.innerHTML = rowsHtml;
+
+  if (avgBadge) {
+    const avg = rooms.length > 0 ? Math.round(totalPctSum / rooms.length) : 0;
+    avgBadge.textContent = `${avg}% Ocupación Prom.`;
+  }
 }
 
-// 3. Gráfico de Métodos de Pago
-function renderPaymentMethodsChart(bookings) {
-  const canvas = document.querySelector("#chartPaymentMethods");
-  if (!canvas) return;
+// 3. Tabla: Canales y Métodos de Pago
+function renderPaymentMethodsTable(bookings) {
+  const tbody = document.querySelector("#tablePaymentMethodsBody");
+  const badgeTotal = document.querySelector("#paymentTotalBadge");
+  if (!tbody) return;
 
-  const counts = {
-    "Tarjeta Crédito/Débito": 0,
-    "Transferencia / PSE": 0,
-    "Nequi / Daviplata": 0,
-    "Efectivo en Taquilla": 0
+  const channels = {
+    "Transferencia / PSE": { name: "Transferencia / PSE", icon: "🏦", count: 0, total: 0, color: "#00d2ff" },
+    "Tarjeta Crédito / Débito": { name: "Tarjeta Crédito / Débito", icon: "💳", count: 0, total: 0, color: "var(--gold)" },
+    "Nequi / Daviplata": { name: "Nequi / Daviplata", icon: "📱", count: 0, total: 0, color: "#da0081" },
+    "Efectivo en Taquilla": { name: "Efectivo en Taquilla", icon: "💵", count: 0, total: 0, color: "#00e676" }
   };
 
-  (bookings || []).forEach(b => {
-    if (b.status === "CANCELADA") return;
+  let totalVentasCount = 0;
+  let totalMontoRecaudado = 0;
+
+  bookings.forEach(b => {
+    const amount = getBookingTotal(b);
     const pm = (b.paymentMethod || b.metodo_pago || "").toUpperCase();
+
+    totalVentasCount++;
+    totalMontoRecaudado += amount;
+
     if (pm.includes("NEQUI") || pm.includes("DAVIPLATA")) {
-      counts["Nequi / Daviplata"]++;
-    } else if (pm.includes("TRANSFER") || pm.includes("PSE")) {
-      counts["Transferencia / PSE"]++;
-    } else if (pm.includes("EFECTIVO") || pm.includes("TAQUILLA")) {
-      counts["Efectivo en Taquilla"]++;
+      channels["Nequi / Daviplata"].count++;
+      channels["Nequi / Daviplata"].total += amount;
+    } else if (pm.includes("TRANSFER") || pm.includes("PSE") || pm.includes("BANCO")) {
+      channels["Transferencia / PSE"].count++;
+      channels["Transferencia / PSE"].total += amount;
+    } else if (pm.includes("EFECTIVO") || pm.includes("TAQUILLA") || pm.includes("CASH")) {
+      channels["Efectivo en Taquilla"].count++;
+      channels["Efectivo en Taquilla"].total += amount;
     } else {
-      counts["Tarjeta Crédito/Débito"]++;
+      channels["Tarjeta Crédito / Débito"].count++;
+      channels["Tarjeta Crédito / Débito"].total += amount;
     }
   });
 
-  if (paymentMethodsChart) paymentMethodsChart.destroy();
+  if (badgeTotal) {
+    badgeTotal.textContent = `${totalVentasCount} Ventas`;
+  }
 
-  const ctx = canvas.getContext("2d");
-  paymentMethodsChart = new Chart(ctx, {
-    type: "pie",
-    data: {
-      labels: Object.keys(counts),
-      datasets: [{
-        data: Object.values(counts),
-        backgroundColor: [
-          "rgba(0, 210, 255, 0.8)",
-          "rgba(212, 175, 55, 0.8)",
-          "rgba(218, 0, 129, 0.8)",
-          "rgba(0, 230, 118, 0.8)"
-        ],
-        borderColor: "#12121a",
-        borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "bottom", labels: { color: "#a0a0af", boxWidth: 12 } }
-      }
-    }
-  });
+  tbody.innerHTML = Object.values(channels).map(c => {
+    const pct = totalVentasCount > 0 ? ((c.count / totalVentasCount) * 100).toFixed(1) : "0.0";
+    return `
+      <tr>
+        <td>
+          <strong style="color: #fff;">${c.icon} ${c.name}</strong>
+          <div style="background: rgba(255,255,255,0.06); border-radius: 999px; height: 5px; width: 100%; margin-top: 5px; overflow: hidden;">
+            <div style="background: ${c.color}; height: 100%; width: ${Math.min(pct, 100)}%;"></div>
+          </div>
+        </td>
+        <td style="text-align: right; color: var(--text-secondary); font-weight: 600;">${c.count} trans.</td>
+        <td style="text-align: right; font-weight: 700; color: #00e676;">$${c.total.toFixed(2)}</td>
+        <td style="text-align: right;"><span class="badge" style="background: rgba(255,255,255,0.08); font-size: 0.75rem;">${pct}%</span></td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function initAdminCharts() {
+  refreshAdminAnalytics(false);
+}
+
+function renderAllAdminCharts() {
+  refreshAdminAnalytics(false);
 }
 
 // =============================================================================
@@ -494,6 +629,7 @@ async function exportFinancialsToCsv() {
 
 window.initAdminCharts = initAdminCharts;
 window.renderAllAdminCharts = renderAllAdminCharts;
+window.refreshAdminAnalytics = refreshAdminAnalytics;
 window.renderFinancialDashboard = renderFinancialDashboard;
 window.exportSalesToCsv = exportSalesToCsv;
 window.exportInventoryToCsv = exportInventoryToCsv;

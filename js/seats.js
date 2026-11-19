@@ -9,6 +9,7 @@ let timerInterval = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   initOrderAndRoom();
+  renderSeatViewSchedule();
   renderSeatsGrid();
   updateSummary();
   initHoldTimer();
@@ -57,14 +58,237 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Escuchar eventos en tiempo real entre pestañas / sesiones (BroadcastChannel)
   Storage.onSync((event) => {
-    // Si cualquier otra pestaña bloqueó, liberó o completó asientos, refrescar la sala
+    // Si cualquier otra pestaña guardó salas, películas, o bloqueó/liberó asientos, refrescar inmediatamente
+    initOrderAndRoom();
     renderSeatsGrid();
+    updateSummary();
   });
+
+  // Si Socket.io recibe actualización de salas desde el Administrador
+  if (typeof RealTime !== "undefined" && RealTime.socket) {
+    RealTime.socket.on("room:updated", (payload) => {
+      if (payload && payload.rooms) {
+        Storage.saveRooms(payload.rooms, true);
+      }
+      initOrderAndRoom();
+      renderSeatsGrid();
+      updateSummary();
+    });
+  }
 });
+
+// Generar lista de próximos 7 días para el conmutador de función
+function getUpcomingDatesList(count = 7) {
+  const dates = [];
+  const today = new Date();
+  for (let i = 0; i < count; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const dayNum = String(d.getDate()).padStart(2, "0");
+    const iso = `${year}-${month}-${dayNum}`;
+
+    const rawWeekday = d.toLocaleDateString("es-ES", { weekday: "short" }).replace(".", "").toUpperCase();
+    const rawMonth = d.toLocaleDateString("es-ES", { month: "short" }).replace(".", "").toUpperCase();
+    const weekdayLong = d.toLocaleDateString("es-ES", { weekday: "long" });
+    const monthLong = d.toLocaleDateString("es-ES", { month: "long" });
+
+    const dayNameShort = i === 0 ? "HOY" : (i === 1 ? "MAÑANA" : rawWeekday);
+    const shortLabel = i === 0 ? "Hoy" : (i === 1 ? "Mañana" : `${rawWeekday.charAt(0) + rawWeekday.slice(1).toLowerCase()} ${d.getDate()}`);
+    const fullLabel = i === 0 
+      ? `Hoy, ${weekdayLong.charAt(0).toUpperCase() + weekdayLong.slice(1)} ${d.getDate()} de ${monthLong}`
+      : `${weekdayLong.charAt(0).toUpperCase() + weekdayLong.slice(1)} ${d.getDate()} de ${monthLong}`;
+
+    const dayPricing = Storage.getDayPricingInfo(iso);
+
+    dates.push({
+      iso,
+      dayNum: d.getDate(),
+      dayNameShort,
+      monthShort: rawMonth,
+      shortLabel,
+      fullLabel,
+      dayPricing
+    });
+  }
+  return dates;
+}
+
+// Renderizar la barra selectora de días y horarios en la vista de butacas
+function renderSeatViewSchedule() {
+  const datesStrip = document.querySelector("#seatViewDatesStrip");
+  const timesStrip = document.querySelector("#seatViewTimesStrip");
+  const lblScheduleCurrent = document.querySelector("#lblSeatScheduleCurrent");
+  const promoAlertEl = document.querySelector("#seatSchedulePromoAlert");
+
+  if (!datesStrip || !timesStrip || !currentOrder) return;
+
+  const dates = getUpcomingDatesList(7);
+  const movie = Storage.getMovieById(currentOrder.movieId) || { showtimes: [currentOrder.showtime] };
+  const showtimes = movie.showtimes || [currentOrder.showtime];
+
+  const currentDateIso = currentOrder.date || dates[0].iso;
+  const currentFormatted = currentOrder.dateFormatted || "Hoy";
+  const dayPricing = Storage.getDayPricingInfo(currentDateIso, movie);
+
+  if (lblScheduleCurrent) {
+    lblScheduleCurrent.textContent = `${currentFormatted} • ${currentOrder.showtime} (${dayPricing.tierLabel})`;
+  }
+
+  // Banner explicativo de tarifas dinámicas en la sala
+  if (promoAlertEl) {
+    if (dayPricing.isWednesday) {
+      promoAlertEl.innerHTML = `
+        <div class="seat-schedule-alert wednesday">
+          <span style="font-size: 1.3rem;">🎉</span>
+          <div>
+            <strong>¡Hoy es Miércoles de Cine: Promoción 2x1 en Boletos!</strong>
+            <span style="opacity: 0.95; margin-left: 0.3rem;">Selecciona tus butacas en pares: ¡por cada 2 pagas solo 1!</span>
+          </div>
+        </div>
+      `;
+    } else if (dayPricing.isWeekend) {
+      promoAlertEl.innerHTML = `
+        <div class="seat-schedule-alert weekend">
+          <span style="font-size: 1.3rem;">⭐</span>
+          <div>
+            <strong>Tarifa Fin de Semana (Sábados y Domingos)</strong>
+            <span style="opacity: 0.95; margin-left: 0.3rem;">Funciones de alta demanda con tarifa especial fin de semana.</span>
+          </div>
+        </div>
+      `;
+    } else {
+      promoAlertEl.innerHTML = `
+        <div class="seat-schedule-alert calm">
+          <span style="font-size: 1.3rem;">🌿</span>
+          <div>
+            <strong>Tarifa Días Calmados (Lunes, Martes, Jueves, Viernes)</strong>
+            <span style="opacity: 0.95; margin-left: 0.3rem;">Tarifa económica regular entre semana para disfrutar con tranquilidad.</span>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // Renderizar píldoras de días con distintivos de promoción
+  datesStrip.innerHTML = dates.map(d => {
+    const isActive = d.iso === currentDateIso;
+    let badgeHtml = "";
+    if (d.dayPricing.isWednesday) {
+      badgeHtml = `<span class="s-badge-tag wednesday">2x1</span>`;
+    } else if (d.dayPricing.isWeekend) {
+      badgeHtml = `<span class="s-badge-tag weekend">Finde</span>`;
+    }
+
+    return `
+      <button class="schedule-date-btn ${isActive ? 'active' : ''}" 
+              data-iso="${d.iso}"
+              onclick="switchSeatSchedule('${d.iso}', '${d.shortLabel}', '${currentOrder.showtime}')"
+              title="${d.fullLabel} (${d.dayPricing.tierLabel})">
+        ${badgeHtml}
+        <span class="s-date-day">${d.dayNameShort}</span>
+        <span class="s-date-num">${d.dayNum}</span>
+        <span class="s-date-month">${d.monthShort}</span>
+      </button>
+    `;
+  }).join("");
+
+  // Renderizar fichas de horarios disponibles
+  timesStrip.innerHTML = showtimes.map(time => {
+    const isActive = time === currentOrder.showtime;
+    return `
+      <button class="schedule-time-btn ${isActive ? 'active' : ''}"
+              data-time="${time}"
+              onclick="switchSeatSchedule('${currentDateIso}', '${currentFormatted}', '${time}')"
+              title="Ver asientos para las ${time}">
+        ${time}
+      </button>
+    `;
+  }).join("");
+}
+
+// Conmutar día y horario dinámicamente con actualización instantánea de asientos y tarifas
+function switchSeatSchedule(newDateIso, newDateFormatted, newShowtime) {
+  if (currentOrder.date === newDateIso && currentOrder.showtime === newShowtime) {
+    return; // Ya está en esta función
+  }
+
+  // Liberar candados previos si tenía butacas seleccionadas en la función anterior
+  if (currentOrder.seats && currentOrder.seats.length > 0) {
+    const mySessionId = Storage.getSessionId();
+    Storage.releaseAllLocksForSession(mySessionId, showtimeKey);
+    if (typeof RealTime !== "undefined") {
+      currentOrder.seats.forEach(s => {
+        RealTime.releaseSeat(s.code || s, showtimeKey);
+      });
+    }
+    currentOrder.seats = [];
+  }
+
+  const movie = Storage.getMovieById(currentOrder.movieId) || {};
+  const dayPricing = Storage.getDayPricingInfo(newDateIso, movie);
+
+  currentOrder.date = newDateIso;
+  currentOrder.dateFormatted = newDateFormatted;
+  currentOrder.showtime = newShowtime;
+  currentOrder.priceStandard = dayPricing.priceStandard;
+  currentOrder.priceVip = dayPricing.priceVip;
+  currentOrder.isWeekend = dayPricing.isWeekend;
+  currentOrder.isWednesday = dayPricing.isWednesday;
+  currentOrder.tierLabel = dayPricing.tierLabel;
+
+  showtimeKey = `${currentOrder.movieId}_${newDateIso}_${newShowtime}`;
+  currentOrder.showtimeKey = showtimeKey;
+
+  // Actualizar leyendas con precios reales de esta nueva fecha
+  const legendStd = document.querySelector("#legendPriceStandard");
+  const legendVip = document.querySelector("#legendPriceVip");
+  if (legendStd) {
+    legendStd.textContent = dayPricing.has2x1Promo 
+      ? `Estándar ($${dayPricing.priceStandard.toFixed(2)} - ¡Aplica 2x1!)` 
+      : `Estándar ($${dayPricing.priceStandard.toFixed(2)})`;
+  }
+  if (legendVip) {
+    legendVip.textContent = dayPricing.has2x1Promo 
+      ? `VIP Luxury ($${dayPricing.priceVip.toFixed(2)} - ¡Aplica 2x1!)` 
+      : `VIP Luxury ($${dayPricing.priceVip.toFixed(2)})`;
+  }
+
+  Storage.saveCurrentOrder(currentOrder);
+
+  // Conectar al nuevo canal de tiempo real para esta fecha y horario
+  if (typeof RealTime !== "undefined") {
+    RealTime.joinShowtime(showtimeKey, (syncData) => {
+      if (syncData) {
+        if (syncData.occupied && Array.isArray(syncData.occupied)) {
+          Storage.saveOccupiedSeats(showtimeKey, syncData.occupied);
+        }
+        if (syncData.lockedBy) {
+          Object.entries(syncData.lockedBy).forEach(([sId, lock]) => {
+            Storage.lockSeat(showtimeKey, sId, lock.sessionId);
+          });
+        }
+      }
+      renderSeatsGrid();
+    });
+  }
+
+  renderSeatViewSchedule();
+  renderSeatsGrid();
+  updateSummary();
+  initHoldTimer();
+
+  if (typeof showToast === "function") {
+    showToast(`📅 Función: ${newDateFormatted} • ${newShowtime} (${dayPricing.tierLabel})`, "info");
+  }
+}
 
 // Inicializar orden actual y datos de sala
 function initOrderAndRoom() {
   currentOrder = Storage.getCurrentOrder();
+
+  const todayIso = new Date().toISOString().split("T")[0];
 
   // Si no hay película cargada, cargar la primera por defecto
   if (!currentOrder || !currentOrder.movieTitle) {
@@ -76,6 +300,9 @@ function initOrderAndRoom() {
       hall: defaultMovie.hall,
       roomId: defaultMovie.roomId || "sala-1",
       showtime: defaultMovie.showtimes[0],
+      date: todayIso,
+      dateFormatted: "Hoy",
+      showtimeKey: `${defaultMovie.id}_${todayIso}_${defaultMovie.showtimes[0]}`,
       priceStandard: defaultMovie.priceStandard,
       priceVip: defaultMovie.priceVip,
       seats: [],
@@ -85,17 +312,72 @@ function initOrderAndRoom() {
     Storage.saveCurrentOrder(currentOrder);
   }
 
-  showtimeKey = `${currentOrder.movieId}_${currentOrder.showtime}`;
+  // Asegurar fecha y showtimeKey con soporte multidía
+  if (!currentOrder.date) {
+    currentOrder.date = todayIso;
+    currentOrder.dateFormatted = "Hoy";
+  }
+  showtimeKey = currentOrder.showtimeKey || `${currentOrder.movieId}_${currentOrder.date}_${currentOrder.showtime}`;
+  currentOrder.showtimeKey = showtimeKey;
+  Storage.saveCurrentOrder(currentOrder);
 
-  // Buscar configuración de la sala arquitectónica
+  // Buscar configuración de la sala arquitectónica actualizada
   const rooms = Storage.getRooms();
-  currentRoom = rooms.find(r => r.id === currentOrder.roomId || r.name === currentOrder.hall) || rooms[0];
+  currentRoom = rooms.find(r => 
+    r.id === currentOrder.roomId || 
+    (r.id && currentOrder.roomId && r.id.replace(/\D/g, '') === String(currentOrder.roomId).replace(/\D/g, '')) ||
+    r.name === currentOrder.hall ||
+    (r.name && currentOrder.hall && (r.name.includes(currentOrder.hall) || currentOrder.hall.includes(r.name)))
+  ) || rooms[0];
+
+  // Sincronizar nombre si fue editado por el administrador
+  if (currentRoom && currentRoom.name && currentRoom.name !== currentOrder.hall) {
+    currentOrder.hall = currentRoom.name;
+    Storage.saveCurrentOrder(currentOrder);
+  }
+
+  // Depurar butacas previamente seleccionadas si fueron eliminadas en la reconfiguración del Administrador
+  if (currentOrder.seats && currentOrder.seats.length > 0) {
+    const validRows = currentRoom.rows || ["A", "B", "C", "D", "E", "F"];
+    const maxCols = currentRoom.seatsPerRow || 10;
+    const initialLen = currentOrder.seats.length;
+    currentOrder.seats = currentOrder.seats.filter(s => {
+      const code = s.code || s;
+      const parts = code.split("-");
+      if (parts.length === 2) {
+        return validRows.includes(parts[0]) && parseInt(parts[1], 10) <= maxCols;
+      }
+      return true;
+    });
+    if (currentOrder.seats.length !== initialLen) {
+      Storage.saveCurrentOrder(currentOrder);
+    }
+  }
+
+  // Sincronizar tarifas dinámicas y promociones (Fin de semana vs días calmados vs Miércoles 2x1)
+  const movie = Storage.getMovieById(currentOrder.movieId) || {};
+  const dayPricing = Storage.getDayPricingInfo(currentOrder.date, movie);
+  currentOrder.priceStandard = dayPricing.priceStandard;
+  currentOrder.priceVip = dayPricing.priceVip;
+  currentOrder.basePriceStandard = movie.priceStandard || 6.50;
+  currentOrder.basePriceVip = movie.priceVip || 10.00;
+  currentOrder.isWeekend = dayPricing.isWeekend;
+  currentOrder.isWednesday = dayPricing.isWednesday;
+  currentOrder.tierLabel = dayPricing.tierLabel;
 
   // Actualizar leyendas con precios reales de esta función
   const legendStd = document.querySelector("#legendPriceStandard");
   const legendVip = document.querySelector("#legendPriceVip");
-  if (legendStd) legendStd.textContent = `Estándar ($${currentOrder.priceStandard.toFixed(2)})`;
-  if (legendVip) legendVip.textContent = `VIP Luxury ($${currentOrder.priceVip.toFixed(2)})`;
+  if (legendStd) {
+    legendStd.textContent = dayPricing.has2x1Promo 
+      ? `Estándar ($${dayPricing.priceStandard.toFixed(2)} - ¡Aplica 2x1!)` 
+      : (dayPricing.isWeekend ? `Estándar ($${dayPricing.priceStandard.toFixed(2)} - Finde)` : `Estándar ($${dayPricing.priceStandard.toFixed(2)})`);
+  }
+  if (legendVip) {
+    legendVip.textContent = dayPricing.has2x1Promo 
+      ? `VIP Luxury ($${dayPricing.priceVip.toFixed(2)} - ¡Aplica 2x1!)` 
+      : (dayPricing.isWeekend ? `VIP Luxury ($${dayPricing.priceVip.toFixed(2)} - Finde)` : `VIP Luxury ($${dayPricing.priceVip.toFixed(2)})`);
+  }
 }
 
 // Renderizar la matriz arquitectónica de butacas según la maqueta de la sala
@@ -158,6 +440,14 @@ function renderSeatsGrid() {
     if (layoutType === "vip_lounge") seat.classList.add("vip-recliner");
     if (isWheelchair) seat.classList.add("seat-wheelchair");
 
+    // Curvatura radial anfiteatro adaptada a la cantidad dinámica de columnas
+    if (layoutType === "curved_imax") {
+      if (col === 1) seat.style.transform = "rotate(7deg) translateY(3px)";
+      else if (col === 2) seat.style.transform = "rotate(4deg) translateY(1.5px)";
+      else if (col === seatsPerRow - 1) seat.style.transform = "rotate(-4deg) translateY(1.5px)";
+      else if (col === seatsPerRow) seat.style.transform = "rotate(-7deg) translateY(3px)";
+    }
+
     if (isMaintenance) {
       seat.classList.add("maintenance");
       seat.title = `Butaca ${seatCode}: No disponible por mantenimiento`;
@@ -197,9 +487,10 @@ function renderSeatsGrid() {
     // MAQUETA 1: ANFITEATRO CURVO IMAX (Curved Amphitheater)
     // =========================================================================
     if (layoutType === "curved_imax") {
+      const midCol = Math.floor(seatsPerRow / 2);
       for (let col = 1; col <= seatsPerRow; col++) {
-        // Pasillo central
-        if (col === 6) {
+        // Pasillo central dinámico según la cantidad de butacas por fila
+        if (col === midCol + 1) {
           const aisle = document.createElement("div");
           aisle.className = "aisle-gap";
           rowEl.appendChild(aisle);
@@ -212,11 +503,16 @@ function renderSeatsGrid() {
     // MAQUETA 2: ESTADIO CLÁSICO 3 BLOQUES Y DOBLE PASILLO (Triple Block Stadium)
     // =========================================================================
     else if (layoutType === "stadium_double_aisle") {
-      // Bloque Lateral Izquierdo (cols 1 y 2)
+      const leftCount = Math.max(1, Math.min(3, Math.round(seatsPerRow * 0.2)));
+      const rightCount = leftCount;
+      const centerCount = Math.max(1, seatsPerRow - leftCount - rightCount);
+
+      // Bloque Lateral Izquierdo
       const blockLeft = document.createElement("div");
       blockLeft.className = "stadium-block block-left";
-      blockLeft.appendChild(createSeatButton(row, 1, isVipRow, row === "A"));
-      blockLeft.appendChild(createSeatButton(row, 2, isVipRow));
+      for (let col = 1; col <= leftCount; col++) {
+        blockLeft.appendChild(createSeatButton(row, col, isVipRow, row === rows[0] && col === 1));
+      }
       rowEl.appendChild(blockLeft);
 
       // Pasillo 1 de escalones iluminados
@@ -224,10 +520,10 @@ function renderSeatsGrid() {
       aisle1.className = "aisle-stairs";
       rowEl.appendChild(aisle1);
 
-      // Bloque Central Platea (cols 3, 4, 5, 6, 7, 8)
+      // Bloque Central Platea
       const blockCenter = document.createElement("div");
       blockCenter.className = "stadium-block block-center";
-      for (let col = 3; col <= 8; col++) {
+      for (let col = leftCount + 1; col <= leftCount + centerCount; col++) {
         blockCenter.appendChild(createSeatButton(row, col, isVipRow));
       }
       rowEl.appendChild(blockCenter);
@@ -237,11 +533,12 @@ function renderSeatsGrid() {
       aisle2.className = "aisle-stairs";
       rowEl.appendChild(aisle2);
 
-      // Bloque Lateral Derecho (cols 9 y 10)
+      // Bloque Lateral Derecho
       const blockRight = document.createElement("div");
       blockRight.className = "stadium-block block-right";
-      blockRight.appendChild(createSeatButton(row, 9, isVipRow));
-      blockRight.appendChild(createSeatButton(row, 10, isVipRow, row === "A"));
+      for (let col = leftCount + centerCount + 1; col <= seatsPerRow; col++) {
+        blockRight.appendChild(createSeatButton(row, col, isVipRow, row === rows[0] && col === seatsPerRow));
+      }
       rowEl.appendChild(blockRight);
     }
 
@@ -249,37 +546,27 @@ function renderSeatsGrid() {
     // MAQUETA 3: PODS MECÁNICOS 4DX (Motion Pods)
     // =========================================================================
     else if (layoutType === "motion_4dx") {
-      // Pod 1 (cols 1 a 4)
-      const pod1 = document.createElement("div");
-      pod1.className = "motion-pod";
-      for (let col = 1; col <= 4; col++) {
-        pod1.appendChild(createSeatButton(row, col, isVipRow));
-      }
-      rowEl.appendChild(pod1);
+      let pod = document.createElement("div");
+      pod.className = "motion-pod";
 
-      // Pasillo de Efectos Especiales 4DX
-      const effectsAisle = document.createElement("div");
-      effectsAisle.className = "effects-aisle";
-      effectsAisle.innerHTML = `<span>💨</span><span>💧</span>`;
-      effectsAisle.title = "Pasillo de efectos ambientales (viento, niebla y estrobos)";
-      rowEl.appendChild(effectsAisle);
+      for (let col = 1; col <= seatsPerRow; col++) {
+        pod.appendChild(createSeatButton(row, col, isVipRow));
 
-      // Pod 2 (cols 5 a 8)
-      const pod2 = document.createElement("div");
-      pod2.className = "motion-pod";
-      for (let col = 5; col <= 8; col++) {
-        pod2.appendChild(createSeatButton(row, col, isVipRow));
-      }
-      rowEl.appendChild(pod2);
+        if (col % 4 === 0 && col < seatsPerRow) {
+          rowEl.appendChild(pod);
 
-      // Si la fila tiene más de 8 asientos, agregar un pod adicional
-      if (seatsPerRow > 8) {
-        const pod3 = document.createElement("div");
-        pod3.className = "motion-pod";
-        for (let col = 9; col <= seatsPerRow; col++) {
-          pod3.appendChild(createSeatButton(row, col, isVipRow));
+          const effectsAisle = document.createElement("div");
+          effectsAisle.className = "effects-aisle";
+          effectsAisle.innerHTML = `<span>💨</span>`;
+          effectsAisle.title = "Pasillo de efectos ambientales (viento, niebla y estrobos)";
+          rowEl.appendChild(effectsAisle);
+
+          pod = document.createElement("div");
+          pod.className = "motion-pod";
         }
-        rowEl.appendChild(pod3);
+      }
+      if (pod.children.length > 0) {
+        rowEl.appendChild(pod);
       }
     }
 
@@ -287,59 +574,36 @@ function renderSeatsGrid() {
     // MAQUETA 4: PALCOS VIP & SOFÁS DOBLES PARA PAREJAS (Love Seats & Suites)
     // =========================================================================
     else if (layoutType === "vip_lounge") {
-      // Pareja 1: cols 1 y 2
-      const pair1 = document.createElement("div");
-      pair1.className = "love-seat-pair";
-      pair1.appendChild(createSeatButton(row, 1, true));
-      pair1.appendChild(createSeatButton(row, 2, true));
-      rowEl.appendChild(pair1);
+      const midCol = Math.floor(seatsPerRow / 2);
+      for (let col = 1; col <= seatsPerRow; col += 2) {
+        const pair = document.createElement("div");
+        pair.className = "love-seat-pair";
+        pair.appendChild(createSeatButton(row, col, isVipRow));
+        if (col + 1 <= seatsPerRow) {
+          pair.appendChild(createSeatButton(row, col + 1, isVipRow));
+        }
+        rowEl.appendChild(pair);
 
-      // Mesita auxiliar con servicio
-      const table1 = document.createElement("div");
-      table1.className = "lounge-table";
-      table1.innerHTML = `🍷`;
-      table1.title = "Mesita de servicio gourmet para pareja";
-      rowEl.appendChild(table1);
-
-      // Pareja 2: cols 3 y 4
-      const pair2 = document.createElement("div");
-      pair2.className = "love-seat-pair";
-      pair2.appendChild(createSeatButton(row, 3, true));
-      pair2.appendChild(createSeatButton(row, 4, true));
-      rowEl.appendChild(pair2);
-
-      // Pasillo central con alfombra roja
-      const carpetAisle = document.createElement("div");
-      carpetAisle.className = "carpet-aisle";
-      carpetAisle.textContent = "⚜️";
-      rowEl.appendChild(carpetAisle);
-
-      // Pareja 3: cols 5 y 6
-      const pair3 = document.createElement("div");
-      pair3.className = "love-seat-pair";
-      pair3.appendChild(createSeatButton(row, 5, true));
-      pair3.appendChild(createSeatButton(row, 6, true));
-      rowEl.appendChild(pair3);
-
-      // Mesita auxiliar con servicio
-      const table2 = document.createElement("div");
-      table2.className = "lounge-table";
-      table2.innerHTML = `🍷`;
-      table2.title = "Mesita de servicio gourmet para pareja";
-      rowEl.appendChild(table2);
-
-      // Pareja 4: cols 7 y 8
-      const pair4 = document.createElement("div");
-      pair4.className = "love-seat-pair";
-      pair4.appendChild(createSeatButton(row, 7, true));
-      pair4.appendChild(createSeatButton(row, 8, true));
-      rowEl.appendChild(pair4);
+        if (col + 1 === midCol || col === midCol) {
+          const carpetAisle = document.createElement("div");
+          carpetAisle.className = "carpet-aisle";
+          carpetAisle.textContent = "⚜️";
+          rowEl.appendChild(carpetAisle);
+        } else if (col + 2 <= seatsPerRow) {
+          const table = document.createElement("div");
+          table.className = "lounge-table";
+          table.innerHTML = `🍷`;
+          table.title = "Mesita de servicio gourmet para pareja";
+          rowEl.appendChild(table);
+        }
+      }
     }
 
     // Fallback estándar
     else {
+      const midCol = Math.floor(seatsPerRow / 2);
       for (let col = 1; col <= seatsPerRow; col++) {
-        if (col === Math.floor(seatsPerRow / 2) + 1) {
+        if (col === midCol + 1) {
           const aisle = document.createElement("div");
           aisle.className = "aisle-gap";
           rowEl.appendChild(aisle);
@@ -512,6 +776,7 @@ function updateSummary() {
   const miniTitle = document.querySelector("#summaryTitle");
   const miniHall = document.querySelector("#summaryHall");
   const miniTime = document.querySelector("#summaryTime");
+  const miniDate = document.querySelector("#summaryDate");
   const seatsTagsContainer = document.querySelector("#selectedSeatsTags");
   const countLabel = document.querySelector("#summarySeatsCount");
   const totalPriceLabel = document.querySelector("#summaryTotalPrice");
@@ -521,6 +786,7 @@ function updateSummary() {
   if (miniTitle) miniTitle.textContent = currentOrder.movieTitle;
   if (miniHall) miniHall.textContent = currentOrder.hall;
   if (miniTime) miniTime.textContent = currentOrder.showtime;
+  if (miniDate) miniDate.textContent = currentOrder.dateFormatted || currentOrder.date || "Hoy";
 
   if (seatsTagsContainer) {
     if (currentOrder.seats.length === 0) {
@@ -534,11 +800,53 @@ function updateSummary() {
     }
   }
 
-  const seatsTotal = currentOrder.seats.reduce((sum, s) => sum + s.price, 0);
-  currentOrder.ticketsTotal = seatsTotal;
+  // Cálculo dinámico de precios con soporte para fin de semana y promoción Miércoles 2x1
+  const movie = Storage.getMovieById(currentOrder.movieId) || {};
+  const baseStd = currentOrder.basePriceStandard || movie.priceStandard || 6.50;
+  const baseVip = currentOrder.basePriceVip || movie.priceVip || 10.00;
+  const calc = Storage.calculateTicketsPrice(currentOrder.seats, currentOrder.date, baseStd, baseVip);
+
+  // Actualizar etiqueta de tarifa
+  const tariffLabel = document.querySelector("#summaryTariffLabel");
+  if (tariffLabel) tariffLabel.textContent = calc.dayPricing.tierLabel;
+
+  // Actualizar desglose de subtotal y descuento 2x1
+  const rowSubtotal = document.querySelector("#rowSummarySubtotal");
+  const rowDiscount = document.querySelector("#rowSummaryDiscount");
+  const subtotalEl = document.querySelector("#summarySubtotalAmount");
+  const discountEl = document.querySelector("#summaryDiscountAmount");
+
+  if (calc.discount2x1 > 0) {
+    if (rowSubtotal) { rowSubtotal.style.display = "flex"; subtotalEl.textContent = `$${calc.subtotal.toFixed(2)}`; }
+    if (rowDiscount) { rowDiscount.style.display = "flex"; discountEl.textContent = `-$${calc.discount2x1.toFixed(2)}`; }
+  } else {
+    if (rowSubtotal) rowSubtotal.style.display = "none";
+    if (rowDiscount) rowDiscount.style.display = "none";
+  }
+
+  // Tip de ayuda 2x1 si seleccionaron número impar de butacas los miércoles
+  const tipEl = document.querySelector("#wednesdayPromoTip");
+  if (tipEl) {
+    if (calc.isOddWednesday) {
+      tipEl.innerHTML = `💡 <strong>¡Aprovecha el 2x1!</strong> Tienes ${currentOrder.seats.length} butaca(s) en tu orden. Si seleccionas 1 más, ¡te saldrá totalmente <strong>GRATIS</strong>!`;
+      tipEl.style.display = "block";
+    } else if (calc.discount2x1 > 0) {
+      tipEl.innerHTML = `🎉 <strong>¡Promoción 2x1 aplicada!</strong> Estás ahorrando <strong>$${calc.discount2x1.toFixed(2)}</strong> en tus entradas hoy.`;
+      tipEl.style.display = "block";
+    } else {
+      tipEl.style.display = "none";
+    }
+  }
+
+  currentOrder.ticketsSubtotal = calc.subtotal;
+  currentOrder.discount2x1 = calc.discount2x1;
+  currentOrder.ticketsTotal = calc.total;
+  currentOrder.subtotalTickets = calc.total;
+  currentOrder.grandTotal = calc.total + (currentOrder.subtotalSnacks || 0);
+  currentOrder.total = currentOrder.grandTotal;
 
   if (countLabel) countLabel.textContent = `${currentOrder.seats.length} boletos`;
-  if (totalPriceLabel) totalPriceLabel.textContent = `$${seatsTotal.toFixed(2)}`;
+  if (totalPriceLabel) totalPriceLabel.textContent = `$${calc.total.toFixed(2)}`;
 
   const directBtn = document.querySelector("#btnProceedDirectCheckout");
   if (directBtn) {

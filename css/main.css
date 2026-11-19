@@ -274,3 +274,28 @@ img {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary);
 }
+
+/* ==========================================================================
+   Optimizaciones Responsivas Globales para Teléfonos Móviles
+   ========================================================================== */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 0.85rem;
+  }
+
+  .btn {
+    padding: 0.7rem 1.2rem;
+    font-size: 0.88rem;
+  }
+
+  .toast-container {
+    bottom: 1rem;
+    right: 1rem;
+    left: 1rem;
+  }
+
+  .toast {
+    font-size: 0.82rem;
+    padding: 0.8rem 1rem;
+  }
+}

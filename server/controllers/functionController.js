@@ -19,6 +19,23 @@ exports.getRoomById = (req, res) => {
   }
 };
 
+exports.updateRoom = (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = Store.updateRoom(id, req.body);
+    if (!updated) {
+      return res.status(404).json({ success: false, message: "Sala no encontrada." });
+    }
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("room:updated", { roomId: id, room: updated, rooms: Store.getRooms() });
+    }
+    return res.json({ success: true, message: "Sala actualizada exitosamente.", data: updated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Error al actualizar sala." });
+  }
+};
+
 exports.getFunctions = async (req, res) => {
   try {
     const movies = await Store.getMovies();

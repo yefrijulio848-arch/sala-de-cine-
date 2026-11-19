@@ -711,3 +711,272 @@ textarea.form-control {
   border-color: var(--accent-gold) !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
+
+/* ==========================================================================
+   Tablas y Tarjetas Analíticas de Rendimiento (Estables y no colapsables)
+   ========================================================================== */
+.analytics-card {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 280px;
+}
+
+.analytics-card:hover {
+  border-color: rgba(212, 175, 55, 0.3) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.analytics-card .data-table th {
+  padding: 0.65rem 0.5rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.analytics-card .data-table td {
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Diseñador Visual de Salas y Butacas (Modal Interactivo Simplificado)
+   ========================================================================== */
+.room-editor-container {
+  display: grid;
+  grid-template-columns: 330px 1fr;
+  gap: 1.5rem;
+  padding: 1.2rem 1.6rem;
+  overflow-y: auto;
+  max-height: calc(88vh - 130px);
+}
+
+@media (max-width: 880px) {
+  .room-editor-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.editor-stepper-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editor-stepper-btn:hover {
+  background: var(--gold);
+  color: #000;
+  border-color: var(--gold);
+  transform: scale(1.05);
+}
+
+.editor-seat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.editor-row-badge {
+  min-width: 88px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+.editor-row-badge.standard {
+  background: rgba(0, 210, 255, 0.12);
+  border-color: rgba(0, 210, 255, 0.35);
+  color: #00d2ff;
+}
+
+.editor-row-badge.standard:hover {
+  background: rgba(0, 210, 255, 0.25);
+  transform: scale(1.03);
+}
+
+.editor-row-badge.vip {
+  background: rgba(212, 175, 55, 0.2);
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.25);
+}
+
+.editor-row-badge.vip:hover {
+  background: rgba(212, 175, 55, 0.35);
+  transform: scale(1.03);
+}
+
+.editor-seat-item {
+  width: 28px;
+  height: 26px;
+  border-radius: 5px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  user-select: none;
+  cursor: pointer;
+}
+
+.editor-seat-item.standard {
+  background: rgba(0, 210, 255, 0.1);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  color: #8be5ff;
+}
+
+.editor-seat-item.vip {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.35), rgba(212, 175, 55, 0.15));
+  border: 1px solid var(--gold);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.35);
+}
+
+.editor-seat-item:hover {
+  transform: translateY(-2px) scale(1.1);
+  filter: brightness(1.2);
+}
+
+.editor-aisle-gap {
+  width: 14px;
+  height: 26px;
+  border-left: 1px dashed rgba(255, 255, 255, 0.15);
+  margin: 0 3px;
+}
+
+/* ==========================================================================
+   Maqueta Idéntica del Diseñador de Salas en el Modal Admin
+   ========================================================================== */
+#roomEditorCinemaHall {
+  min-height: 400px;
+  max-height: 540px;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  background: radial-gradient(circle at 50% -20%, rgba(245, 197, 24, 0.12) 0%, rgba(10, 14, 23, 0.98) 75%);
+}
+
+#roomEditorCinemaHall.layout-curved-imax {
+  background: radial-gradient(circle at 50% -25%, rgba(212, 175, 55, 0.22) 0%, rgba(10, 14, 23, 0.98) 75%);
+}
+
+#roomEditorSeatGrid .seat {
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+#roomEditorSeatGrid .seat:hover {
+  transform: translateY(-4px) scale(1.15) !important;
+  filter: brightness(1.25);
+  z-index: 10;
+}
+
+#roomEditorSeatGrid .row-label {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+#roomEditorSeatGrid .row-label:hover {
+  color: var(--gold);
+  transform: scale(1.25);
+  text-shadow: 0 0 10px rgba(245, 197, 24, 0.8);
+}
+
+/* ==========================================================================
+   Optimizaciones Responsivas para Panel Admin en Celulares
+   ========================================================================== */
+@media (max-width: 768px) {
+  .admin-nav-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+    gap: 0.4rem;
+  }
+
+  .admin-tab-btn {
+    flex-shrink: 0;
+    padding: 0.45rem 0.8rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .table-responsive,
+  .table-container {
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .config-grid {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+
+  .inspector-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .inspector-controls {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.6rem;
+  }
+
+  .inspector-controls select {
+    width: 100% !important;
+  }
+
+  .admin-seats-grid {
+    overflow-x: auto;
+    padding: 0.5rem 0;
+  }
+
+  .admin-seat {
+    width: 25px;
+    height: 25px;
+    font-size: 0.58rem;
+  }
+
+  .table-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .table-toolbar .btn {
+    width: 100%;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+  }
+}

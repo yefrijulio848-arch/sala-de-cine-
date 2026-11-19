@@ -68,6 +68,22 @@
         </div>
       </div>
 
+      <!-- Selector de Días y Fechas de la Cartelera -->
+      <div class="billboard-dates-section">
+        <div class="dates-bar-header">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="dates-bar-icon">📅</span>
+            <span class="dates-bar-title">Elige el día de tu función:</span>
+          </div>
+          <span class="dates-bar-selected" id="lblBillboardCurrentDate">Cargando fecha...</span>
+        </div>
+        <div class="dates-pill-bar" id="billboardDatesBar">
+          <!-- Inyectado dinámicamente para los próximos 7 días con JavaScript -->
+        </div>
+        <!-- Banner Dinámico de Tarifas / Promociones por Día (Fin de semana vs días calmados vs Miércoles 2x1) -->
+        <div id="billboardPricingNotice"></div>
+      </div>
+
       <!-- Cuadrícula de Películas -->
       <div class="movies-grid" id="moviesGrid">
         <!-- Renderizado dinámicamente desde mockData.js -->

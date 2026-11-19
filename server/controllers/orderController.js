@@ -51,7 +51,8 @@ exports.createOrder = async (req, res) => {
     // Notificar a Socket.io si la instancia está disponible
     const io = req.app.get("io");
     if (io) {
-      const showtimeKey = `${movieId}_${showtime}`;
+      const targetDate = req.body.date || req.body.dateIso || new Date().toISOString().split("T")[0];
+      const showtimeKey = req.body.showtimeKey || `${movieId}_${targetDate}_${showtime}`;
       io.to(showtimeKey).emit("seat:booked", {
         showtimeKey,
         seats,

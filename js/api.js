@@ -124,7 +124,8 @@ const API = {
 
   functions: {
     getAll: () => API.get("/api/functions"),
-    getRooms: () => API.get("/api/functions/rooms")
+    getRooms: () => API.get("/api/functions/rooms"),
+    updateRoom: (id, data) => API.put(`/api/functions/rooms/${id}`, data)
   },
 
   seats: {

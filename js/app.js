@@ -74,8 +74,11 @@ function updateNavbarForRole() {
       const roleText = isAdmin ? "Admin" : (isStaff ? "Personal" : "Cliente");
 
       userBtn.innerHTML = `
-        <button class="role-badge-btn ${roleClass}" onclick="openUserProfileModal()" title="Mi Cuenta (${roleText})">
-          ${icon} ${authUser.nombre} <span style="font-size: 0.72rem; opacity: 0.85;">(${roleText})</span> ▾
+        <button class="role-badge-btn ${roleClass}" onclick="openUserProfileModal()" title="Mi Perfil (${roleText})">
+          ${icon} ${authUser.nombre} <span style="font-size: 0.72rem; opacity: 0.85;">(${roleText})</span>
+        </button>
+        <button class="btn btn-secondary btn-sm nav-logout-btn" onclick="logoutUser()" title="Cerrar Sesión y volver a la Cartelera" style="font-size: 0.78rem; padding: 0.35rem 0.65rem; color: #ff6b6b; border-color: rgba(255, 107, 107, 0.3); display: inline-flex; align-items: center; gap: 0.3rem;">
+          🚪 <span class="nav-logout-text">Cerrar Sesión</span>
         </button>
       `;
     } else {
@@ -404,9 +407,9 @@ function logoutUser() {
   API.setToken(null);
   closeUserProfileModal();
   updateNavbarForRole();
-  showToast("Sesión cerrada correctamente. ¡Hasta pronto!", "info");
+  showToast("Sesión cerrada correctamente. Regresando a la cartelera...", "info");
   setTimeout(() => {
-    window.location.reload();
-  }, 600);
+    window.location.href = "index.html";
+  }, 450);
 }
 

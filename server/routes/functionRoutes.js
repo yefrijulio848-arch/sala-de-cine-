@@ -5,5 +5,6 @@ const functionController = require("../controllers/functionController");
 router.get("/", functionController.getFunctions);
 router.get("/rooms", functionController.getRooms);
 router.get("/rooms/:id", functionController.getRoomById);
+router.put("/rooms/:id", functionController.updateRoom);
 
 module.exports = router;

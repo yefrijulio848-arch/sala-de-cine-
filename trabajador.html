@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/navbar-footer.css">
   <link rel="stylesheet" href="css/billboard.css">
   <link rel="stylesheet" href="css/seats.css">
+  <link rel="stylesheet" href="css/candybar.css">
   <link rel="stylesheet" href="css/trabajador.css">
 </head>
 
@@ -90,59 +91,126 @@
          PESTAÑA 2: ATENDER SOBRE LAS COMIDAS (DESPACHO Y POS MOSTRADOR)
          ======================================================================= -->
     <section class="worker-tab-pane" id="tab-food">
-      <div style="margin-bottom: 1.5rem;">
-        <h2 class="section-title">Atención y Despacho de Comidas & Dulcería</h2>
-        <p style="color: var(--text-secondary); font-size: 0.88rem;">Atiende y despacha los pedidos comprados por clientes o registra ventas directas en mostrador</p>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 class="section-title">Confitería Real & Atención de Comidas</h2>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin: 0.2rem 0 0;">
+            Punto de venta presencial para combos y snacks en mostrador (pago exclusivo en efectivo) y despacho de pedidos online.
+          </p>
+        </div>
+
+        <!-- Conmutador entre Punto de Venta en Mostrador y Bandeja de Despacho Online -->
+        <div class="food-subtab-nav" style="display: flex; gap: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.35rem;">
+          <button type="button" class="btn btn-sm btn-primary" id="btnFoodSubPos" onclick="switchFoodSubView('pos')" style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700;">
+            🍿 Venta en Mostrador (Efectivo)
+          </button>
+          <button type="button" class="btn btn-sm btn-secondary" id="btnFoodSubDispatch" onclick="switchFoodSubView('dispatch')" style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700;">
+            📦 Pedidos Web para Despacho (<span id="countFoodPendingBadge">0</span>)
+          </button>
+        </div>
       </div>
 
-      <div class="food-orders-layout">
-        <!-- Columna Izquierda: Bandeja de Pedidos de Clientes para Despachar -->
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 1rem;">
-            <div style="display: flex; gap: 0.5rem;">
-              <button class="pill-btn active" id="filterFoodPendingBtn" onclick="filterFoodOrders('PENDIENTE')">
-                ⏳ Pendientes de Entrega (<span id="countFoodPending">0</span>)
-              </button>
-              <button class="pill-btn" id="filterFoodDeliveredBtn" onclick="filterFoodOrders('ENTREGADO')">
-                ✅ Entregados / Despachados
-              </button>
-              <button class="pill-btn" id="filterFoodAllBtn" onclick="filterFoodOrders('ALL')">
-                Todos
-              </button>
-            </div>
+      <!-- =====================================================================
+           SUB-VISTA 1: PUNTO DE VENTA EN MOSTRADOR (CATÁLOGO COMPLETO DE COMBOS & SNACKS)
+           ===================================================================== -->
+      <div id="foodViewPosSection">
+        <!-- Barra de Filtros de Categorías (Idéntica a candybar.html) -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div class="pos-category-filters" id="posCategoryFilters" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="pill-btn active" data-pos-cat="all" onclick="filterPosSnacksByCategory('all')">🌟 Todos los Productos</button>
+            <button type="button" class="pill-btn" data-pos-cat="combos" onclick="filterPosSnacksByCategory('combos')">🍿 Combos Reales</button>
+            <button type="button" class="pill-btn" data-pos-cat="palomitas" onclick="filterPosSnacksByCategory('palomitas')">🍿 Palomitas</button>
+            <button type="button" class="pill-btn" data-pos-cat="snacks" onclick="filterPosSnacksByCategory('snacks')">🌭 Snacks Calientes</button>
+            <button type="button" class="pill-btn" data-pos-cat="bebidas" onclick="filterPosSnacksByCategory('bebidas')">🥤 Bebidas Heladas</button>
           </div>
 
-          <div class="food-orders-container" id="foodOrdersList">
-            <!-- Renderizado dinámico de pedidos -->
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="text" id="posSearchSnackInput" class="form-control" placeholder="🔍 Buscar combo o snack..." oninput="filterPosSnacksBySearch(this.value)" style="font-size: 0.85rem; padding: 0.45rem 0.8rem; width: 220px;">
           </div>
         </div>
 
-        <!-- Columna Derecha: Punto de Venta Rápido de Comidas en Mostrador -->
-        <aside class="worker-pos-card">
-          <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #fff;">🍿 Venta Directa en Mostrador</h3>
-          <p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 1.2rem;">Para clientes que piden sus snacks directamente en barra:</p>
+        <div class="food-pos-grid-layout" style="display: grid; grid-template-columns: 1fr 340px; gap: 2rem; align-items: start;">
+          <!-- Catálogo Visual de Combos y Snacks idéntico a candybar.html -->
+          <section class="candy-grid" id="workerCandyGrid" style="margin-bottom: 2rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
+            <!-- Inyectado dinámicamente con fotos, descripción, etiquetas y steppers -->
+          </section>
 
-          <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="posClientName" style="font-size: 0.82rem; color: var(--text-secondary);">Nombre del Cliente:</label>
-            <input type="text" id="posClientName" class="form-control" placeholder="Ej. Carlos Mendoza" style="padding: 0.5rem 0.8rem; font-size: 0.85rem;">
-          </div>
+          <!-- Terminal de Cobro en Mostrador (Exclusivo Efectivo) -->
+          <aside class="worker-pos-card" style="position: sticky; top: 95px; background: var(--bg-card); border: 1.5px solid var(--gold); border-radius: var(--radius-lg); padding: 1.4rem; box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.6rem;">
+              <h3 style="font-size: 1.15rem; margin: 0; color: #fff; display: flex; align-items: center; gap: 0.4rem;">
+                🍿 Carrito Mostrador
+              </h3>
+              <span class="badge" style="background: rgba(0, 230, 118, 0.12); color: #00e676; border: 1px solid rgba(0, 230, 118, 0.3); font-weight: 800; font-size: 0.75rem;">
+                💵 Solo Efectivo
+              </span>
+            </div>
 
-          <div style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">
-            Selecciona productos:
-          </div>
-          <div class="pos-snacks-selector" id="posSnacksSelector">
-            <!-- Selector dinámico de snacks con stepper -->
-          </div>
+            <p style="color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 1rem;">
+              Selecciona los combos o productos solicitados en barra y cobra en efectivo.
+            </p>
 
-          <div class="total-box" style="padding: 0.9rem; margin-bottom: 1rem;">
-            <span class="total-label" style="font-size: 0.85rem;">Total Snacks:</span>
-            <span class="total-price" id="posTotalLabel" style="font-size: 1.3rem;">$0.00</span>
-          </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label for="posClientName" style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 0.25rem; display: block;">Nombre del Cliente (Opcional):</label>
+              <input type="text" id="posClientName" class="form-control" placeholder="Ej. Carlos Mendoza (Mostrador)" style="padding: 0.45rem 0.75rem; font-size: 0.85rem;">
+            </div>
 
-          <button class="btn btn-primary" style="width: 100%; font-size: 0.9rem;" onclick="processCounterSale()">
-            💾 Registrar y Dar Opción de Imprimir Ticket 🖨️
-          </button>
-        </aside>
+            <div style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; font-weight: 700;">
+              Items en la Orden:
+            </div>
+            
+            <div id="posCartItemsList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 220px; overflow-y: auto; margin-bottom: 1rem; padding-right: 0.3rem;">
+              <!-- Lista dinámica de productos agregados al mostrador -->
+            </div>
+
+            <div class="total-box" style="padding: 0.8rem 1rem; margin-bottom: 1rem; background: rgba(0,0,0,0.3); border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center;">
+              <span class="total-label" style="font-size: 0.85rem; color: var(--text-secondary);">Total Snacks:</span>
+              <span class="total-price" id="posTotalLabel" style="font-size: 1.4rem; font-weight: 800; color: var(--gold);">$0.00</span>
+            </div>
+
+            <!-- Entrada de Efectivo y Cambio -->
+            <div style="background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.3); border-radius: var(--radius-sm); padding: 0.8rem; margin-bottom: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <label for="posCashReceived" style="font-size: 0.78rem; color: var(--text-secondary); margin: 0;">Efectivo Recibido ($):</label>
+                <input type="number" step="0.5" id="posCashReceived" class="form-control" placeholder="$0.00" oninput="calcPosCashChange()" style="width: 110px; text-align: right; padding: 0.35rem 0.5rem; font-size: 0.9rem; font-weight: 700; color: #fff;">
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                <span style="color: var(--text-muted);">Cambio / Vueltos:</span>
+                <strong id="posCashChangeLabel" style="color: #00e676; font-size: 1.1rem;">$0.00</strong>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%; font-size: 0.95rem; font-weight: 800; padding: 0.8rem; box-shadow: 0 0 15px var(--primary-glow); margin-bottom: 0.6rem;" onclick="processCounterSale()">
+              💵 Cobrar en Efectivo e Imprimir Ticket 🖨️
+            </button>
+            <button class="btn btn-secondary btn-sm" style="width: 100%; font-size: 0.78rem;" onclick="clearCounterCart()">
+              Limpiar Carrito
+            </button>
+          </aside>
+        </div>
+      </div>
+
+      <!-- =====================================================================
+           SUB-VISTA 2: BANDEJA DE DESPACHO DE PEDIDOS ONLINE
+           ===================================================================== -->
+      <div id="foodViewDispatchSection" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="pill-btn active" id="filterFoodPendingBtn" onclick="filterFoodOrders('PENDIENTE')">
+              ⏳ Pendientes de Entrega (<span id="countFoodPending">0</span>)
+            </button>
+            <button class="pill-btn" id="filterFoodDeliveredBtn" onclick="filterFoodOrders('ENTREGADO')">
+              ✅ Entregados / Despachados
+            </button>
+            <button class="pill-btn" id="filterFoodAllBtn" onclick="filterFoodOrders('ALL')">
+              Todos
+            </button>
+          </div>
+        </div>
+
+        <div class="food-orders-container" id="foodOrdersList">
+          <!-- Renderizado dinámico de pedidos -->
+        </div>
       </div>
     </section>
 
@@ -190,18 +258,74 @@
        MODAL: INSPECTOR DE SALA EN VIVO PARA EL TRABAJADOR
        ======================================================================= -->
   <div class="modal-backdrop" id="workerSeatModal">
-    <div class="modal-content" style="max-width: 680px;">
+    <div class="modal-content" style="max-width: 860px; width: 95%;">
       <div class="modal-header">
-        <h3 id="workerSeatModalTitle" style="color: #fff;">Esquema de Sala en Tiempo Real</h3>
+        <div>
+          <h3 id="workerSeatModalTitle" style="color: #fff; margin: 0; font-size: 1.25rem;">Esquema de Sala en Tiempo Real</h3>
+          <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0.25rem 0 0;">
+            Maqueta arquitectónica interactiva idéntica a la vista de los usuarios y configuración del Administrador.
+          </p>
+        </div>
         <button class="modal-close" onclick="closeWorkerSeatModal()">✕</button>
       </div>
-      <div style="padding: 1.5rem;">
-        <div class="admin-hall-view">
-          <div class="admin-screen-indicator"></div>
-          <div class="seats-grid" id="workerSeatsGrid">
-            <!-- Grid dinámico -->
+      <div style="padding: 1.5rem 1.2rem; overflow-y: auto; max-height: calc(90vh - 120px);">
+        <!-- Sala de Cine con Estructura Idéntica a seats.html y admin.html -->
+        <section class="cinema-hall layout-curved-imax" id="workerCinemaHall" style="padding: 1.5rem 1rem 1.8rem; border-radius: var(--radius-md); width: 100%; box-sizing: border-box; overflow-x: auto;">
+          <!-- Distintivo de Maqueta Arquitectónica de Sala -->
+          <div class="hall-architecture-badge" id="workerHallArchBadge" style="margin-bottom: 1.2rem;">
+            🏛️ Maqueta: Anfiteatro Curvo IMAX
           </div>
-        </div>
+
+          <!-- Pantalla de Cine Curva con Haz de Luz de Proyección Real -->
+          <div class="screen-wrapper" style="width: 82%; margin-bottom: 1.6rem;">
+            <div class="screen-curve"></div>
+            <div class="screen-light"></div>
+            <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+          </div>
+
+          <!-- Leyenda de Estados de Butaca -->
+          <div class="seats-legend" style="margin-bottom: 1.6rem; justify-content: center; gap: 1.2rem; flex-wrap: wrap;">
+            <div class="legend-item">
+              <span class="legend-seat available"></span>
+              <span>Estándar (Libre)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-seat vip"></span>
+              <span>VIP Luxury</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-seat selected"></span>
+              <span>Seleccionada (Taquilla)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-seat locked"></span>
+              <span>En Selección 🔒</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-seat occupied"></span>
+              <span>Ocupado / Vendido</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-seat maintenance"></span>
+              <span>Mantenimiento</span>
+            </div>
+          </div>
+
+          <!-- Matriz de Asientos Idéntica con Perspectiva 3D y Curvatura Radial -->
+          <div class="seats-grid" id="workerSeatsGrid" style="width: 100%; display: flex; flex-direction: column; gap: 0.85rem; align-items: center; perspective: 600px;">
+            <!-- Grid dinámico generado por JavaScript -->
+          </div>
+
+          <!-- Resumen de Ocupación en Vivo -->
+          <div id="workerSeatStats" style="display: flex; gap: 1.5rem; justify-content: center; margin-top: 1.5rem; font-size: 0.82rem; color: var(--text-secondary); flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
+            <!-- Inyectado por JavaScript -->
+          </div>
+
+          <!-- Panel de Cobro y Venta en Taquilla (Exclusivo en Efectivo) -->
+          <div id="workerCheckoutPanel" style="margin-top: 1.2rem;">
+            <!-- Inyectado dinámicamente según butacas seleccionadas -->
+          </div>
+        </section>
       </div>
     </div>
   </div>

@@ -43,7 +43,15 @@ const DEFAULT_SETTINGS = {
   hours: "Lunes a Domingo: 12:00 PM - 11:30 PM",
   seatHoldMinutes: 5, // Minutos que dura el bloqueo temporal de un asiento
   maxSeatsPerTransaction: 8,
-  currency: "$"
+  currency: "$",
+  pricingRules: {
+    weekendSurchargeStandard: 1.50, // Recargo para sábados y domingos (Estándar)
+    weekendSurchargeVip: 2.00,      // Recargo para sábados y domingos (VIP)
+    wednesdayPromo2x1: true,        // Promoción 2x1 en boletería los miércoles
+    weekendNotice: "Tarifa Fin de Semana (+alta demanda)",
+    calmDayNotice: "Tarifa Días Calmados (Económica)",
+    wednesdayPromoNotice: "¡Miércoles 2x1 en Boletería!"
+  }
 };
 
 // Salas y Esquemas Arquitectónicos de Asientos
@@ -211,6 +219,72 @@ const INITIAL_MOVIES = [
   }
 ];
 
+// Imágenes oficiales de alta resolución y respaldo para Confitería
+function getSnackFallbackImage(category = "", name = "") {
+  const cat = String(category || "").toLowerCase();
+  const n = String(name || "").toLowerCase();
+
+  if (cat.includes("combo") || n.includes("combo")) {
+    return "https://images.unsplash.com/photo-1585647347384-2593bc35786b?auto=format&fit=crop&w=600&q=80";
+  }
+  if (cat.includes("palo") || cat.includes("crisp") || n.includes("palo") || n.includes("crisp")) {
+    return "https://images.unsplash.com/photo-1578849278619-e73505e9610f?auto=format&fit=crop&w=600&q=80";
+  }
+  if (cat.includes("nacho") || n.includes("nacho")) {
+    return "https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?auto=format&fit=crop&w=600&q=80";
+  }
+  if (cat.includes("hot") || cat.includes("perro") || n.includes("hot") || n.includes("perro")) {
+    return "https://images.unsplash.com/photo-1619740455993-9e612b1af08a?auto=format&fit=crop&w=600&q=80";
+  }
+  if (cat.includes("beb") || cat.includes("refresco") || cat.includes("gaseosa") || n.includes("refresco") || n.includes("coca")) {
+    return "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=600&q=80";
+  }
+  if (cat.includes("dulce") || cat.includes("choc") || n.includes("caramelo") || n.includes("dulce")) {
+    return "https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?auto=format&fit=crop&w=600&q=80";
+  }
+  return "https://images.unsplash.com/photo-1585647347483-22b66260dfff?auto=format&fit=crop&w=600&q=80";
+}
+
+function normalizeSnackItem(item) {
+  if (!item || typeof item !== "object") return item;
+
+  const validImg = (item.img && typeof item.img === "string" && item.img.startsWith("http"))
+    ? item.img
+    : ((item.image && typeof item.image === "string" && item.image.startsWith("http"))
+      ? item.image
+      : ((item.imagen_url && typeof item.imagen_url === "string" && item.imagen_url.startsWith("http"))
+        ? item.imagen_url
+        : getSnackFallbackImage(item.category, item.name)));
+
+  const validDesc = (item.desc && typeof item.desc === "string" && item.desc.trim() !== "" && item.desc !== "undefined")
+    ? item.desc
+    : ((item.description && typeof item.description === "string" && item.description.trim() !== "" && item.description !== "undefined")
+      ? item.description
+      : ((item.descripcion && typeof item.descripcion === "string" && item.descripcion.trim() !== "" && item.descripcion !== "undefined")
+        ? item.descripcion
+        : "Acompaña tu película con nuestros mejores snacks recién preparados y bebidas heladas."));
+
+  const validTag = item.tag || item.badge || item.etiqueta || "Popular";
+  const validCat = String(item.category || "snacks").toLowerCase();
+
+  return {
+    ...item,
+    img: validImg,
+    image: validImg,
+    imagen_url: validImg,
+    desc: validDesc,
+    description: validDesc,
+    descripcion: validDesc,
+    tag: validTag,
+    badge: validTag,
+    etiqueta: validTag,
+    category: validCat,
+    price: typeof item.price === "number" ? item.price : (parseFloat(item.precio || item.price) || 0),
+    costPrice: typeof item.costPrice === "number" ? item.costPrice : (parseFloat(item.precio_costo || item.costPrice) || 0),
+    stock: typeof item.stock === "number" ? item.stock : (parseInt(item.stock_disponible || item.stock, 10) || 0)
+  };
+}
+
 // Catálogo Inicial de Confitería / Dulcería
 const INITIAL_SNACKS = [
   {
@@ -218,10 +292,13 @@ const INITIAL_SNACKS = [
     name: "Combo Majestad Dúo Real",
     category: "combos",
     desc: "1 Palomitas gigantes (mantequilla o caramelo) + 2 Bebidas grandes heladas + 1 Hot Dog supremo o Nachos cheddar.",
+    description: "1 Palomitas gigantes (mantequilla o caramelo) + 2 Bebidas grandes heladas + 1 Hot Dog supremo o Nachos cheddar.",
     costPrice: 3.80,
     price: 13.50,
     tag: "Más Vendido",
+    badge: "Más Vendido",
     img: "https://images.unsplash.com/photo-1585647347384-2593bc35786b?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1585647347384-2593bc35786b?auto=format&fit=crop&w=600&q=80",
     stock: 250
   },
   {
@@ -229,10 +306,13 @@ const INITIAL_SNACKS = [
     name: "Palomitas Mega Mantequilla Dorada",
     category: "palomitas",
     desc: "Crujientes granos de maíz gourmet recién preparados, bañados en generosa mantequilla dorada caliente.",
+    description: "Crujientes granos de maíz gourmet recién preparados, bañados en generosa mantequilla dorada caliente.",
     costPrice: 0.90,
     price: 5.80,
     tag: "Clásico",
+    badge: "Clásico",
     img: "https://images.unsplash.com/photo-1578849278619-e73505e9610f?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1578849278619-e73505e9610f?auto=format&fit=crop&w=600&q=80",
     stock: 400
   },
   {
@@ -240,10 +320,13 @@ const INITIAL_SNACKS = [
     name: "Nachos Suprema con Queso Fundido",
     category: "snacks",
     desc: "Crujientes totopos de maíz con abundante queso cheddar caliente, frijoles negros y rodajas de jalapeños.",
+    description: "Crujientes totopos de maíz con abundante queso cheddar caliente, frijoles negros y rodajas de jalapeños.",
     costPrice: 1.80,
     price: 6.50,
     tag: "Crujiente",
+    badge: "Crujiente",
     img: "https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?auto=format&fit=crop&w=600&q=80",
     stock: 300
   },
   {
@@ -251,10 +334,13 @@ const INITIAL_SNACKS = [
     name: "Refresco Ice Cold 32oz",
     category: "bebidas",
     desc: "Bebida gasificada helada a elección (Coca-Cola, Sprite, Fanta, Té frío de limón o Manzana).",
+    description: "Bebida gasificada helada a elección (Coca-Cola, Sprite, Fanta, Té frío de limón o Manzana).",
     costPrice: 0.60,
     price: 3.50,
     tag: "Refrescante",
+    badge: "Refrescante",
     img: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=600&q=80",
     stock: 600
   },
   {
@@ -262,10 +348,13 @@ const INITIAL_SNACKS = [
     name: "Combo Dulzura Caramelo Imperial",
     category: "combos",
     desc: "Palomitas de caramelo artesanal crocante + 1 Bebida gigante + 1 Chocolate M&M's familiar.",
+    description: "Palomitas de caramelo artesanal crocante + 1 Bebida gigante + 1 Chocolate M&M's familiar.",
     costPrice: 2.60,
     price: 10.20,
     tag: "Favorito",
+    badge: "Favorito",
     img: "https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?auto=format&fit=crop&w=600&q=80",
     stock: 180
   },
   {
@@ -273,10 +362,13 @@ const INITIAL_SNACKS = [
     name: "Hot Dog Majestad Jumbo",
     category: "snacks",
     desc: "Salchicha alemana de res en pan brioche artesanal con queso derretido, tocino crocante y salsas.",
+    description: "Salchicha alemana de res en pan brioche artesanal con queso derretido, tocino crocante y salsas.",
     costPrice: 1.90,
     price: 5.90,
     tag: "Especial",
+    badge: "Especial",
     img: "https://images.unsplash.com/photo-1619740455993-9e612b1af08a?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1619740455993-9e612b1af08a?auto=format&fit=crop&w=600&q=80",
     stock: 220
   }
 ];
@@ -713,7 +805,13 @@ const Storage = {
       return { ...DEFAULT_SETTINGS };
     }
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      // Garantizar que las reglas de precios existan siempre
+      if (!parsed.pricingRules) {
+        parsed.pricingRules = { ...DEFAULT_SETTINGS.pricingRules };
+        localStorage.setItem("cinemajestad_settings", JSON.stringify(parsed));
+      }
+      return parsed;
     } catch (e) {
       return { ...DEFAULT_SETTINGS };
     }
@@ -722,6 +820,125 @@ const Storage = {
   saveSettings: (settings) => {
     localStorage.setItem("cinemajestad_settings", JSON.stringify(settings));
     Storage.broadcastChange("SETTINGS_UPDATED", settings);
+  },
+
+  // Consulta de tarifas dinámicas y promociones por día (Fin de semana vs días calmados vs Miércoles 2x1)
+  getDayPricingInfo: (dateIso, movie = null) => {
+    let targetDate = new Date();
+    if (dateIso) {
+      const parts = String(dateIso).split("T")[0].split("-");
+      if (parts.length === 3) {
+        targetDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      }
+    }
+
+    const dayOfWeek = targetDate.getDay(); // 0 = Domingo, 1 = Lunes, ..., 3 = Miércoles, ..., 6 = Sábado
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+    const isWednesday = (dayOfWeek === 3);
+    const isCalmDay = !isWeekend && !isWednesday;
+
+    const settings = Storage.getSettings();
+    const rules = settings.pricingRules || DEFAULT_SETTINGS.pricingRules;
+
+    const baseStd = movie ? (typeof movie.priceStandard === "number" ? movie.priceStandard : parseFloat(movie.priceStandard) || 6.50) : 6.50;
+    const baseVip = movie ? (typeof movie.priceVip === "number" ? movie.priceVip : parseFloat(movie.priceVip) || 10.00) : 10.00;
+
+    let priceStd = baseStd;
+    let priceVip = baseVip;
+
+    if (isWeekend) {
+      priceStd += (rules.weekendSurchargeStandard || 1.50);
+      priceVip += (rules.weekendSurchargeVip || 2.00);
+    }
+
+    let tierLabel = "Tarifa Regular";
+    let badgeClass = "badge-calm";
+    let badgeText = "Día Calmado";
+    let promoDescription = "Tarifa económica regular entre semana.";
+
+    if (isWednesday && rules.wednesdayPromo2x1) {
+      tierLabel = "Miércoles de Cine (Promo 2x1)";
+      badgeClass = "badge-wednesday";
+      badgeText = "🎉 Promo 2x1";
+      promoDescription = "¡Miércoles de película! Compra en pares y por cada 2 boletos paga solo 1 (2x1 en boletería).";
+    } else if (isWeekend) {
+      tierLabel = "Tarifa Fin de Semana";
+      badgeClass = "badge-weekend";
+      badgeText = "⭐ Fin de Semana";
+      promoDescription = "Tarifa especial de fin de semana para días de alta concurrencia.";
+    }
+
+    return {
+      dateIso,
+      dayOfWeek,
+      isWeekend,
+      isWednesday,
+      isCalmDay,
+      baseStandard: baseStd,
+      baseVip: baseVip,
+      priceStandard: priceStd,
+      priceVip: priceVip,
+      tierLabel,
+      badgeClass,
+      badgeText,
+      promoDescription,
+      has2x1Promo: isWednesday && rules.wednesdayPromo2x1
+    };
+  },
+
+  // Cálculo de total con descuento 2x1 los miércoles y tarifas fin de semana
+  calculateTicketsPrice: (seats, dateIso, basePriceStandard = 6.50, basePriceVip = 10.00) => {
+    const dayPricing = Storage.getDayPricingInfo(dateIso, { priceStandard: basePriceStandard, priceVip: basePriceVip });
+    const unitStd = dayPricing.priceStandard;
+    const unitVip = dayPricing.priceVip;
+
+    if (!seats || seats.length === 0) {
+      return {
+        unitStandard: unitStd,
+        unitVip: unitVip,
+        seatsCount: 0,
+        subtotal: 0,
+        discount2x1: 0,
+        total: 0,
+        dayPricing,
+        isOddWednesday: false
+      };
+    }
+
+    // Clasificar butacas estándar vs VIP
+    const stdSeats = seats.filter(s => {
+      const type = typeof s === "object" ? s.type : "";
+      return (type || "").toUpperCase() !== "VIP";
+    });
+    const vipSeats = seats.filter(s => {
+      const type = typeof s === "object" ? s.type : "";
+      return (type || "").toUpperCase() === "VIP";
+    });
+
+    const subtotal = (stdSeats.length * unitStd) + (vipSeats.length * unitVip);
+    let discount2x1 = 0;
+
+    if (dayPricing.has2x1Promo) {
+      // 2x1 por cada par de boletos de cada categoría
+      const freeStd = Math.floor(stdSeats.length / 2);
+      const freeVip = Math.floor(vipSeats.length / 2);
+      discount2x1 = (freeStd * unitStd) + (freeVip * unitVip);
+    }
+
+    const total = Math.max(0, subtotal - discount2x1);
+
+    return {
+      unitStandard: unitStd,
+      unitVip: unitVip,
+      seatsCount: seats.length,
+      stdCount: stdSeats.length,
+      vipCount: vipSeats.length,
+      subtotal,
+      discount2x1,
+      total,
+      dayPricing,
+      isOddWednesday: dayPricing.has2x1Promo && (seats.length % 2 !== 0)
+    };
   },
 
   // Gestión de Salas
@@ -733,11 +950,19 @@ const Storage = {
     }
     try {
       const parsed = JSON.parse(raw);
-      // Garantizar que layoutType, layoutBadge y descripciones arquitectónicas se mantengan siempre enriquecidas
-      return INITIAL_ROOMS.map(initR => {
-        const found = parsed.find(p => p.id === initR.id);
-        return found ? { ...initR, ...found, layoutType: initR.layoutType, layoutBadge: initR.layoutBadge, layoutDesc: initR.layoutDesc } : initR;
-      });
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(r => {
+          const initR = INITIAL_ROOMS.find(i => i.id === r.id);
+          return {
+            ...(initR || {}),
+            ...r,
+            layoutType: r.layoutType || (initR ? initR.layoutType : "curved_imax"),
+            layoutBadge: r.layoutBadge || (initR ? initR.layoutBadge : "🏛️ Maqueta: Anfiteatro Curvo IMAX"),
+            layoutDesc: r.layoutDesc || (initR ? initR.layoutDesc : "Distribución arquitectónica de sala")
+          };
+        });
+      }
+      return INITIAL_ROOMS;
     } catch (e) {
       return INITIAL_ROOMS;
     }
@@ -803,20 +1028,26 @@ const Storage = {
   // Gestión de Confitería
   getSnacks: () => {
     const raw = localStorage.getItem("cinemajestad_snacks");
-    if (!raw) {
-      localStorage.setItem("cinemajestad_snacks", JSON.stringify(INITIAL_SNACKS));
-      return INITIAL_SNACKS;
+    let snacks = INITIAL_SNACKS;
+    if (raw) {
+      try {
+        snacks = JSON.parse(raw);
+      } catch (e) {
+        snacks = INITIAL_SNACKS;
+      }
     }
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      return INITIAL_SNACKS;
+    const normalized = (snacks || []).map(normalizeSnackItem);
+    // Auto-sanar inmediatamente si el localStorage tenía items con imagen o descripción rota/undefined
+    if (!raw || snacks.some(s => !s.img || s.img === 'undefined' || !s.desc || s.desc === 'undefined')) {
+      localStorage.setItem("cinemajestad_snacks", JSON.stringify(normalized));
     }
+    return normalized;
   },
 
   saveSnacks: (snacks) => {
-    localStorage.setItem("cinemajestad_snacks", JSON.stringify(snacks));
-    Storage.broadcastChange("SNACKS_UPDATED", snacks);
+    const normalized = (snacks || []).map(normalizeSnackItem);
+    localStorage.setItem("cinemajestad_snacks", JSON.stringify(normalized));
+    Storage.broadcastChange("SNACKS_UPDATED", normalized);
   },
 
   addSnack: (snack) => {
@@ -1177,25 +1408,44 @@ const Storage = {
     return false;
   },
 
-  createWorkerFoodSale: (clientName, snacks, total) => {
+  createWorkerFoodSale: (clientName, snacks, total, cashReceived = 0, cashChange = 0) => {
     const code = "CMG-F" + Math.floor(10000 + Math.random() * 90000);
+    const now = new Date();
+    const dateFormatted = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const sale = {
+      id: code,
       bookingCode: code,
-      movieTitle: "Venta Directa de Dulcería",
-      hall: "Barra Confitería",
-      showtime: "Inmediato",
+      code: code,
+      movieTitle: "Venta Directa de Dulcería & Combos",
+      hall: "Barra Confitería Real",
+      showtime: "Entrega Inmediata",
       seats: [],
       snacks: snacks,
       ticketsTotal: 0,
+      subtotalTickets: 0,
       snacksTotal: total,
+      subtotalSnacks: total,
+      total: total,
       grandTotal: total,
+      total_pagado: total,
       status: "CONFIRMADA",
       foodStatus: "ENTREGADO",
-      clientName: clientName || "Cliente Mostrador",
+      paymentMethod: "EFECTIVO", // Pago presencial exclusivo en efectivo
+      cashReceived: cashReceived || total,
+      cashChange: cashChange || 0,
+      isCounterSale: true,
+      clientName: clientName || "Cliente Mostrador Dulcería",
+      customerName: clientName || "Cliente Mostrador Dulcería",
       clientEmail: "mostrador@cinemajestad.com",
-      date: new Date().toLocaleDateString("es-ES") + " " + new Date().toLocaleTimeString("es-ES", { hour: '2-digit', minute: '2-digit' })
+      customerEmail: "mostrador@cinemajestad.com",
+      date: dateFormatted,
+      dateFormatted: dateFormatted,
+      createdAt: now.toISOString()
     };
     Storage.saveBooking(sale);
+    if (typeof API !== "undefined" && API.orders && API.orders.create) {
+      API.orders.create(sale).catch(e => console.warn("[Food Sale API fallback]:", e.message));
+    }
     return sale;
   },
 
@@ -1323,16 +1573,36 @@ const Storage = {
     return remaining > 0 ? remaining : 0;
   },
 
-  // Asientos permanentemente ocupados (por compras confirmadas + presets iniciales)
+  // Asientos permanentemente ocupados por función y día específico
   getOccupiedSeats: (showtimeKey) => {
     const occupiedSet = new Set();
+    if (!showtimeKey) return [];
 
-    // 1. Presets iniciales demostrativos
-    if (INITIAL_OCCUPIED[showtimeKey]) {
-      INITIAL_OCCUPIED[showtimeKey].forEach(seat => occupiedSet.add(seat));
+    const parts = showtimeKey.split("_");
+    const targetMovieId = parts[0];
+    let targetDate = null;
+    let targetTime = null;
+
+    if (parts.length >= 3) {
+      targetDate = parts[1]; // Formato YYYY-MM-DD
+      targetTime = parts[2]; // Formato HH:mm
+    } else if (parts.length === 2) {
+      targetTime = parts[1];
     }
 
-    // 2. Almacenamiento directo de ocupados guardados en tiempo real
+    const todayIso = new Date().toISOString().split("T")[0];
+
+    // 1. Presets iniciales demostrativos (aplican exclusivamente a la fecha de hoy)
+    if (INITIAL_OCCUPIED[showtimeKey]) {
+      INITIAL_OCCUPIED[showtimeKey].forEach(seat => occupiedSet.add(seat));
+    } else if (targetTime && (!targetDate || targetDate === todayIso)) {
+      const shortKey = `${targetMovieId}_${targetTime}`;
+      if (INITIAL_OCCUPIED[shortKey]) {
+        INITIAL_OCCUPIED[shortKey].forEach(seat => occupiedSet.add(seat));
+      }
+    }
+
+    // 2. Almacenamiento directo de ocupados guardados para esta función y día
     try {
       const raw = localStorage.getItem("cinemajestad_occupied_seats");
       if (raw) {
@@ -1343,11 +1613,36 @@ const Storage = {
       }
     } catch (e) {}
 
-    // 3. Compras reales confirmadas en el sistema
+    // 3. Compras reales confirmadas filtradas estrictamente por día y hora
     const bookings = Storage.getBookings();
     bookings.forEach(b => {
-      if (b.status === "CONFIRMADA" && (b.showtimeKey === showtimeKey || (!b.showtimeKey && b.showtime))) {
-        if (b.seats && Array.isArray(b.seats)) {
+      if (b.status === "CONFIRMADA") {
+        let isMatch = false;
+
+        // Coincidencia exacta de clave de función con fecha
+        if (b.showtimeKey && b.showtimeKey === showtimeKey) {
+          isMatch = true;
+        } else if (b.movieId === targetMovieId && b.showtime === targetTime) {
+          if (targetDate) {
+            const bDate = String(b.date || b.showtimeDate || "").trim();
+            // Comparación contra YYYY-MM-DD
+            if (bDate.includes(targetDate) || (targetDate === todayIso && bDate.toLowerCase().includes("hoy"))) {
+              isMatch = true;
+            } else {
+              // Convertir formatos tipo DD/MM/YYYY
+              const firstPart = bDate.split(" ")[0];
+              const slashParts = firstPart.split("/");
+              if (slashParts.length === 3) {
+                const bDateIso = `${slashParts[2]}-${slashParts[1].padStart(2, "0")}-${slashParts[0].padStart(2, "0")}`;
+                if (bDateIso === targetDate) isMatch = true;
+              }
+            }
+          } else {
+            isMatch = true;
+          }
+        }
+
+        if (isMatch && b.seats && Array.isArray(b.seats)) {
           b.seats.forEach(s => occupiedSet.add(s.code || s));
         }
       }
@@ -1594,3 +1889,7 @@ const Storage = {
     Storage.broadcastChange("SYSTEM_RESET", {});
   }
 };
+
+if (typeof window !== "undefined") {
+  window.Storage = Storage;
+}

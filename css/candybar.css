@@ -149,3 +149,50 @@
   font-weight: 700;
   color: var(--text-primary);
 }
+
+/* ==========================================================================
+   Optimizaciones Responsivas Móviles para Confitería / Dulcería
+   ========================================================================== */
+@media (max-width: 600px) {
+  .candybar-hero {
+    padding: 1.5rem 0.5rem 1rem;
+  }
+  .candybar-hero h1 {
+    font-size: 1.85rem;
+  }
+  .candy-categories {
+    gap: 0.5rem;
+    margin: 1.2rem 0 1.8rem;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+  }
+  .candy-categories .cat-pill {
+    white-space: nowrap;
+    font-size: 0.8rem;
+    padding: 0.4rem 0.85rem;
+  }
+  .candy-grid {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+    margin-bottom: 2.5rem;
+  }
+  .snack-img-box {
+    height: 160px;
+  }
+  .snack-info {
+    padding: 1.1rem;
+  }
+  .snack-title {
+    font-size: 1.15rem;
+  }
+  .snack-desc {
+    font-size: 0.82rem;
+    margin-bottom: 0.9rem;
+  }
+  .snack-price {
+    font-size: 1.2rem;
+  }
+}

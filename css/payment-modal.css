@@ -52,7 +52,7 @@
 /* Selector de Métodos de Pago */
 .payment-methods-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 0.6rem;
   margin-bottom: 1.8rem;
 }
@@ -262,4 +262,87 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Optimizaciones Responsivas para Pasarela de Pago en Celulares
+   ========================================================================== */
+@media (max-width: 600px) {
+  .payment-modal-backdrop {
+    padding: 0.5rem;
+  }
+
+  .payment-modal-card {
+    max-height: 94vh;
+    border-radius: var(--radius-md);
+  }
+
+  .payment-modal-header {
+    padding: 0.85rem 1.1rem;
+  }
+
+  .payment-modal-header h3 {
+    font-size: 1.1rem !important;
+  }
+
+  .payment-modal-body {
+    padding: 1rem 1.1rem 1.5rem;
+  }
+
+  .payment-methods-tabs {
+    gap: 0.35rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .pm-tab-btn {
+    padding: 0.55rem 0.25rem;
+    font-size: 0.72rem;
+  }
+
+  .pm-tab-btn span:first-child {
+    font-size: 1.1rem !important;
+  }
+
+  .card-3d-scene {
+    max-width: 290px;
+    height: 172px;
+    margin: 0 auto 1.2rem;
+  }
+
+  .card-3d-face {
+    padding: 1.1rem 1.2rem;
+    border-radius: 12px;
+  }
+
+  .card-3d-chip {
+    width: 34px;
+    height: 24px;
+    margin-bottom: 0.9rem;
+  }
+
+  .card-3d-number {
+    font-size: 1.05rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.8rem;
+  }
+
+  .card-3d-name-box h4,
+  .card-3d-expiry-box h4 {
+    font-size: 0.8rem;
+  }
+
+  .card-3d-name-box span,
+  .card-3d-expiry-box span {
+    font-size: 0.6rem;
+  }
+
+  .form-row-grid {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .btn-pay-submit {
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+  }
 }
