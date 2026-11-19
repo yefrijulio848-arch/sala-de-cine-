@@ -74,40 +74,72 @@
           <div id="seatSchedulePromoAlert"></div>
         </div>
 
-        <!-- Pantalla de Cine Curva -->
-        <div class="screen-wrapper">
-          <div class="screen-curve"></div>
-          <div class="screen-light"></div>
-          <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+        <!-- Barra Frontal: Puertas Delanteras + Pantalla de Proyección -->
+        <div class="hall-screen-doors-bar">
+          <div class="hall-door-slot slot-left" id="slotDoorFrontLeftClient"></div>
+          <div class="screen-wrapper">
+            <div class="screen-curve"></div>
+            <div class="screen-light"></div>
+            <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+          </div>
+          <div class="hall-door-slot slot-right" id="slotDoorFrontRightClient"></div>
         </div>
 
-        <!-- Leyenda de Estados de Butaca -->
-        <div class="seats-legend">
-          <div class="legend-item">
-            <span class="legend-seat available"></span>
-            <span id="legendPriceStandard">Estándar ($6.50)</span>
+        <!-- Zona Central: Pasillo Izquierdo + Butacas + Pasillo Derecho (Por donde ingresa el público) -->
+        <div class="hall-seating-circulation">
+          <!-- Pasillo Izquierdo con Flujo de Entrada / Salida -->
+          <div class="hall-walkway" id="walkwayLeftClient">
+            <span class="walkway-arrow" id="arrowTopLeftClient">↓</span>
+            <span class="walkway-tag" id="tagWalkwayLeftClient">🚶 Pasillo Izq.</span>
+            <span class="walkway-arrow" id="arrowBottomLeftClient">↓</span>
           </div>
-          <div class="legend-item">
-            <span class="legend-seat vip"></span>
-            <span id="legendPriceVip">VIP Luxury ($10.00)</span>
+
+          <!-- Matriz de Asientos -->
+          <div class="seats-grid" id="seatsGrid">
+            <!-- Inyectado dinámicamente con JavaScript -->
           </div>
-          <div class="legend-item">
-            <span class="legend-seat selected"></span>
-            <span>Tu Selección</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-seat locked"></span>
-            <span>En Selección 🔒 (Otro cliente)</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-seat occupied"></span>
-            <span>Ocupado / Vendido</span>
+
+          <!-- Pasillo Derecho con Flujo de Entrada / Salida -->
+          <div class="hall-walkway" id="walkwayRightClient">
+            <span class="walkway-arrow" id="arrowTopRightClient">↓</span>
+            <span class="walkway-tag" id="tagWalkwayRightClient">🚶 Pasillo Der.</span>
+            <span class="walkway-arrow" id="arrowBottomRightClient">↓</span>
           </div>
         </div>
 
-        <!-- Matriz de Asientos -->
-        <div class="seats-grid" id="seatsGrid">
-          <!-- Inyectado dinámicamente con JavaScript -->
+        <!-- Barra Posterior: Puertas Traseras + Leyenda de Estados de Butaca -->
+        <div class="hall-doors-bottom-bar">
+          <div class="hall-door-slot slot-left" id="slotDoorBackLeftClient"></div>
+
+          <!-- Leyenda de Estados de Butaca -->
+          <div class="seats-legend" style="flex-wrap: wrap; justify-content: center; gap: 1rem;">
+            <div class="legend-item">
+              <span class="legend-seat available"></span>
+              <span id="legendPriceStandard">Estándar ($6.50)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-seat vip"></span>
+              <span id="legendPriceVip">VIP Luxury ($10.00)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-seat wheelchair"></span>
+              <span>Accesible ♿</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-seat selected"></span>
+              <span>Tu Selección</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-seat locked"></span>
+              <span>En Selección 🔒</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-seat occupied"></span>
+              <span>Ocupado / Vendido</span>
+            </div>
+          </div>
+
+          <div class="hall-door-slot slot-right" id="slotDoorBackRightClient"></div>
         </div>
 
         <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.8rem; text-align: center;">
@@ -131,6 +163,7 @@
           <div class="movie-mini-meta">
             <h4 id="summaryTitle">Cargando...</h4>
             <span class="badge badge-format" id="summaryHall" style="font-size: 0.72rem;">Sala</span>
+            <div id="summaryVigenciaBadge" style="margin-top: 0.35rem;"></div>
           </div>
         </div>
 

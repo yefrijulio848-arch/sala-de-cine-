@@ -1162,3 +1162,303 @@
     gap: 0.16rem;
   }
 }
+
+/* ==========================================================================
+   ELEMENTOS ARQUITECTÓNICOS: ENTRADAS, SALIDAS DE EMERGENCIA Y BUTACAS ACCESIBLES
+   ========================================================================== */
+
+/* ==========================================================================
+   ELEMENTOS ARQUITECTÓNICOS: PUERTAS, PASILLOS DE CIRCULACIÓN Y BUTACAS
+   ========================================================================== */
+
+/* Barra Frontal: Puertas Delanteras + Pantalla */
+.hall-screen-doors-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+  position: relative;
+  z-index: 5;
+}
+
+.hall-screen-doors-bar .screen-wrapper {
+  flex: 1;
+  margin: 0 auto;
+  max-width: 65%;
+}
+
+.hall-door-slot {
+  min-width: 130px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hall-door-slot.slot-left {
+  justify-content: flex-start;
+}
+
+.hall-door-slot.slot-right {
+  justify-content: flex-end;
+}
+
+/* Pasillos Laterales de Circulación (Donde camina la gente) */
+.hall-seating-circulation {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0.35rem 0;
+  position: relative;
+}
+
+.hall-walkway {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 38px;
+  min-width: 38px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 0.45rem 0.15rem;
+  box-sizing: border-box;
+  position: relative;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.hall-walkway.walkway-entrance {
+  background: linear-gradient(180deg, rgba(245, 197, 24, 0.04), rgba(245, 197, 24, 0.12));
+  border-color: rgba(245, 197, 24, 0.4);
+  box-shadow: inset 0 0 14px rgba(245, 197, 24, 0.14);
+}
+
+.hall-walkway.walkway-exit {
+  background: linear-gradient(180deg, rgba(0, 230, 118, 0.04), rgba(0, 230, 118, 0.12));
+  border-color: rgba(0, 230, 118, 0.4);
+  box-shadow: inset 0 0 14px rgba(0, 230, 118, 0.14);
+}
+
+.walkway-tag {
+  font-size: 0.58rem;
+  font-weight: 800;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  user-select: none;
+  opacity: 0.85;
+  margin: auto 0;
+  transform: rotate(180deg);
+}
+
+.hall-walkway.walkway-entrance .walkway-tag {
+  color: #ffd54f;
+  text-shadow: 0 0 8px rgba(245, 197, 24, 0.6);
+}
+
+.hall-walkway.walkway-exit .walkway-tag {
+  color: #00e676;
+  text-shadow: 0 0 8px rgba(0, 230, 118, 0.6);
+}
+
+.walkway-arrow {
+  font-size: 0.75rem;
+  user-select: none;
+}
+
+.hall-walkway.walkway-entrance .walkway-arrow {
+  color: #ffd54f;
+}
+
+.hall-walkway.walkway-exit .walkway-arrow {
+  color: #00e676;
+}
+
+/* Barra Posterior: Puertas Traseras + Leyenda */
+.hall-doors-bottom-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-top: 0.55rem;
+  margin-top: 0.4rem;
+  box-sizing: border-box;
+}
+
+.hall-doors-bottom-bar .seats-legend {
+  margin: 0;
+  flex: 1;
+}
+
+/* Insignias de Puertas Arquitectónicas Interactivas */
+.hall-door-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  user-select: none;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.hall-door-badge:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.2);
+}
+
+/* Puerta de Entrada Principal */
+.hall-door-badge.door-entrance {
+  background: rgba(245, 197, 24, 0.12);
+  border: 1px solid rgba(245, 197, 24, 0.5);
+  color: #ffd54f;
+  box-shadow: 0 0 14px rgba(245, 197, 24, 0.25);
+}
+
+.hall-door-badge.door-entrance::after {
+  content: '↓ ACCESO';
+  font-size: 0.58rem;
+  opacity: 0.85;
+  margin-left: 0.2rem;
+}
+
+/* Puerta de Salida de Emergencia */
+.hall-door-badge.door-exit {
+  background: rgba(0, 230, 118, 0.12);
+  border: 1px solid rgba(0, 230, 118, 0.55);
+  color: #00e676;
+  box-shadow: 0 0 16px rgba(0, 230, 118, 0.3);
+  animation: emergencyExitGlow 3s infinite alternate;
+}
+
+.hall-door-badge.door-exit::after {
+  content: '↑ SALIDA';
+  font-size: 0.58rem;
+  opacity: 0.85;
+  margin-left: 0.2rem;
+}
+
+/* Puerta Inactiva / Pared Cerrada */
+.hall-door-badge.door-closed {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  color: var(--text-muted);
+  box-shadow: none;
+  opacity: 0.65;
+}
+
+.hall-door-badge.door-closed:hover {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.hall-door-badge.door-closed::after {
+  content: '✕ PARED';
+  font-size: 0.58rem;
+  opacity: 0.75;
+  margin-left: 0.2rem;
+}
+
+@keyframes emergencyExitGlow {
+  0% { box-shadow: 0 0 8px rgba(0, 230, 118, 0.2); }
+  100% { box-shadow: 0 0 18px rgba(0, 230, 118, 0.5); }
+}
+
+/* Butacas Accesibles para Discapacitados (Silla de Ruedas ♿) */
+.seat.wheelchair,
+.seat.seat-wheelchair {
+  background: linear-gradient(135deg, #1565c0, #0d47a1) !important;
+  border-color: #42a5f5 !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(66, 165, 245, 0.4) !important;
+  position: relative;
+}
+
+.seat.wheelchair::before,
+.seat.seat-wheelchair::before {
+  content: '♿';
+  font-size: 0.78rem;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  line-height: 1;
+}
+
+.seat.wheelchair.selected,
+.seat.seat-wheelchair.selected {
+  background: linear-gradient(135deg, #ff9800, #e65100) !important;
+  border-color: #ffa726 !important;
+  box-shadow: 0 0 16px rgba(255, 152, 0, 0.7) !important;
+}
+
+.legend-seat.wheelchair {
+  background: linear-gradient(135deg, #1565c0, #0d47a1);
+  border: 1px solid #42a5f5;
+  box-shadow: 0 0 8px rgba(66, 165, 245, 0.4);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.legend-seat.wheelchair::before {
+  content: '♿';
+  font-size: 0.68rem;
+  color: #fff;
+}
+
+/* Selector de Pincel / Herramientas de Edición */
+.editor-brush-group {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.editor-brush-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.65rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.editor-brush-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.editor-brush-btn.active {
+  background: rgba(245, 197, 24, 0.15);
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 12px var(--gold-glow);
+}
+
+.editor-brush-btn.active[data-brush="wheelchair"] {
+  background: rgba(66, 165, 245, 0.18);
+  border-color: #42a5f5;
+  color: #90caf9;
+  box-shadow: 0 0 12px rgba(66, 165, 245, 0.4);
+}

@@ -182,9 +182,18 @@ const state = {
       id: "sala-1",
       name: "Sala 1 (IMAX Laser & Dolby)",
       technology: "IMAX Laser",
+      layoutType: "curved_imax",
+      layoutBadge: "🏛️ Anfiteatro Curvo IMAX",
       rows: ["A", "B", "C", "D", "E", "F"],
       seatsPerRow: 10,
       vipRows: ["E", "F"],
+      wheelchairSeats: ["A-1", "A-2"],
+      doors: [
+        { id: "front-left", active: true, type: "SALIDA" },
+        { id: "front-right", active: true, type: "ENTRADA" },
+        { id: "back-left", active: true, type: "ENTRADA" },
+        { id: "back-right", active: false, type: "SALIDA" }
+      ],
       capacity: 60,
       screenType: "Curva Gigante 4K",
       soundSystem: "Dolby Atmos 64 Canales"
@@ -193,9 +202,18 @@ const state = {
       id: "sala-2",
       name: "Sala 2 (70mm Master Cinema)",
       technology: "70mm Film",
+      layoutType: "stadium_double_aisle",
+      layoutBadge: "🏟️ Estadio 3 Bloques (Doble Pasillo)",
       rows: ["A", "B", "C", "D", "E", "F"],
       seatsPerRow: 10,
       vipRows: ["E", "F"],
+      wheelchairSeats: ["A-1", "A-10"],
+      doors: [
+        { id: "front-left", active: true, type: "SALIDA" },
+        { id: "front-right", active: true, type: "SALIDA" },
+        { id: "back-left", active: true, type: "ENTRADA" },
+        { id: "back-right", active: true, type: "ENTRADA" }
+      ],
       capacity: 60,
       screenType: "Plana 70mm Panavision",
       soundSystem: "DTS-X Surround"
@@ -204,9 +222,18 @@ const state = {
       id: "sala-3",
       name: "Sala 3 (Dolby Atmos 360°)",
       technology: "Dolby Atmos",
+      layoutType: "motion_4dx",
+      layoutBadge: "🚀 Pods Mecánicos 4DX",
       rows: ["A", "B", "C", "D", "E"],
       seatsPerRow: 10,
       vipRows: ["E"],
+      wheelchairSeats: ["A-1", "A-2"],
+      doors: [
+        { id: "front-left", active: true, type: "SALIDA" },
+        { id: "front-right", active: false, type: "SALIDA" },
+        { id: "back-left", active: true, type: "ENTRADA" },
+        { id: "back-right", active: false, type: "ENTRADA" }
+      ],
       capacity: 50,
       screenType: "Microperforada 2K",
       soundSystem: "Dolby Atmos 360°"
@@ -215,9 +242,18 @@ const state = {
       id: "sala-4",
       name: "Sala 4 (VIP Royal Lounge)",
       technology: "VIP Luxury",
+      layoutType: "vip_lounge",
+      layoutBadge: "👑 Palcos VIP & Sofás Dobles",
       rows: ["A", "B", "C", "D"],
       seatsPerRow: 8,
       vipRows: ["A", "B", "C", "D"],
+      wheelchairSeats: ["A-1", "A-2"],
+      doors: [
+        { id: "front-left", active: true, type: "SALIDA" },
+        { id: "front-right", active: false, type: "SALIDA" },
+        { id: "back-left", active: true, type: "ENTRADA" },
+        { id: "back-right", active: true, type: "ENTRADA" }
+      ],
       capacity: 32,
       screenType: "Pantalla Láser Premium",
       soundSystem: "Bowers & Wilkins Hi-Fi"
@@ -243,7 +279,12 @@ const state = {
       showtimes: ["14:30", "17:45", "21:00"],
       hall: "Sala 1 (IMAX Laser & Dolby)",
       roomId: "sala-1",
-      isFeatured: true
+      isFeatured: true,
+      releaseType: "CARTELERA",
+      isPresale: false,
+      startDate: "2026-11-10",
+      durationDays: 28,
+      endDate: "2026-12-07"
     },
     {
       id: "mov-02",
@@ -263,7 +304,12 @@ const state = {
       showtimes: ["13:00", "16:00", "19:15"],
       hall: "Sala 2 (70mm Master Cinema)",
       roomId: "sala-2",
-      isFeatured: false
+      isFeatured: false,
+      releaseType: "CARTELERA",
+      isPresale: false,
+      startDate: "2026-11-05",
+      durationDays: 21,
+      endDate: "2026-11-25"
     },
     {
       id: "mov-03",
@@ -283,7 +329,12 @@ const state = {
       showtimes: ["15:00", "18:30", "22:00"],
       hall: "Sala 2 (70mm Master Cinema)",
       roomId: "sala-2",
-      isFeatured: false
+      isFeatured: false,
+      releaseType: "CARTELERA",
+      isPresale: false,
+      startDate: "2026-11-01",
+      durationDays: 30,
+      endDate: "2026-11-30"
     },
     {
       id: "mov-04",
@@ -303,11 +354,16 @@ const state = {
       showtimes: ["16:45", "20:00", "22:45"],
       hall: "Sala 3 (Dolby Atmos 360°)",
       roomId: "sala-3",
-      isFeatured: false
+      isFeatured: false,
+      releaseType: "CARTELERA",
+      isPresale: false,
+      startDate: "2026-11-12",
+      durationDays: 21,
+      endDate: "2026-12-02"
     },
     {
       id: "mov-05",
-      title: "Avatar: El Camino del Agua",
+      title: "Avatar: El Camino del Agua (Preventa Especial)",
       genre: "Ciencia Ficción",
       duration: "192 min",
       rating: 8.5,
@@ -323,7 +379,12 @@ const state = {
       showtimes: ["13:30", "17:30", "21:30"],
       hall: "Sala 4 (VIP Royal Lounge)",
       roomId: "sala-4",
-      isFeatured: false
+      isFeatured: false,
+      releaseType: "PREVENTA",
+      isPresale: true,
+      startDate: "2026-11-28",
+      durationDays: 35,
+      endDate: "2027-01-01"
     }
   ],
 
@@ -622,7 +683,12 @@ const Store = {
             roomId: r.sala_id || "sala-1",
             showtimes: ["14:30", "17:45", "21:00"],
             formats: r.formatos ? r.formatos.split(", ") : ["2D", "3D"],
-            genre: r.generos ? r.generos.split(", ")[0] : "Acción"
+            genre: r.generos ? r.generos.split(", ")[0] : "Acción",
+            releaseType: r.estado === 'PROXIMAMENTE' ? 'PREVENTA' : 'CARTELERA',
+            isPresale: r.estado === 'PROXIMAMENTE',
+            startDate: r.fecha_estreno ? (r.fecha_estreno instanceof Date ? r.fecha_estreno.toISOString().split("T")[0] : String(r.fecha_estreno).split("T")[0]) : (r.estado === 'PROXIMAMENTE' ? "2026-11-28" : "2026-11-15"),
+            durationDays: parseInt(r.dias_duracion, 10) || 21,
+            endDate: r.fecha_fin ? (r.fecha_fin instanceof Date ? r.fecha_fin.toISOString().split("T")[0] : String(r.fecha_fin).split("T")[0]) : "2026-12-05"
           }));
         }
       } catch (e) {
@@ -638,6 +704,7 @@ const Store = {
   },
 
   async createMovie(movieData) {
+    const isPresale = movieData.releaseType === "PREVENTA" || movieData.isPresale === true;
     const newMovie = {
       id: "mov-" + Date.now().toString(36),
       title: movieData.title,
@@ -656,17 +723,82 @@ const Store = {
       showtimes: Array.isArray(movieData.showtimes) ? movieData.showtimes : ["16:00", "19:00", "21:30"],
       hall: movieData.hall || "Sala 1 (IMAX Laser & Dolby)",
       roomId: movieData.roomId || "sala-1",
-      isFeatured: Boolean(movieData.isFeatured)
+      isFeatured: Boolean(movieData.isFeatured),
+      releaseType: isPresale ? "PREVENTA" : "CARTELERA",
+      isPresale: isPresale,
+      startDate: movieData.startDate || (isPresale ? "2026-11-28" : "2026-11-15"),
+      durationDays: parseInt(movieData.durationDays, 10) || 21,
+      endDate: movieData.endDate || "2026-12-05"
     };
+
+    if (isDbConnected()) {
+      try {
+        const durMin = parseInt(newMovie.duration, 10) || 120;
+        await query(
+          `INSERT INTO peliculas (id, titulo, sinopsis, director, duracion_min, clasificacion_edad, rating, poster_url, backdrop_url, trailer_url, precio_estandar_base, precio_vip_base, es_destacada, estado, fecha_estreno, dias_duracion, fecha_fin) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            newMovie.id,
+            newMovie.title,
+            newMovie.synopsis,
+            newMovie.director,
+            durMin,
+            newMovie.ageRating || 'B',
+            newMovie.rating,
+            newMovie.poster,
+            newMovie.backdrop,
+            newMovie.trailerUrl,
+            newMovie.priceStandard,
+            newMovie.priceVip,
+            newMovie.isFeatured ? 1 : 0,
+            isPresale ? 'PROXIMAMENTE' : 'EN_CARTELERA',
+            newMovie.startDate,
+            newMovie.durationDays,
+            newMovie.endDate
+          ]
+        );
+      } catch (e) {
+        console.warn("[Store] Error insertando película en MySQL:", e.message);
+      }
+    }
+
     state.movies.unshift(newMovie);
     return newMovie;
   },
 
   async updateMovie(id, updateData) {
+    if (isDbConnected()) {
+      try {
+        const fields = [];
+        const params = [];
+        if (updateData.title !== undefined) { fields.push("titulo = ?"); params.push(updateData.title); }
+        if (updateData.synopsis !== undefined) { fields.push("sinopsis = ?"); params.push(updateData.synopsis); }
+        if (updateData.director !== undefined) { fields.push("director = ?"); params.push(updateData.director); }
+        if (updateData.priceStandard !== undefined) { fields.push("precio_estandar_base = ?"); params.push(updateData.priceStandard); }
+        if (updateData.priceVip !== undefined) { fields.push("precio_vip_base = ?"); params.push(updateData.priceVip); }
+        if (updateData.releaseType !== undefined || updateData.isPresale !== undefined) {
+          const isPresale = updateData.releaseType === 'PREVENTA' || updateData.isPresale === true;
+          fields.push("estado = ?");
+          params.push(isPresale ? 'PROXIMAMENTE' : 'EN_CARTELERA');
+        }
+        if (updateData.startDate !== undefined) { fields.push("fecha_estreno = ?"); params.push(updateData.startDate); }
+        if (updateData.durationDays !== undefined) { fields.push("dias_duracion = ?"); params.push(updateData.durationDays); }
+        if (updateData.endDate !== undefined) { fields.push("fecha_fin = ?"); params.push(updateData.endDate); }
+
+        if (fields.length > 0) {
+          params.push(id);
+          await query(`UPDATE peliculas SET ${fields.join(", ")} WHERE id = ?`, params);
+        }
+      } catch (e) {
+        console.warn("[Store] Error actualizando película en MySQL:", e.message);
+      }
+    }
     const idx = state.movies.findIndex(m => m.id === id);
-    if (idx === -1) return null;
-    state.movies[idx] = { ...state.movies[idx], ...updateData };
-    return state.movies[idx];
+    if (idx !== -1) {
+      state.movies[idx] = { ...state.movies[idx], ...updateData };
+      return state.movies[idx];
+    }
+    return { id, ...updateData };
   },
 
   async deleteMovie(id) {

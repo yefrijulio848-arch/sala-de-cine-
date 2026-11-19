@@ -271,48 +271,80 @@
         <!-- Sala de Cine con Estructura Idéntica a seats.html y admin.html -->
         <section class="cinema-hall layout-curved-imax" id="workerCinemaHall" style="padding: 1.5rem 1rem 1.8rem; border-radius: var(--radius-md); width: 100%; box-sizing: border-box; overflow-x: auto;">
           <!-- Distintivo de Maqueta Arquitectónica de Sala -->
-          <div class="hall-architecture-badge" id="workerHallArchBadge" style="margin-bottom: 1.2rem;">
+          <div class="hall-architecture-badge" id="workerHallArchBadge" style="margin-bottom: 0.6rem;">
             🏛️ Maqueta: Anfiteatro Curvo IMAX
           </div>
 
-          <!-- Pantalla de Cine Curva con Haz de Luz de Proyección Real -->
-          <div class="screen-wrapper" style="width: 82%; margin-bottom: 1.6rem;">
-            <div class="screen-curve"></div>
-            <div class="screen-light"></div>
-            <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+          <!-- Barra Frontal: Puertas Delanteras + Pantalla de Proyección -->
+          <div class="hall-screen-doors-bar">
+            <div class="hall-door-slot slot-left" id="slotDoorFrontLeftWorker"></div>
+            <div class="screen-wrapper">
+              <div class="screen-curve"></div>
+              <div class="screen-light"></div>
+              <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+            </div>
+            <div class="hall-door-slot slot-right" id="slotDoorFrontRightWorker"></div>
           </div>
 
-          <!-- Leyenda de Estados de Butaca -->
-          <div class="seats-legend" style="margin-bottom: 1.6rem; justify-content: center; gap: 1.2rem; flex-wrap: wrap;">
-            <div class="legend-item">
-              <span class="legend-seat available"></span>
-              <span>Estándar (Libre)</span>
+          <!-- Zona Central: Pasillo Izquierdo + Butacas + Pasillo Derecho (Circulación de Taquilla) -->
+          <div class="hall-seating-circulation">
+            <!-- Pasillo Izquierdo con Flujo de Entrada / Salida -->
+            <div class="hall-walkway" id="walkwayLeftWorker">
+              <span class="walkway-arrow" id="arrowTopLeftWorker">↓</span>
+              <span class="walkway-tag" id="tagWalkwayLeftWorker">🚶 Pasillo Izq.</span>
+              <span class="walkway-arrow" id="arrowBottomLeftWorker">↓</span>
             </div>
-            <div class="legend-item">
-              <span class="legend-seat vip"></span>
-              <span>VIP Luxury</span>
+
+            <!-- Matriz de Asientos Idéntica con Perspectiva 3D y Curvatura Radial -->
+            <div class="seats-grid" id="workerSeatsGrid" style="flex: 1; display: flex; flex-direction: column; gap: 0.75rem; align-items: center; perspective: 600px;">
+              <!-- Grid dinámico generado por JavaScript -->
             </div>
-            <div class="legend-item">
-              <span class="legend-seat selected"></span>
-              <span>Seleccionada (Taquilla)</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-seat locked"></span>
-              <span>En Selección 🔒</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-seat occupied"></span>
-              <span>Ocupado / Vendido</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-seat maintenance"></span>
-              <span>Mantenimiento</span>
+
+            <!-- Pasillo Derecho con Flujo de Entrada / Salida -->
+            <div class="hall-walkway" id="walkwayRightWorker">
+              <span class="walkway-arrow" id="arrowTopRightWorker">↓</span>
+              <span class="walkway-tag" id="tagWalkwayRightWorker">🚶 Pasillo Der.</span>
+              <span class="walkway-arrow" id="arrowBottomRightWorker">↓</span>
             </div>
           </div>
 
-          <!-- Matriz de Asientos Idéntica con Perspectiva 3D y Curvatura Radial -->
-          <div class="seats-grid" id="workerSeatsGrid" style="width: 100%; display: flex; flex-direction: column; gap: 0.85rem; align-items: center; perspective: 600px;">
-            <!-- Grid dinámico generado por JavaScript -->
+          <!-- Barra Posterior: Puertas Traseras + Leyenda de Estados de Butaca -->
+          <div class="hall-doors-bottom-bar">
+            <div class="hall-door-slot slot-left" id="slotDoorBackLeftWorker"></div>
+
+            <!-- Leyenda de Estados de Butaca -->
+            <div class="seats-legend" style="flex-wrap: wrap; justify-content: center; gap: 0.9rem;">
+              <div class="legend-item">
+                <span class="legend-seat available"></span>
+                <span>Estándar (Libre)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-seat vip"></span>
+                <span>VIP Luxury</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-seat wheelchair"></span>
+                <span>Accesible ♿</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-seat selected"></span>
+                <span>Seleccionada (Taquilla)</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-seat locked"></span>
+                <span>En Selección 🔒</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-seat occupied"></span>
+                <span>Ocupado / Vendido</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-seat maintenance"></span>
+                <span>Mantenimiento</span>
+              </div>
+            </div>
+
+            <div class="hall-door-slot slot-right" id="slotDoorBackRightWorker"></div>
           </div>
 
           <!-- Resumen de Ocupación en Vivo -->

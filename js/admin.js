@@ -249,7 +249,7 @@ function renderStats() {
 }
 
 // =============================================================================
-// MÓDULO 1: CARTELERA Y PELÍCULAS (CRUD)
+// MÓDULO 1: CARTELERA Y PELÍCULAS (CRUD CON DURABILIDAD Y PREVENTAS)
 // =============================================================================
 function renderMoviesTable(filterQuery = "") {
   const tbody = document.querySelector("#adminMoviesTableBody");
@@ -261,7 +261,10 @@ function renderMoviesTable(filterQuery = "") {
     movies = movies.filter(m => m.title.toLowerCase().includes(q) || m.genre.toLowerCase().includes(q));
   }
 
-  tbody.innerHTML = movies.map(movie => `
+  tbody.innerHTML = movies.map(movie => {
+    const vigencia = Storage.getMovieVigenciaInfo(movie);
+
+    return `
     <tr>
       <td>
         <div class="table-movie-info">
@@ -270,6 +273,22 @@ function renderMoviesTable(filterQuery = "") {
             <strong>${movie.title}</strong>
             <p style="color: var(--text-muted); font-size: 0.78rem;">${movie.director || 'Director no esp.'}</p>
           </div>
+        </div>
+      </td>
+      <td>
+        <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+          <span class="badge ${vigencia.isPresale ? 'badge-presale' : 'badge-now-showing'}" style="width: fit-content;">
+            ${vigencia.badgeText}
+          </span>
+          <span style="font-size: 0.8rem; font-weight: 700; color: #fff;">
+            ⏳ ${vigencia.durationDays} Días en Cartelera
+          </span>
+          <span style="font-size: 0.72rem; color: var(--text-secondary);">
+            Del ${vigencia.startDateFormatted} al ${vigencia.endDateFormatted}
+          </span>
+          <small style="font-size: 0.72rem; color: ${vigencia.isPresale ? '#ff66b2' : 'var(--gold)'}; font-weight: 700;">
+            ${vigencia.statusLabel}
+          </small>
         </div>
       </td>
       <td><span class="badge badge-genre">${movie.genre}</span></td>
@@ -296,7 +315,8 @@ function renderMoviesTable(filterQuery = "") {
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function initMovieSearch() {
@@ -308,6 +328,116 @@ function initMovieSearch() {
   }
 }
 
+// Control interactivo de Modalidad (Cartelera vs Preventa) y Durabilidad de Días
+function onMovieReleaseTypeChange(type) {
+  const isPresale = type === "PREVENTA";
+  const badge = document.querySelector("#badgeMovieVigenciaPreview");
+  const cardCartelera = document.querySelector("#lblTypeCartelera");
+  const cardPreventa = document.querySelector("#lblTypePreventa");
+  const lblStart = document.querySelector("#lblStartDateTitle");
+
+  if (cardCartelera) cardCartelera.style.borderColor = !isPresale ? "var(--gold)" : "var(--border-color)";
+  if (cardPreventa) cardPreventa.style.borderColor = isPresale ? "#ff007f" : "var(--border-color)";
+
+  if (badge) {
+    badge.className = `badge ${isPresale ? 'badge-presale' : 'badge-now-showing'}`;
+    badge.textContent = isPresale ? "🎟️ PREVENTA EXCLUSIVA" : "🔥 EN CARTELERA";
+  }
+
+  if (lblStart) {
+    lblStart.textContent = isPresale ? "🚀 Fecha de Estreno Oficial *" : "📅 Fecha Inicio en Cartelera *";
+  }
+
+  // Si cambia a preventa y la fecha de inicio es anterior o igual a hoy, sugerir fecha de estreno próxima
+  const startInput = document.querySelector("#inputStartDate");
+  if (isPresale && startInput) {
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (!startInput.value || startInput.value <= todayStr) {
+      const future = new Date();
+      future.setDate(future.getDate() + 9);
+      const y = future.getFullYear();
+      const m = String(future.getMonth() + 1).padStart(2, "0");
+      const d = String(future.getDate()).padStart(2, "0");
+      startInput.value = `${y}-${m}-${d}`;
+    }
+  }
+
+  onMovieDatesChange("duration");
+}
+
+function onMovieDatesChange(trigger = "duration") {
+  const startInput = document.querySelector("#inputStartDate");
+  const daysInput = document.querySelector("#inputDurationDays");
+  const endInput = document.querySelector("#inputEndDate");
+
+  if (!startInput || !daysInput || !endInput) return;
+
+  if (trigger === "start" || trigger === "duration") {
+    const startVal = startInput.value;
+    const daysVal = parseInt(daysInput.value, 10) || 1;
+    if (startVal) {
+      endInput.value = Storage.calculateMovieEndDate(startVal, daysVal);
+    }
+  } else if (trigger === "end") {
+    const startVal = startInput.value;
+    const endVal = endInput.value;
+    if (startVal && endVal) {
+      const s = new Date(startVal);
+      const e = new Date(endVal);
+      const diffMs = e.getTime() - s.getTime();
+      const diffDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1);
+      daysInput.value = diffDays;
+    }
+  }
+
+  updateMovieVigenciaUI();
+}
+
+function setMovieDurationPreset(days) {
+  const daysInput = document.querySelector("#inputDurationDays");
+  if (daysInput) {
+    daysInput.value = days;
+    onMovieDatesChange("duration");
+  }
+}
+
+function updateMovieVigenciaUI() {
+  const radioPreventa = document.querySelector("#radioTypePreventa");
+  const isPresale = radioPreventa ? radioPreventa.checked : false;
+  const startInput = document.querySelector("#inputStartDate");
+  const daysInput = document.querySelector("#inputDurationDays");
+  const endInput = document.querySelector("#inputEndDate");
+  const lblDaysCount = document.querySelector("#lblDurationDaysCount");
+  const lblSummary = document.querySelector("#lblVigenciaSummaryText");
+
+  const startVal = startInput ? startInput.value : "";
+  const daysVal = daysInput ? (parseInt(daysInput.value, 10) || 21) : 21;
+  const endVal = endInput ? endInput.value : "";
+
+  if (lblDaysCount) lblDaysCount.textContent = `${daysVal} Días`;
+
+  if (lblSummary) {
+    const tempMovie = {
+      releaseType: isPresale ? "PREVENTA" : "CARTELERA",
+      isPresale,
+      startDate: startVal,
+      durationDays: daysVal,
+      endDate: endVal
+    };
+    const vigencia = Storage.getMovieVigenciaInfo(tempMovie);
+    if (isPresale) {
+      lblSummary.innerHTML = `🎟️ <strong>Preventa Exclusiva:</strong> Estreno el <strong>${vigencia.startDateFormatted}</strong>. Temporada de <strong>${daysVal} días</strong> (hasta el ${vigencia.endDateFormatted}). <span style="color: #ff66b2; font-weight: 700;">${vigencia.statusLabel}</span>.`;
+    } else {
+      lblSummary.innerHTML = `🎬 <strong>En Cartelera:</strong> Del <strong>${vigencia.startDateFormatted}</strong> al <strong>${vigencia.endDateFormatted}</strong> (${daysVal} días de temporada). <strong style="color: var(--gold);">${vigencia.statusLabel}</strong>.`;
+    }
+  }
+}
+
+window.onMovieReleaseTypeChange = onMovieReleaseTypeChange;
+window.onMovieDatesChange = onMovieDatesChange;
+window.setMovieDurationPreset = setMovieDurationPreset;
+window.updateMovieVigenciaUI = updateMovieVigenciaUI;
+
 function openMovieModal(isEdit = false, movieData = null) {
   const modal = document.querySelector("#movieFormModal");
   const modalTitle = document.querySelector("#modalFormTitle");
@@ -315,6 +445,8 @@ function openMovieModal(isEdit = false, movieData = null) {
 
   if (!modal || !form) return;
   form.reset();
+
+  const todayStr = new Date().toISOString().split("T")[0];
 
   if (isEdit && movieData) {
     modalTitle.textContent = "Editar Película en Cartelera";
@@ -334,10 +466,40 @@ function openMovieModal(isEdit = false, movieData = null) {
     document.querySelector("#inputBackdrop").value = movieData.backdrop || "";
     document.querySelector("#inputTrailer").value = movieData.trailerUrl;
     document.querySelector("#inputSynopsis").value = movieData.synopsis;
+
+    // Cargar vigencia y tipo de preventa
+    const isPresale = movieData.releaseType === "PREVENTA" || movieData.isPresale === true;
+    const radioCartelera = document.querySelector("#radioTypeCartelera");
+    const radioPreventa = document.querySelector("#radioTypePreventa");
+
+    if (isPresale && radioPreventa) {
+      radioPreventa.checked = true;
+    } else if (radioCartelera) {
+      radioCartelera.checked = true;
+    }
+
+    const startDate = movieData.startDate || (isPresale ? "2026-11-28" : todayStr);
+    const durationDays = parseInt(movieData.durationDays, 10) || (isPresale ? 30 : 21);
+    const endDate = movieData.endDate || Storage.calculateMovieEndDate(startDate, durationDays);
+
+    document.querySelector("#inputStartDate").value = startDate;
+    document.querySelector("#inputDurationDays").value = durationDays;
+    document.querySelector("#inputEndDate").value = endDate;
+
+    onMovieReleaseTypeChange(isPresale ? "PREVENTA" : "CARTELERA");
   } else {
     modalTitle.textContent = "Programar Nueva Película en Cartelera";
     document.querySelector("#movieIdInput").value = "";
     document.querySelector("#inputFeatured").value = "false";
+
+    const radioCartelera = document.querySelector("#radioTypeCartelera");
+    if (radioCartelera) radioCartelera.checked = true;
+
+    document.querySelector("#inputStartDate").value = todayStr;
+    document.querySelector("#inputDurationDays").value = 21;
+    document.querySelector("#inputEndDate").value = Storage.calculateMovieEndDate(todayStr, 21);
+
+    onMovieReleaseTypeChange("CARTELERA");
   }
 
   modal.classList.add("open");
@@ -428,7 +590,15 @@ let roomEditorState = {
   rowCount: 6,
   cols: 10,
   rows: ["A", "B", "C", "D", "E", "F"],
-  vipRows: ["E", "F"]
+  vipRows: ["E", "F"],
+  wheelchairSeats: ["A-1", "A-2"],
+  doors: [
+    { id: "front-left", active: true, type: "SALIDA" },
+    { id: "front-right", active: true, type: "ENTRADA" },
+    { id: "back-left", active: true, type: "ENTRADA" },
+    { id: "back-right", active: false, type: "SALIDA" }
+  ],
+  activeBrush: "cycle"
 };
 
 function openRoomModal(roomId) {
@@ -446,6 +616,27 @@ function openRoomModal(roomId) {
   const rawVip = Array.isArray(room.vipRows) ? room.vipRows : ["E", "F"];
   const rawCols = parseInt(room.seatsPerRow, 10) || 10;
 
+  // Cargar sillas para discapacitados
+  let rawWheelchair = [];
+  if (Array.isArray(room.wheelchairSeats)) {
+    rawWheelchair = [...room.wheelchairSeats];
+  } else if (room.wheelchairCols && Array.isArray(room.wheelchairCols)) {
+    rawWheelchair = room.wheelchairCols.map(c => `${rawRows[0] || 'A'}-${c}`);
+  } else {
+    rawWheelchair = [`${rawRows[0] || 'A'}-1`, `${rawRows[0] || 'A'}-2`];
+  }
+
+  // Cargar puertas de acceso y evacuación
+  const defaultDoors = [
+    { id: "front-left", active: true, type: "SALIDA" },
+    { id: "front-right", active: true, type: "ENTRADA" },
+    { id: "back-left", active: true, type: "ENTRADA" },
+    { id: "back-right", active: false, type: "SALIDA" }
+  ];
+  const rawDoors = (Array.isArray(room.doors) && room.doors.length === 4)
+    ? JSON.parse(JSON.stringify(room.doors))
+    : defaultDoors;
+
   roomEditorState = {
     roomId: room.id,
     layoutType: room.layoutType || (
@@ -456,13 +647,273 @@ function openRoomModal(roomId) {
     rowCount: rawRows.length,
     cols: Math.max(4, Math.min(18, rawCols)),
     rows: [...rawRows],
-    vipRows: [...rawVip]
+    vipRows: [...rawVip],
+    wheelchairSeats: rawWheelchair,
+    doors: rawDoors,
+    activeBrush: "cycle"
   };
 
+  syncDoorControlsUI();
+  setEditorBrush("cycle");
   renderRoomSeatEditor();
+
+  const controlsEl = document.querySelector(".room-editor-controls");
+  if (controlsEl) controlsEl.scrollTop = 0;
+  const hallEl = document.querySelector("#roomEditorCinemaHall");
+  if (hallEl) hallEl.scrollTop = 0;
 
   const modal = document.querySelector("#roomFormModal");
   if (modal) modal.classList.add("open");
+}
+
+function setEditorBrush(brush) {
+  roomEditorState.activeBrush = brush;
+  document.querySelectorAll("#editorBrushGroup .editor-brush-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-brush") === brush);
+  });
+}
+
+function syncDoorControlsUI() {
+  const dFL = roomEditorState.doors.find(d => d.id === "front-left") || { active: false, type: "SALIDA" };
+  const dFR = roomEditorState.doors.find(d => d.id === "front-right") || { active: false, type: "SALIDA" };
+  const dBL = roomEditorState.doors.find(d => d.id === "back-left") || { active: false, type: "ENTRADA" };
+  const dBR = roomEditorState.doors.find(d => d.id === "back-right") || { active: false, type: "SALIDA" };
+
+  const selFL = document.querySelector("#selDoorFrontLeft");
+  const selFR = document.querySelector("#selDoorFrontRight");
+  const selBL = document.querySelector("#selDoorBackLeft");
+  const selBR = document.querySelector("#selDoorBackRight");
+
+  if (selFL) selFL.value = !dFL.active ? "CERRADA" : dFL.type;
+  if (selFR) selFR.value = !dFR.active ? "CERRADA" : dFR.type;
+  if (selBL) selBL.value = !dBL.active ? "CERRADA" : dBL.type;
+  if (selBR) selBR.value = !dBR.active ? "CERRADA" : dBR.type;
+}
+
+function onDoorSelectChange(doorId, value) {
+  let door = roomEditorState.doors.find(d => d.id === doorId);
+  if (!door) {
+    door = { id: doorId, active: true, type: "ENTRADA" };
+    roomEditorState.doors.push(door);
+  }
+  if (value === "CERRADA") {
+    door.active = false;
+  } else {
+    door.active = true;
+    door.type = value;
+  }
+  renderRoomDoors();
+}
+
+function cycleDoorState(doorId) {
+  let door = roomEditorState.doors.find(d => d.id === doorId);
+  if (!door) {
+    door = { id: doorId, active: true, type: "ENTRADA" };
+    roomEditorState.doors.push(door);
+  }
+
+  // Ciclo interactivo directo al hacer clic en la maqueta: ENTRADA -> SALIDA -> PARED -> ENTRADA
+  if (door.active && door.type === "ENTRADA") {
+    door.active = true;
+    door.type = "SALIDA";
+  } else if (door.active && door.type === "SALIDA") {
+    door.active = false;
+  } else {
+    door.active = true;
+    door.type = "ENTRADA";
+  }
+
+  syncDoorControlsUI();
+  renderRoomDoors();
+}
+
+function applyDoorPreset(preset) {
+  if (preset === "entrance_left") {
+    // Entrada en el lateral izquierdo, evacuación por el derecho y frontal
+    roomEditorState.doors = [
+      { id: "front-left", active: true, type: "SALIDA" },
+      { id: "front-right", active: true, type: "SALIDA" },
+      { id: "back-left", active: true, type: "ENTRADA" },
+      { id: "back-right", active: true, type: "SALIDA" }
+    ];
+  } else if (preset === "entrance_right") {
+    // Entrada en el lateral derecho, evacuación por el izquierdo y frontal
+    roomEditorState.doors = [
+      { id: "front-left", active: true, type: "SALIDA" },
+      { id: "front-right", active: true, type: "SALIDA" },
+      { id: "back-left", active: true, type: "SALIDA" },
+      { id: "back-right", active: true, type: "ENTRADA" }
+    ];
+  } else if (preset === "entrance_both") {
+    // Entrada por ambos pasillos laterales
+    roomEditorState.doors = [
+      { id: "front-left", active: true, type: "SALIDA" },
+      { id: "front-right", active: true, type: "SALIDA" },
+      { id: "back-left", active: true, type: "ENTRADA" },
+      { id: "back-right", active: true, type: "ENTRADA" }
+    ];
+  } else if (preset === "front_exits_only") {
+    // Entradas atrás, salidas únicamente al frente
+    roomEditorState.doors = [
+      { id: "front-left", active: true, type: "SALIDA" },
+      { id: "front-right", active: true, type: "SALIDA" },
+      { id: "back-left", active: true, type: "ENTRADA" },
+      { id: "back-right", active: false, type: "SALIDA" }
+    ];
+  }
+
+  syncDoorControlsUI();
+  renderRoomDoors();
+}
+
+function renderRoomDoors() {
+  const hiddenDoors = document.querySelector("#inputRoomDoors");
+  if (hiddenDoors) hiddenDoors.value = JSON.stringify(roomEditorState.doors);
+
+  const dFL = roomEditorState.doors.find(d => d.id === "front-left") || { active: false, type: "SALIDA" };
+  const dFR = roomEditorState.doors.find(d => d.id === "front-right") || { active: false, type: "SALIDA" };
+  const dBL = roomEditorState.doors.find(d => d.id === "back-left") || { active: false, type: "ENTRADA" };
+  const dBR = roomEditorState.doors.find(d => d.id === "back-right") || { active: false, type: "SALIDA" };
+
+  function createDoorBadgeHtml(door, defaultRole) {
+    if (!door.active) {
+      return `<div class="hall-door-badge door-closed" onclick="cycleDoorState('${door.id}')" title="Pared cerrada (Clic para activar puerta)">🚫 PARED</div>`;
+    }
+    if (door.type === "ENTRADA") {
+      return `<div class="hall-door-badge door-entrance" onclick="cycleDoorState('${door.id}')" title="Entrada Principal (Clic para alternar a Salida o Pared)">🚪 ENTRADA SALA</div>`;
+    }
+    return `<div class="hall-door-badge door-exit" onclick="cycleDoorState('${door.id}')" title="Salida de Emergencia (Clic para alternar a Pared o Entrada)">🟢 SALIDA EMERGENCIA</div>`;
+  }
+
+  const slotFL = document.querySelector("#slotDoorFrontLeft");
+  const slotFR = document.querySelector("#slotDoorFrontRight");
+  const slotBL = document.querySelector("#slotDoorBackLeft");
+  const slotBR = document.querySelector("#slotDoorBackRight");
+
+  if (slotFL) slotFL.innerHTML = createDoorBadgeHtml(dFL, "SALIDA");
+  if (slotFR) slotFR.innerHTML = createDoorBadgeHtml(dFR, "SALIDA");
+  if (slotBL) slotBL.innerHTML = createDoorBadgeHtml(dBL, "ENTRADA");
+  if (slotBR) slotBR.innerHTML = createDoorBadgeHtml(dBR, "ENTRADA");
+
+  // Actualizar Pasillos de Circulación (Walkways: por donde pasa la gente)
+  const walkwayL = document.querySelector("#walkwayLeft");
+  const walkwayR = document.querySelector("#walkwayRight");
+  const tagL = document.querySelector("#tagWalkwayLeft");
+  const tagR = document.querySelector("#tagWalkwayRight");
+  const arrTopL = document.querySelector("#arrowTopLeft");
+  const arrBotL = document.querySelector("#arrowBottomLeft");
+  const arrTopR = document.querySelector("#arrowTopRight");
+  const arrBotR = document.querySelector("#arrowBottomRight");
+
+  // Pasillo Izquierdo: Determinar si es flujo de entrada o salida
+  const isLeftEntrance = (dBL.active && dBL.type === "ENTRADA") || (dFL.active && dFL.type === "ENTRADA");
+  const isLeftExit = (dBL.active && dBL.type === "SALIDA") || (dFL.active && dFL.type === "SALIDA");
+
+  if (walkwayL) {
+    walkwayL.classList.remove("walkway-entrance", "walkway-exit");
+    if (isLeftEntrance) {
+      walkwayL.classList.add("walkway-entrance");
+      if (tagL) tagL.textContent = "🚶 PASILLO ENTRADA (IZQ)";
+      if (arrTopL) arrTopL.textContent = "↓";
+      if (arrBotL) arrBotL.textContent = "↓";
+    } else if (isLeftExit) {
+      walkwayL.classList.add("walkway-exit");
+      if (tagL) tagL.textContent = "🏃 PASILLO SALIDA (IZQ)";
+      if (arrTopL) arrTopL.textContent = "↑";
+      if (arrBotL) arrBotL.textContent = "↑";
+    } else {
+      if (tagL) tagL.textContent = "🚶 PASILLO IZQ.";
+      if (arrTopL) arrTopL.textContent = "↕";
+      if (arrBotL) arrBotL.textContent = "↕";
+    }
+  }
+
+  // Pasillo Derecho: Determinar si es flujo de entrada o salida
+  const isRightEntrance = (dBR.active && dBR.type === "ENTRADA") || (dFR.active && dFR.type === "ENTRADA");
+  const isRightExit = (dBR.active && dBR.type === "SALIDA") || (dFR.active && dFR.type === "SALIDA");
+
+  if (walkwayR) {
+    walkwayR.classList.remove("walkway-entrance", "walkway-exit");
+    if (isRightEntrance) {
+      walkwayR.classList.add("walkway-entrance");
+      if (tagR) tagR.textContent = "🚶 PASILLO ENTRADA (DER)";
+      if (arrTopR) arrTopR.textContent = "↓";
+      if (arrBotR) arrBotR.textContent = "↓";
+    } else if (isRightExit) {
+      walkwayR.classList.add("walkway-exit");
+      if (tagR) tagR.textContent = "🏃 PASILLO SALIDA (DER)";
+      if (arrTopR) arrTopR.textContent = "↑";
+      if (arrBotR) arrBotR.textContent = "↑";
+    } else {
+      if (tagR) tagR.textContent = "🚶 PASILLO DER.";
+      if (arrTopR) arrTopR.textContent = "↕";
+      if (arrBotR) arrBotR.textContent = "↕";
+    }
+  }
+}
+
+function handleEditorSeatClick(row, col) {
+  const seatCode = `${row}-${col}`;
+  const brush = roomEditorState.activeBrush || "cycle";
+  const isVip = roomEditorState.vipRows.includes(row);
+  const isWheelchair = roomEditorState.wheelchairSeats.includes(seatCode);
+
+  if (brush === "cycle") {
+    // Ciclo dinámico: Estándar -> Wheelchair (♿) -> VIP -> Estándar
+    if (!isWheelchair && !isVip) {
+      roomEditorState.wheelchairSeats.push(seatCode);
+    } else if (isWheelchair) {
+      roomEditorState.wheelchairSeats = roomEditorState.wheelchairSeats.filter(s => s !== seatCode);
+      if (!roomEditorState.vipRows.includes(row)) {
+        roomEditorState.vipRows.push(row);
+      }
+    } else {
+      roomEditorState.wheelchairSeats = roomEditorState.wheelchairSeats.filter(s => s !== seatCode);
+      roomEditorState.vipRows = roomEditorState.vipRows.filter(r => r !== row);
+    }
+  } else if (brush === "wheelchair") {
+    if (isWheelchair) {
+      roomEditorState.wheelchairSeats = roomEditorState.wheelchairSeats.filter(s => s !== seatCode);
+    } else {
+      roomEditorState.wheelchairSeats.push(seatCode);
+    }
+  } else if (brush === "vip") {
+    if (!roomEditorState.vipRows.includes(row)) {
+      roomEditorState.vipRows.push(row);
+    }
+    roomEditorState.wheelchairSeats = roomEditorState.wheelchairSeats.filter(s => s !== seatCode);
+  } else if (brush === "standard") {
+    roomEditorState.wheelchairSeats = roomEditorState.wheelchairSeats.filter(s => s !== seatCode);
+    roomEditorState.vipRows = roomEditorState.vipRows.filter(r => r !== row);
+  }
+
+  renderRoomSeatEditor();
+}
+
+function setWheelchairPreset(preset) {
+  const rowA = roomEditorState.rows[0] || "A";
+  const cols = roomEditorState.cols;
+
+  if (preset === "rowA_flanks") {
+    roomEditorState.wheelchairSeats = [`${rowA}-1`, `${rowA}-${cols}`];
+  } else if (preset === "rowA_all") {
+    roomEditorState.wheelchairSeats = [];
+    for (let c = 1; c <= cols; c++) {
+      roomEditorState.wheelchairSeats.push(`${rowA}-${c}`);
+    }
+  } else if (preset === "aisles") {
+    const midCol = Math.floor(cols / 2);
+    roomEditorState.wheelchairSeats = [
+      `${rowA}-1`,
+      `${rowA}-${midCol}`,
+      `${rowA}-${midCol + 1}`,
+      `${rowA}-${cols}`
+    ];
+  } else if (preset === "clear") {
+    roomEditorState.wheelchairSeats = [];
+  }
+
+  renderRoomSeatEditor();
 }
 
 function renderRoomSeatEditor() {
@@ -472,6 +923,8 @@ function renderRoomSeatEditor() {
   const hiddenSeatsPerRow = document.querySelector("#inputRoomSeatsPerRow");
   const hiddenRows = document.querySelector("#inputRoomRows");
   const hiddenVipRows = document.querySelector("#inputRoomVipRows");
+  const hiddenWheelchair = document.querySelector("#inputRoomWheelchairSeats");
+  const lblWheelchairCount = document.querySelector("#lblRoomWheelchairCount");
   const gridContainer = document.querySelector("#roomEditorSeatGrid");
   const hallSection = document.querySelector("#roomEditorCinemaHall");
   const archBadge = document.querySelector("#roomEditorArchBadge");
@@ -479,6 +932,7 @@ function renderRoomSeatEditor() {
   const badgeTotal = document.querySelector("#badgeEditorTotalSeats");
   const badgeStandard = document.querySelector("#badgeEditorStandardSeats");
   const badgeVip = document.querySelector("#badgeEditorVipSeats");
+  const badgeWheelchair = document.querySelector("#badgeEditorWheelchairSeats");
 
   // Validar y mantener coherencia de filas
   const ALL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -486,8 +940,14 @@ function renderRoomSeatEditor() {
     roomEditorState.rows = ALL_LETTERS.slice(0, roomEditorState.rowCount);
   }
 
-  // Filtrar VIPs que no pertenezcan a las filas activas
+  // Filtrar VIPs y Wheelchairs que no pertenezcan a filas activas o excedan columnas
   roomEditorState.vipRows = roomEditorState.vipRows.filter(r => roomEditorState.rows.includes(r));
+  roomEditorState.wheelchairSeats = (roomEditorState.wheelchairSeats || []).filter(code => {
+    const parts = code.split("-");
+    const r = parts[0];
+    const c = parseInt(parts[1], 10);
+    return roomEditorState.rows.includes(r) && c <= roomEditorState.cols;
+  });
 
   // Actualizar textos informativos
   if (lblRowCount) lblRowCount.textContent = `${roomEditorState.rowCount} Filas`;
@@ -495,20 +955,27 @@ function renderRoomSeatEditor() {
     lblRowRange.textContent = `Filas ${roomEditorState.rows[0]} hasta ${roomEditorState.rows[roomEditorState.rows.length - 1]}`;
   }
   if (lblSeatsPerRow) lblSeatsPerRow.textContent = `${roomEditorState.cols} Butacas`;
+  if (lblWheelchairCount) lblWheelchairCount.textContent = `${roomEditorState.wheelchairSeats.length} Asignadas`;
 
   // Sincronizar inputs ocultos para el guardado en Storage/DB
   if (hiddenSeatsPerRow) hiddenSeatsPerRow.value = roomEditorState.cols;
   if (hiddenRows) hiddenRows.value = roomEditorState.rows.join(", ");
   if (hiddenVipRows) hiddenVipRows.value = roomEditorState.vipRows.join(", ");
+  if (hiddenWheelchair) hiddenWheelchair.value = roomEditorState.wheelchairSeats.join(", ");
 
   // Calcular totales
   const totalSeats = roomEditorState.rowCount * roomEditorState.cols;
   const vipSeats = roomEditorState.vipRows.length * roomEditorState.cols;
+  const wheelchairCount = roomEditorState.wheelchairSeats.length;
   const standardSeats = Math.max(0, totalSeats - vipSeats);
 
   if (badgeTotal) badgeTotal.textContent = `${totalSeats} Butacas`;
   if (badgeStandard) badgeStandard.textContent = `${standardSeats} Estándar`;
   if (badgeVip) badgeVip.textContent = `${vipSeats} VIP`;
+  if (badgeWheelchair) badgeWheelchair.textContent = `♿ ${wheelchairCount} Accesibles`;
+
+  // Renderizar puertas arquitectónicas
+  renderRoomDoors();
 
   if (!gridContainer) return;
 
@@ -535,6 +1002,7 @@ function renderRoomSeatEditor() {
   const rows = roomEditorState.rows;
   const seatsPerRow = roomEditorState.cols;
   const vipRows = roomEditorState.vipRows;
+  const wheelchairSeats = roomEditorState.wheelchairSeats;
 
   // Renderizar la misma maqueta de butacas 3D idéntica a la vista del usuario
   gridContainer.innerHTML = rows.map(row => {
@@ -554,14 +1022,17 @@ function renderRoomSeatEditor() {
         else if (col === seatsPerRow - 1) dynamicTransform = "style='transform: rotate(-4deg) translateY(1.5px);'";
         else if (col === seatsPerRow) dynamicTransform = "style='transform: rotate(-7deg) translateY(3px);'";
 
+        const seatCode = `${row}-${col}`;
+        const isWheelchair = wheelchairSeats.includes(seatCode);
+
         seatsContent += `
           <button type="button" 
-                  class="seat ${isVipRow ? 'vip' : ''}" 
+                  class="seat ${isVipRow ? 'vip' : ''} ${isWheelchair ? 'wheelchair' : ''}" 
                   data-col="${col}" 
                   data-row="${row}" 
                   ${dynamicTransform}
-                  onclick="toggleRowVip('${row}')" 
-                  title="Fila ${row} Butaca ${col} (${isVipRow ? 'VIP Luxury' : 'Estándar'}) - Clic para alternar Fila ${row}">
+                  onclick="handleEditorSeatClick('${row}', ${col})" 
+                  title="Fila ${row} Butaca ${col} (${isWheelchair ? 'Accesible ♿' : (isVipRow ? 'VIP Luxury' : 'Estándar')}) - Clic para pintar con el pincel activo">
             ${col}
           </button>
         `;
@@ -576,22 +1047,28 @@ function renderRoomSeatEditor() {
       // Bloque izquierdo
       seatsContent += `<div class="stadium-block block-left">`;
       for (let col = 1; col <= leftCount; col++) {
+        const seatCode = `${row}-${col}`;
+        const isWheelchair = wheelchairSeats.includes(seatCode);
         seatsContent += `
-          <button type="button" class="seat ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+          <button type="button" class="seat ${isVipRow ? 'vip' : ''} ${isWheelchair ? 'wheelchair' : ''}" data-col="${col}" data-row="${row}" onclick="handleEditorSeatClick('${row}', ${col})" title="Fila ${row}-${col}">${col}</button>
         `;
       }
       seatsContent += `</div><div class="aisle-stairs"></div><div class="stadium-block block-center">`;
       // Bloque centro
       for (let col = leftCount + 1; col <= leftCount + centerCount; col++) {
+        const seatCode = `${row}-${col}`;
+        const isWheelchair = wheelchairSeats.includes(seatCode);
         seatsContent += `
-          <button type="button" class="seat ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+          <button type="button" class="seat ${isVipRow ? 'vip' : ''} ${isWheelchair ? 'wheelchair' : ''}" data-col="${col}" data-row="${row}" onclick="handleEditorSeatClick('${row}', ${col})" title="Fila ${row}-${col}">${col}</button>
         `;
       }
       seatsContent += `</div><div class="aisle-stairs"></div><div class="stadium-block block-right">`;
       // Bloque derecho
       for (let col = leftCount + centerCount + 1; col <= seatsPerRow; col++) {
+        const seatCode = `${row}-${col}`;
+        const isWheelchair = wheelchairSeats.includes(seatCode);
         seatsContent += `
-          <button type="button" class="seat ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+          <button type="button" class="seat ${isVipRow ? 'vip' : ''} ${isWheelchair ? 'wheelchair' : ''}" data-col="${col}" data-row="${row}" onclick="handleEditorSeatClick('${row}', ${col})" title="Fila ${row}-${col}">${col}</button>
         `;
       }
       seatsContent += `</div>`;
@@ -604,8 +1081,10 @@ function renderRoomSeatEditor() {
           seatsContent += `<div class="motion-pod">`;
           inPod = true;
         }
+        const seatCode = `${row}-${col}`;
+        const isWheelchair = wheelchairSeats.includes(seatCode);
         seatsContent += `
-          <button type="button" class="seat ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+          <button type="button" class="seat ${isVipRow ? 'vip' : ''} ${isWheelchair ? 'wheelchair' : ''}" data-col="${col}" data-row="${row}" onclick="handleEditorSeatClick('${row}', ${col})" title="Fila ${row}-${col}">${col}</button>
         `;
         if (col % 4 === 0 && col < seatsPerRow) {
           seatsContent += `</div><div class="effects-aisle"><span>💨</span></div>`;
@@ -619,12 +1098,16 @@ function renderRoomSeatEditor() {
       const midCol = Math.floor(seatsPerRow / 2);
       for (let col = 1; col <= seatsPerRow; col += 2) {
         seatsContent += `<div class="love-seat-pair">`;
+        const seatCode1 = `${row}-${col}`;
+        const isWheelchair1 = wheelchairSeats.includes(seatCode1);
         seatsContent += `
-          <button type="button" class="seat vip-recliner ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+          <button type="button" class="seat vip-recliner ${isVipRow ? 'vip' : ''} ${isWheelchair1 ? 'wheelchair' : ''}" data-col="${col}" data-row="${row}" onclick="handleEditorSeatClick('${row}', ${col})" title="Fila ${row}-${col}">${col}</button>
         `;
         if (col + 1 <= seatsPerRow) {
+          const seatCode2 = `${row}-${col + 1}`;
+          const isWheelchair2 = wheelchairSeats.includes(seatCode2);
           seatsContent += `
-            <button type="button" class="seat vip-recliner ${isVipRow ? 'vip' : ''}" data-col="${col + 1}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col + 1}">${col + 1}</button>
+            <button type="button" class="seat vip-recliner ${isVipRow ? 'vip' : ''} ${isWheelchair2 ? 'wheelchair' : ''}" data-col="${col + 1}" data-row="${row}" onclick="handleEditorSeatClick('${row}', ${col + 1})" title="Fila ${row}-${col + 1}">${col + 1}</button>
           `;
         }
         seatsContent += `</div>`;
@@ -643,8 +1126,10 @@ function renderRoomSeatEditor() {
         if (col === midCol + 1) {
           seatsContent += `<div class="aisle-gap"></div>`;
         }
+        const seatCode = `${row}-${col}`;
+        const isWheelchair = wheelchairSeats.includes(seatCode);
         seatsContent += `
-          <button type="button" class="seat ${isVipRow ? 'vip' : ''}" data-col="${col}" data-row="${row}" onclick="toggleRowVip('${row}')" title="Fila ${row}-${col}">${col}</button>
+          <button type="button" class="seat ${isVipRow ? 'vip' : ''} ${isWheelchair ? 'wheelchair' : ''}" data-col="${col}" data-row="${row}" onclick="handleEditorSeatClick('${row}', ${col})" title="Fila ${row}-${col}">${col}</button>
         `;
       }
     }
@@ -711,6 +1196,11 @@ function setVipPreset(preset) {
   renderRoomSeatEditor();
 }
 
+function closeRoomModal() {
+  const modal = document.querySelector("#roomFormModal");
+  if (modal) modal.classList.remove("open");
+}
+
 // Exponer en el objeto global para handlers de eventos en línea
 window.openRoomModal = openRoomModal;
 window.closeRoomModal = closeRoomModal;
@@ -719,11 +1209,16 @@ window.adjustRoomRows = adjustRoomRows;
 window.adjustRoomCols = adjustRoomCols;
 window.toggleRowVip = toggleRowVip;
 window.setVipPreset = setVipPreset;
-
-function closeRoomModal() {
-  const modal = document.querySelector("#roomFormModal");
-  if (modal) modal.classList.remove("open");
-}
+window.setEditorBrush = setEditorBrush;
+window.handleEditorSeatClick = handleEditorSeatClick;
+window.setWheelchairPreset = setWheelchairPreset;
+window.toggleDoorActive = toggleDoorActive;
+window.changeDoorType = changeDoorType;
+window.renderRoomDoors = renderRoomDoors;
+window.cycleDoorState = cycleDoorState;
+window.applyDoorPreset = applyDoorPreset;
+window.onDoorSelectChange = onDoorSelectChange;
+window.syncDoorControlsUI = syncDoorControlsUI;
 
 // Llenar selector de fechas en el inspector de asientos
 function populateInspectorDates() {
@@ -823,6 +1318,93 @@ function renderAdminSeatInspector() {
       layoutType === "motion_4dx" ? "🚀 Maqueta: Pods Mecánicos 4DX" :
       "👑 Maqueta: Palcos VIP & Sofás Dobles"
     );
+  }
+
+  // Renderizar Puertas de Acceso y Evacuación de Emergencia en el Inspector del Admin
+  const doors = (Array.isArray(room.doors) && room.doors.length === 4) ? room.doors : [
+    { id: "front-left", active: true, type: "SALIDA" },
+    { id: "front-right", active: true, type: "SALIDA" },
+    { id: "back-left", active: true, type: "ENTRADA" },
+    { id: "back-right", active: false, type: "SALIDA" }
+  ];
+
+  const dFL = doors.find(d => d.id === "front-left") || { active: false, type: "SALIDA" };
+  const dFR = doors.find(d => d.id === "front-right") || { active: false, type: "SALIDA" };
+  const dBL = doors.find(d => d.id === "back-left") || { active: false, type: "ENTRADA" };
+  const dBR = doors.find(d => d.id === "back-right") || { active: false, type: "SALIDA" };
+
+  function createInspectorDoorBadge(door) {
+    if (!door.active) {
+      return `<div class="hall-door-badge door-closed" style="cursor: default;">🚫 PARED</div>`;
+    }
+    if (door.type === "ENTRADA") {
+      return `<div class="hall-door-badge door-entrance" style="cursor: default;">🚪 ENTRADA SALA</div>`;
+    }
+    return `<div class="hall-door-badge door-exit" style="cursor: default;">🟢 SALIDA EMERGENCIA</div>`;
+  }
+
+  const slotFL = document.querySelector("#slotDoorFrontLeftInspector");
+  const slotFR = document.querySelector("#slotDoorFrontRightInspector");
+  const slotBL = document.querySelector("#slotDoorBackLeftInspector");
+  const slotBR = document.querySelector("#slotDoorBackRightInspector");
+
+  if (slotFL) slotFL.innerHTML = createInspectorDoorBadge(dFL);
+  if (slotFR) slotFR.innerHTML = createInspectorDoorBadge(dFR);
+  if (slotBL) slotBL.innerHTML = createInspectorDoorBadge(dBL);
+  if (slotBR) slotBR.innerHTML = createInspectorDoorBadge(dBR);
+
+  // Pasillos de Circulación del Inspector
+  const walkwayL = document.querySelector("#walkwayLeftInspector");
+  const walkwayR = document.querySelector("#walkwayRightInspector");
+  const tagL = document.querySelector("#tagWalkwayLeftInspector");
+  const tagR = document.querySelector("#tagWalkwayRightInspector");
+  const arrTopL = document.querySelector("#arrowTopLeftInspector");
+  const arrBotL = document.querySelector("#arrowBottomLeftInspector");
+  const arrTopR = document.querySelector("#arrowTopRightInspector");
+  const arrBotR = document.querySelector("#arrowBottomRightInspector");
+
+  const isLeftEntrance = (dBL.active && dBL.type === "ENTRADA") || (dFL.active && dFL.type === "ENTRADA");
+  const isLeftExit = (dBL.active && dBL.type === "SALIDA") || (dFL.active && dFL.type === "SALIDA");
+
+  if (walkwayL) {
+    walkwayL.classList.remove("walkway-entrance", "walkway-exit");
+    if (isLeftEntrance) {
+      walkwayL.classList.add("walkway-entrance");
+      if (tagL) tagL.textContent = "🚶 PASILLO ENTRADA (IZQ)";
+      if (arrTopL) arrTopL.textContent = "↓";
+      if (arrBotL) arrBotL.textContent = "↓";
+    } else if (isLeftExit) {
+      walkwayL.classList.add("walkway-exit");
+      if (tagL) tagL.textContent = "🏃 PASILLO SALIDA (IZQ)";
+      if (arrTopL) arrTopL.textContent = "↑";
+      if (arrBotL) arrBotL.textContent = "↑";
+    } else {
+      if (tagL) tagL.textContent = "🚶 PASILLO IZQ.";
+      if (arrTopL) arrTopL.textContent = "↕";
+      if (arrBotL) arrBotL.textContent = "↕";
+    }
+  }
+
+  const isRightEntrance = (dBR.active && dBR.type === "ENTRADA") || (dFR.active && dFR.type === "ENTRADA");
+  const isRightExit = (dBR.active && dBR.type === "SALIDA") || (dFR.active && dFR.type === "SALIDA");
+
+  if (walkwayR) {
+    walkwayR.classList.remove("walkway-entrance", "walkway-exit");
+    if (isRightEntrance) {
+      walkwayR.classList.add("walkway-entrance");
+      if (tagR) tagR.textContent = "🚶 PASILLO ENTRADA (DER)";
+      if (arrTopR) arrTopR.textContent = "↓";
+      if (arrBotR) arrBotR.textContent = "↓";
+    } else if (isRightExit) {
+      walkwayR.classList.add("walkway-exit");
+      if (tagR) tagR.textContent = "🏃 PASILLO SALIDA (DER)";
+      if (arrTopR) arrTopR.textContent = "↑";
+      if (arrBotR) arrBotR.textContent = "↑";
+    } else {
+      if (tagR) tagR.textContent = "🚶 PASILLO DER.";
+      if (arrTopR) arrTopR.textContent = "↕";
+      if (arrBotR) arrBotR.textContent = "↕";
+    }
   }
 
   const rows = room.rows || ["A", "B", "C", "D", "E", "F"];
@@ -1536,6 +2118,14 @@ function initFormHandlers() {
       const trailerUrl = document.querySelector("#inputTrailer").value.trim() || "https://www.youtube.com/embed/Way9Dexny3w";
       const synopsis = document.querySelector("#inputSynopsis").value.trim();
 
+      // Modalidad de Exhibición y Durabilidad en Días
+      const radioPreventa = document.querySelector("#radioTypePreventa");
+      const isPresale = radioPreventa ? radioPreventa.checked : false;
+      const releaseType = isPresale ? "PREVENTA" : "CARTELERA";
+      const startDate = document.querySelector("#inputStartDate").value.trim() || new Date().toISOString().split("T")[0];
+      const durationDays = parseInt(document.querySelector("#inputDurationDays").value, 10) || 21;
+      const endDate = document.querySelector("#inputEndDate").value.trim() || Storage.calculateMovieEndDate(startDate, durationDays);
+
       // Deducir ID de sala
       const rooms = Storage.getRooms();
       const matchingRoom = rooms.find(r => r.name === hall) || rooms[0];
@@ -1550,10 +2140,11 @@ function initFormHandlers() {
             ...movies[idx],
             title, genre, duration, rating, ageRating, hall, showtimes,
             priceStandard, priceVip, director, isFeatured, poster, backdrop,
-            trailerUrl, synopsis, roomId: matchingRoom.id
+            trailerUrl, synopsis, roomId: matchingRoom.id,
+            releaseType, isPresale, startDate, durationDays, endDate
           };
           Storage.saveMovies(movies);
-          showToast("Película actualizada con éxito en Cine Majestad.", "success");
+          showToast(`Película "${title}" actualizada con éxito (${durationDays} días de cartelera).`, "success");
         }
       } else {
         // Nueva
@@ -1561,11 +2152,12 @@ function initFormHandlers() {
           id: "mov-" + Date.now(),
           title, genre, duration, rating, ageRating, hall, showtimes,
           priceStandard, priceVip, director, isFeatured, poster, backdrop,
-          trailerUrl, synopsis, formats: ["2D", "Atmos"], roomId: matchingRoom.id
+          trailerUrl, synopsis, formats: ["2D", "Atmos"], roomId: matchingRoom.id,
+          releaseType, isPresale, startDate, durationDays, endDate
         };
         movies.unshift(newMovie);
         Storage.saveMovies(movies);
-        showToast("Nueva película agregada a la cartelera de Cine Majestad.", "success");
+        showToast(`Nueva película "${title}" programada en cartelera (${durationDays} días).`, "success");
       }
 
       closeMovieModal();
@@ -1665,6 +2257,8 @@ function initFormHandlers() {
       const vipRows = document.querySelector("#inputRoomVipRows").value.split(",").map(r => r.trim()).filter(Boolean);
       const screenType = document.querySelector("#inputRoomScreen").value.trim();
       const soundSystem = document.querySelector("#inputRoomSound").value.trim();
+      const wheelchairSeats = Array.isArray(roomEditorState.wheelchairSeats) ? [...roomEditorState.wheelchairSeats] : [];
+      const doors = Array.isArray(roomEditorState.doors) ? JSON.parse(JSON.stringify(roomEditorState.doors)) : [];
 
       const rooms = Storage.getRooms();
       const idx = rooms.findIndex(r => r.id === roomId);
@@ -1673,6 +2267,7 @@ function initFormHandlers() {
         rooms[idx] = {
           ...rooms[idx],
           name, technology, seatsPerRow, rows, vipRows, screenType, soundSystem,
+          wheelchairSeats, doors,
           capacity: rows.length * seatsPerRow
         };
         Storage.saveRooms(rooms);

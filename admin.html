@@ -119,6 +119,7 @@
           <thead>
             <tr>
               <th>Película</th>
+              <th>Modalidad & Vigencia</th>
               <th>Género</th>
               <th>Duración</th>
               <th>Sala</th>
@@ -213,19 +214,49 @@
         <!-- Vista de la Sala y Butacas con Maqueta y Pantalla Curva Real -->
         <section class="cinema-hall layout-curved-imax" id="adminInspectorCinemaHall" style="padding: 1.5rem 1rem 1.8rem; border-radius: var(--radius-md); width: 100%; box-sizing: border-box; overflow-x: auto;">
           <!-- Distintivo Arquitectónico -->
-          <div class="hall-architecture-badge" id="adminInspectorArchBadge" style="margin-bottom: 1.2rem;">
+          <div class="hall-architecture-badge" id="adminInspectorArchBadge" style="margin-bottom: 0.8rem;">
             🏛️ Maqueta: Anfiteatro Curvo IMAX
           </div>
 
-          <!-- Pantalla de Cine Curva Idéntica al Usuario y Trabajador -->
-          <div class="screen-wrapper" style="width: 82%; margin-bottom: 1.6rem;">
-            <div class="screen-curve"></div>
-            <div class="screen-light"></div>
-            <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+          <!-- Barra Frontal: Puertas Delanteras + Pantalla de Proyección -->
+          <div class="hall-screen-doors-bar">
+            <div class="hall-door-slot slot-left" id="slotDoorFrontLeftInspector"></div>
+            <div class="screen-wrapper">
+              <div class="screen-curve"></div>
+              <div class="screen-light"></div>
+              <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+            </div>
+            <div class="hall-door-slot slot-right" id="slotDoorFrontRightInspector"></div>
           </div>
 
-          <!-- Grid interactivo para el admin -->
-          <div class="admin-seats-grid" id="adminSeatsGrid" style="width: 100%; display: flex; flex-direction: column; gap: 0.85rem; align-items: center; perspective: 600px;">
+          <!-- Zona Central: Pasillo Izquierdo + Butacas + Pasillo Derecho (Flujo de Circulación) -->
+          <div class="hall-seating-circulation">
+            <!-- Pasillo Izquierdo -->
+            <div class="hall-walkway" id="walkwayLeftInspector">
+              <span class="walkway-arrow" id="arrowTopLeftInspector">↓</span>
+              <span class="walkway-tag" id="tagWalkwayLeftInspector">🚶 Pasillo Izq.</span>
+              <span class="walkway-arrow" id="arrowBottomLeftInspector">↓</span>
+            </div>
+
+            <!-- Grid interactivo para el admin -->
+            <div class="admin-seats-grid" id="adminSeatsGrid" style="flex: 1; display: flex; flex-direction: column; gap: 0.85rem; align-items: center; perspective: 600px;">
+            </div>
+
+            <!-- Pasillo Derecho -->
+            <div class="hall-walkway" id="walkwayRightInspector">
+              <span class="walkway-arrow" id="arrowTopRightInspector">↓</span>
+              <span class="walkway-tag" id="tagWalkwayRightInspector">🚶 Pasillo Der.</span>
+              <span class="walkway-arrow" id="arrowBottomRightInspector">↓</span>
+            </div>
+          </div>
+
+          <!-- Barra Posterior: Puertas Traseras + Flujo de Acceso -->
+          <div class="hall-doors-bottom-bar">
+            <div class="hall-door-slot slot-left" id="slotDoorBackLeftInspector"></div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center; flex: 1;">
+              <span>👣 Pasillos de Entrada y Evacuación de Emergencia</span>
+            </div>
+            <div class="hall-door-slot slot-right" id="slotDoorBackRightInspector"></div>
           </div>
         </section>
 
@@ -568,25 +599,190 @@
     </section>
 
     <!-- =======================================================================
-         PESTAÑA: ANALÍTICAS Y RENDIMIENTO CINEMATOGRÁFICO
+         PESTAÑA: ANALÍTICAS Y RENDIMIENTO CINEMATOGRÁFICO (CON REGISTRO DE 30 DÍAS & VENTAS DE HOY)
          ======================================================================= -->
     <section class="admin-tab-pane" id="tab-analytics">
-      <div class="table-toolbar">
+      <!-- Toolbar Superior con Botones de Exportación PDF / Excel y Refresco -->
+      <div class="table-toolbar" style="margin-bottom: 1.2rem;">
         <div>
-          <h2 class="section-title">Analíticas Cinematográficas</h2>
-          <p style="color: var(--text-secondary); font-size: 0.88rem;">
-            Rendimiento real de recaudación por película y desglose de canales de pago en tiempo real.
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <h2 class="section-title" style="margin: 0;">Analíticas Cinematográficas & Registro de 30 Días</h2>
+            <span class="badge" style="background: rgba(212, 175, 55, 0.15); color: var(--gold); font-size: 0.78rem; font-weight: 700;">
+              👑 AUDITORÍA CONTABLE MULTIPLEX
+            </span>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.35rem;">
+            Ventas del día en tiempo real, registro acumulado de los últimos 30 días, comparativa de taquilla vs dulcería y exportación a PDF y Excel.
           </p>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
           <span id="analyticsLastUpdated" style="color: var(--text-muted); font-size: 0.8rem;">Actualizado al ingresar</span>
+          <button class="btn btn-secondary btn-sm" onclick="exportAnalyticsToExcel()" title="Exportar historial de 30 días y desglose completo a archivo Excel (.csv con BOM UTF-8)" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1.5px solid rgba(16, 185, 129, 0.4); font-weight: 700;">
+            📊 Exportar a Excel
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="exportAnalyticsToPdf()" title="Descargar reporte ejecutivo formal en documento PDF oficial" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1.5px solid rgba(239, 68, 68, 0.4); font-weight: 700;">
+            📑 Exportar a PDF
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="openAnalyticsPrintPreviewModal()" title="Vista previa e impresión de reporte oficial" style="background: rgba(0, 210, 255, 0.12); color: #00d2ff; border: 1.5px solid rgba(0, 210, 255, 0.35);">
+            🖨️ Vista Previa PDF
+          </button>
           <button id="btnRefreshAnalytics" class="btn btn-primary btn-sm" onclick="refreshAdminAnalytics(true)">
             🔄 Refrescar Métricas
           </button>
         </div>
       </div>
 
-      <div class="analytics-tables-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; margin-top: 1.2rem;">
+      <!-- ===================================================================
+           BLOQUE 1: VENTAS DEL DÍA ACTUAL (HOY)
+           =================================================================== -->
+      <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(18, 18, 26, 0.85)); border: 1.5px solid rgba(212, 175, 55, 0.4); border-radius: var(--radius-md); padding: 1.3rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.6rem; border-bottom: 1px solid rgba(212, 175, 55, 0.2); padding-bottom: 0.7rem;">
+          <div style="display: flex; align-items: center; gap: 0.7rem;">
+            <span style="font-size: 1.4rem;">☀️</span>
+            <div>
+              <h3 style="color: #fff; font-size: 1.1rem; margin: 0; font-weight: 800;">
+                Ventas del Día Actual (<span id="lblTodayDateStr" style="color: var(--gold);">Hoy</span>)
+              </h3>
+              <small style="color: var(--text-muted); font-size: 0.78rem;">Recaudación consolidada de taquilla presencial, reservas web y confitería en la jornada de hoy</small>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span id="badgeTodayStatus" class="badge" style="background: rgba(0, 230, 118, 0.18); color: #00e676; font-weight: 700; border: 1px solid rgba(0, 230, 118, 0.4);">
+              🟢 JORNADA EN CURSO
+            </span>
+          </div>
+        </div>
+
+        <!-- 5 Tarjetas KPI de Ventas de Hoy -->
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin: 0;">
+          <div class="stat-card" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(0, 230, 118, 0.3);">
+            <div class="stat-icon green" style="font-size: 1.3rem;">💵</div>
+            <div class="stat-info">
+              <h3 id="todayTotalRevenue" style="color: #00e676; font-size: 1.45rem;">$0.00</h3>
+              <p style="font-weight: 700; color: #fff;">Recaudación Hoy</p>
+              <small id="todayRevenueSplit" style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">
+                Boletos: $0.00 | Dulcería: $0.00
+              </small>
+            </div>
+          </div>
+
+          <div class="stat-card" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(0, 210, 255, 0.3);">
+            <div class="stat-icon blue" style="font-size: 1.3rem;">🎟️</div>
+            <div class="stat-info">
+              <h3 id="todayTicketsCount" style="color: #00d2ff; font-size: 1.45rem;">0</h3>
+              <p style="font-weight: 700; color: #fff;">Boletos Vendidos Hoy</p>
+              <small id="todayTicketsRevenue" style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">
+                $0.00 en taquilla
+              </small>
+            </div>
+          </div>
+
+          <div class="stat-card" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255, 145, 0, 0.3);">
+            <div class="stat-icon orange" style="font-size: 1.3rem;">🍿</div>
+            <div class="stat-info">
+              <h3 id="todaySnacksRevenue" style="color: #ff9100; font-size: 1.45rem;">$0.00</h3>
+              <p style="font-weight: 700; color: #fff;">Dulcería & Snacks Hoy</p>
+              <small id="todaySnacksPercent" style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">
+                0.0% de las ventas de hoy
+              </small>
+            </div>
+          </div>
+
+          <div class="stat-card" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(199, 125, 255, 0.3);">
+            <div class="stat-icon purple" style="font-size: 1.3rem;">🧾</div>
+            <div class="stat-info">
+              <h3 id="todayTransactionsCount" style="color: #c77dff; font-size: 1.45rem;">0</h3>
+              <p style="font-weight: 700; color: #fff;">Transacciones / Clientes</p>
+              <small id="todayMainPayment" style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">
+                Canal: Ninguno
+              </small>
+            </div>
+          </div>
+
+          <div class="stat-card" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(212, 175, 55, 0.35);">
+            <div class="stat-icon red" style="background: rgba(212, 175, 55, 0.15); color: var(--gold); font-size: 1.3rem;">📈</div>
+            <div class="stat-info">
+              <h3 id="todayAvgTicket" style="color: var(--gold); font-size: 1.45rem;">$0.00</h3>
+              <p style="font-weight: 700; color: #fff;">Ticket Promedio Hoy</p>
+              <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">
+                Gasto medio por cliente
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================================================================
+           BLOQUE 2: HISTORIAL Y EVOLUCIÓN DE VENTAS DE LOS ÚLTIMOS 30 DÍAS
+           =================================================================== -->
+      <div class="analytics-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.4rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 0.8rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.8rem;">
+          <div>
+            <h3 style="color: #fff; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+              📅 Historial y Evolución de Ventas (Hasta 30 Días)
+            </h3>
+            <small style="color: var(--text-secondary); font-size: 0.78rem;">Registro histórico guardado día a día con discriminación de boletos, confitería y transacciones</small>
+          </div>
+
+          <!-- Selector de Rango de Días & Filtros -->
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Período:</span>
+            <button type="button" class="btn btn-secondary btn-xs filter-period-btn active" data-period="30" onclick="setAnalyticsDaysRange(30, this)" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">🗓️ 30 Días (Mes)</button>
+            <button type="button" class="btn btn-secondary btn-xs filter-period-btn" data-period="14" onclick="setAnalyticsDaysRange(14, this)" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">⚡ 14 Días</button>
+            <button type="button" class="btn btn-secondary btn-xs filter-period-btn" data-period="7" onclick="setAnalyticsDaysRange(7, this)" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">📅 7 Días</button>
+            <button type="button" class="btn btn-secondary btn-xs filter-period-btn" data-period="1" onclick="setAnalyticsDaysRange(1, this)" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">☀️ Solo Hoy</button>
+            
+            <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: var(--text-muted); margin-left: 0.4rem; cursor: pointer;">
+              <input type="checkbox" id="chkFilterOnlyActiveDays" onchange="toggleAnalyticsOnlyActiveDays(this.checked)" style="accent-color: var(--gold);">
+              Solo días con ventas
+            </label>
+          </div>
+        </div>
+
+        <!-- Gráfico Interactivo de Tendencia de los 30 Días (Chart.js) -->
+        <div style="margin-bottom: 1.5rem; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+            <span style="font-size: 0.82rem; font-weight: 700; color: #fff;">📈 Curva de Recaudación y Ventas Diarias</span>
+            <div style="display: flex; gap: 0.8rem; font-size: 0.74rem;">
+              <span style="color: #d4af37; font-weight: 600;">● Recaudación Total ($)</span>
+              <span style="color: #00d2ff; font-weight: 600;">● Boletos ($)</span>
+              <span style="color: #ff9100; font-weight: 600;">● Dulcería ($)</span>
+            </div>
+          </div>
+          <div style="height: 250px; position: relative;">
+            <canvas id="chartDailySales30Days"></canvas>
+          </div>
+        </div>
+
+        <!-- Tabla Consolidada Día a Día de los Últimos 30 Días -->
+        <div style="overflow-x: auto;">
+          <table class="data-table" id="tableDailySales30Days" style="font-size: 0.83rem; width: 100%;">
+            <thead>
+              <tr>
+                <th style="min-width: 140px;">Fecha / Día</th>
+                <th style="text-align: right; min-width: 110px;">Recaudado ($)</th>
+                <th style="text-align: right; min-width: 100px;">Boletos ($)</th>
+                <th style="text-align: center; min-width: 90px;">Butacas (uds)</th>
+                <th style="text-align: right; min-width: 100px;">Dulcería ($)</th>
+                <th style="text-align: center; min-width: 85px;">Transac.</th>
+                <th style="text-align: right; min-width: 100px;">Ticket Prom.</th>
+                <th style="min-width: 130px;">Canal Principal</th>
+              </tr>
+            </thead>
+            <tbody id="tableDailySales30DaysBody">
+              <!-- Inyectado por JavaScript -->
+            </tbody>
+            <tfoot id="tableDailySales30DaysFoot" style="background: rgba(212, 175, 55, 0.08); font-weight: 700; border-top: 2px solid var(--gold);">
+              <!-- Inyectado por JavaScript -->
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===================================================================
+           BLOQUE 3: RENDIMIENTO POR PELÍCULA & CANALES DE PAGO
+           =================================================================== -->
+      <div class="analytics-tables-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem;">
         <!-- Tabla 1: Ingresos por Película -->
         <div class="analytics-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; display: flex; flex-direction: column;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
@@ -931,6 +1127,82 @@
             <input type="text" id="inputTitle" class="form-control" placeholder="Ej. Dune: Parte Dos" required>
           </div>
 
+          <!-- =============================================================
+               MODALIDAD Y VIGENCIA EN CARTELERA / PREVENTA (DÍAS DE DURACIÓN)
+               ============================================================= -->
+          <div class="form-group form-group-full" style="background: rgba(255,255,255,0.03); border: 1.5px solid rgba(212, 175, 55, 0.35); border-radius: 10px; padding: 1.1rem; margin-top: 0.2rem; margin-bottom: 0.2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
+              <label style="font-size: 0.92rem; font-weight: 800; color: var(--gold); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                🗓️ Modalidad y Tiempo de Duración en Cartelera
+              </label>
+              <span id="badgeMovieVigenciaPreview" class="badge badge-now-showing">
+                🔥 EN CARTELERA
+              </span>
+            </div>
+
+            <!-- Selector de Tipo: En Cartelera vs Preventa Exclusiva -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem;">
+              <label class="release-type-card" id="lblTypeCartelera" style="cursor: pointer; display: flex; align-items: center; gap: 0.7rem; background: rgba(0,0,0,0.35); border: 1.5px solid var(--gold); border-radius: 8px; padding: 0.75rem; transition: all 0.2s ease;">
+                <input type="radio" name="movieReleaseType" id="radioTypeCartelera" value="CARTELERA" checked onchange="onMovieReleaseTypeChange('CARTELERA')" style="accent-color: var(--gold); width: 18px; height: 18px;">
+                <div>
+                  <strong style="color: #fff; font-size: 0.86rem; display: block;">🔥 En Cartelera Regular</strong>
+                  <small style="color: var(--text-secondary); font-size: 0.74rem;">Funciones activas hoy y durante su vigencia</small>
+                </div>
+              </label>
+
+              <label class="release-type-card" id="lblTypePreventa" style="cursor: pointer; display: flex; align-items: center; gap: 0.7rem; background: rgba(0,0,0,0.35); border: 1.5px solid var(--border-color); border-radius: 8px; padding: 0.75rem; transition: all 0.2s ease;">
+                <input type="radio" name="movieReleaseType" id="radioTypePreventa" value="PREVENTA" onchange="onMovieReleaseTypeChange('PREVENTA')" style="accent-color: #ff007f; width: 18px; height: 18px;">
+                <div>
+                  <strong style="color: #ff66b2; font-size: 0.86rem; display: block;">🎟️ Preventa Exclusiva</strong>
+                  <small style="color: var(--text-secondary); font-size: 0.74rem;">Venta anticipada de boletos para el estreno</small>
+                </div>
+              </label>
+            </div>
+
+            <!-- Fila de Fechas y Durabilidad en Días -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem; align-items: end;">
+              <div class="form-group" style="margin: 0;">
+                <label for="inputStartDate" id="lblStartDateTitle" style="font-size: 0.8rem; font-weight: 700; color: #fff; margin-bottom: 0.3rem;">
+                  📅 Fecha Inicio / Estreno *
+                </label>
+                <input type="date" id="inputStartDate" class="form-control" required onchange="onMovieDatesChange('start')">
+              </div>
+
+              <div class="form-group" style="margin: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                  <label for="inputDurationDays" style="font-size: 0.8rem; font-weight: 700; color: #fff; margin: 0;">
+                    ⏳ Duración en Días *
+                  </label>
+                  <span id="lblDurationDaysCount" style="font-size: 0.75rem; color: var(--gold); font-weight: 700;">21 Días</span>
+                </div>
+                <input type="number" id="inputDurationDays" class="form-control" min="1" max="180" value="21" required oninput="onMovieDatesChange('duration')" style="font-weight: 700; color: #fff;">
+              </div>
+
+              <div class="form-group" style="margin: 0;">
+                <label for="inputEndDate" style="font-size: 0.8rem; font-weight: 700; color: #fff; margin-bottom: 0.3rem;">
+                  🏁 Fecha Salida / Fin *
+                </label>
+                <input type="date" id="inputEndDate" class="form-control" required onchange="onMovieDatesChange('end')">
+              </div>
+            </div>
+
+            <!-- Atajos de Días de Durabilidad -->
+            <div style="display: flex; gap: 0.4rem; align-items: center; margin-top: 0.75rem; flex-wrap: wrap;">
+              <span style="font-size: 0.74rem; color: var(--text-muted); margin-right: 0.2rem;">Atajos de Duración:</span>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="setMovieDurationPreset(7)" style="font-size: 0.72rem; padding: 0.25rem 0.55rem;">⚡ 7 Días</button>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="setMovieDurationPreset(14)" style="font-size: 0.72rem; padding: 0.25rem 0.55rem;">🎬 14 Días (2 sem)</button>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="setMovieDurationPreset(21)" style="font-size: 0.72rem; padding: 0.25rem 0.55rem;">🌟 21 Días (3 sem)</button>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="setMovieDurationPreset(30)" style="font-size: 0.72rem; padding: 0.25rem 0.55rem;">👑 30 Días (1 mes)</button>
+              <button type="button" class="btn btn-secondary btn-xs" onclick="setMovieDurationPreset(60)" style="font-size: 0.72rem; padding: 0.25rem 0.55rem;">🏆 60 Días (2 meses)</button>
+            </div>
+
+            <!-- Banner Resumen de Vigencia en Vivo -->
+            <div id="movieVigenciaSummary" style="margin-top: 0.75rem; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 0.55rem 0.8rem; font-size: 0.78rem; color: #d1d5db; display: flex; align-items: center; gap: 0.5rem;">
+              <span>ℹ️</span>
+              <span id="lblVigenciaSummaryText">Vigencia: 21 días de cartelera.</span>
+            </div>
+          </div>
+
           <div class="form-group">
             <label for="inputGenre">Género Principal *</label>
             <input type="text" id="inputGenre" class="form-control" placeholder="Ej. Ciencia Ficción, Acción" required>
@@ -1117,7 +1389,7 @@
        MODAL 3: CONFIGURACIÓN Y MAQUETADO VISUAL DE SALA
        ======================================================================= -->
   <div class="modal-backdrop" id="roomFormModal">
-    <div class="modal-content" style="max-width: 960px; width: 95%;">
+    <div class="modal-content" style="max-width: 1120px; width: 96%; height: 92vh; max-height: 92vh;">
       <div class="modal-header">
         <div>
           <h3 id="modalRoomTitle" style="color: #fff; margin: 0; font-size: 1.25rem;">🛠️ Configurar Sala y Maqueta de Butacas</h3>
@@ -1133,10 +1405,12 @@
         <input type="hidden" id="inputRoomSeatsPerRow" value="10">
         <input type="hidden" id="inputRoomRows" value="A, B, C, D, E, F">
         <input type="hidden" id="inputRoomVipRows" value="E, F">
+        <input type="hidden" id="inputRoomWheelchairSeats" value="A-1, A-2">
+        <input type="hidden" id="inputRoomDoors" value="">
 
         <div class="room-editor-container">
-          <!-- Columna Izquierda: Parámetros y Controles Sencillos -->
-          <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <!-- Columna Izquierda: Parámetros y Controles con Scroll Independiente -->
+          <div class="room-editor-controls">
             <!-- Nombre de Sala -->
             <div class="form-group" style="margin: 0;">
               <label for="inputRoomName" style="font-size: 0.82rem;">Nombre de la Sala *</label>
@@ -1187,6 +1461,54 @@
               </div>
             </div>
 
+            <!-- Modo de Pincel Interactivo (Asignar al Clic) -->
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem;">
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #fff; margin-bottom: 0.45rem;">
+                🎨 Modo de Pincel (Clic en Butaca):
+              </label>
+              <div class="editor-brush-group" id="editorBrushGroup">
+                <button type="button" class="editor-brush-btn active" data-brush="cycle" onclick="setEditorBrush('cycle')" title="Alterna cíclicamente: Estándar → Discapacitados ♿ → VIP">
+                  🔄 Alternar Ciclo
+                </button>
+                <button type="button" class="editor-brush-btn" data-brush="wheelchair" onclick="setEditorBrush('wheelchair')" title="Haz clic en cualquier butaca para convertirla en Silla Accesible para Discapacitados">
+                  ♿ Discapacitados
+                </button>
+                <button type="button" class="editor-brush-btn" data-brush="vip" onclick="setEditorBrush('vip')" title="Convierte en VIP">
+                  ⭐ VIP
+                </button>
+                <button type="button" class="editor-brush-btn" data-brush="standard" onclick="setEditorBrush('standard')" title="Convierte en Estándar">
+                  💺 Estándar
+                </button>
+              </div>
+            </div>
+
+            <!-- Sillas para Personas Discapacitadas (Accesibilidad) -->
+            <div style="background: rgba(41, 128, 185, 0.08); border: 1px solid rgba(66, 165, 245, 0.3); border-radius: 8px; padding: 0.85rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+                <label style="font-size: 0.82rem; font-weight: 700; color: #42a5f5; margin: 0;">
+                  ♿ Sillas Discapacitados
+                </label>
+                <span id="lblRoomWheelchairCount" style="font-size: 0.75rem; font-weight: 800; color: #90caf9;">2 Asignadas</span>
+              </div>
+              <p style="font-size: 0.72rem; color: var(--text-secondary); margin: 0 0 0.5rem; line-height: 1.3;">
+                Puestos reservados con espacio amplio para sillas de ruedas. Clic directo en la butaca o usa atajos:
+              </p>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem;">
+                <button type="button" class="btn btn-secondary btn-xs" onclick="setWheelchairPreset('rowA_flanks')" style="font-size: 0.7rem; padding: 0.4rem 0.2rem;">
+                  ♿ Fila A Laterales
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="setWheelchairPreset('rowA_all')" style="font-size: 0.7rem; padding: 0.4rem 0.2rem;">
+                  ♿ Toda Fila A
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="setWheelchairPreset('aisles')" style="font-size: 0.7rem; padding: 0.4rem 0.2rem;">
+                  ♿ Junto a Pasillo
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="setWheelchairPreset('clear')" style="font-size: 0.7rem; padding: 0.4rem 0.2rem; color: #ff6b6b;">
+                  🧹 Quitar Todas
+                </button>
+              </div>
+            </div>
+
             <!-- Acciones Rápidas VIP -->
             <div style="background: rgba(212, 175, 55, 0.05); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 8px; padding: 0.85rem;">
               <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--gold); margin-bottom: 0.5rem;">
@@ -1208,6 +1530,77 @@
               </div>
             </div>
 
+            <!-- Configuración de Entradas, Salidas y Flujo de Circulación -->
+            <div style="background: rgba(0, 230, 118, 0.05); border: 1px solid rgba(0, 230, 118, 0.28); border-radius: 8px; padding: 0.85rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+                <label style="font-size: 0.82rem; font-weight: 700; color: #00e676; margin: 0;">
+                  🚪 Entradas, Salidas y Pasillos
+                </label>
+              </div>
+              <p style="font-size: 0.72rem; color: var(--text-secondary); margin: 0 0 0.55rem; line-height: 1.3;">
+                Configura por dónde entra y sale la gente. Clic en los atajos o en la maqueta:
+              </p>
+
+              <!-- Atajos Rápidos de Orientación de Accesos -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; margin-bottom: 0.75rem;">
+                <button type="button" class="btn btn-secondary btn-xs" onclick="applyDoorPreset('entrance_left')" style="font-size: 0.7rem; padding: 0.4rem 0.2rem;" title="Entrada por el pasillo izquierdo y salidas de emergencia">
+                  🚪 Entrada Izquierda
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="applyDoorPreset('entrance_right')" style="font-size: 0.7rem; padding: 0.4rem 0.2rem;" title="Entrada por el pasillo derecho y salidas de emergencia">
+                  🚪 Entrada Derecha
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="applyDoorPreset('entrance_both')" style="font-size: 0.7rem; padding: 0.4rem 0.2rem;" title="Entrada por ambos pasillos laterales">
+                  🚪 Entrada Ambos Lados
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" onclick="applyDoorPreset('front_exits_only')" style="font-size: 0.7rem; padding: 0.4rem 0.2rem;" title="Entradas atrás y salidas solo al frente">
+                  🟢 Salidas al Frente
+                </button>
+              </div>
+
+              <!-- Selectores individuales por puerta -->
+              <div style="display: flex; flex-direction: column; gap: 0.45rem;">
+                <!-- Delantera Izquierda -->
+                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 0.35rem 0.6rem; border-radius: 5px; font-size: 0.75rem;">
+                  <span style="color: #fff; font-weight: 600;">Delantera Izq.</span>
+                  <select id="selDoorFrontLeft" onchange="onDoorSelectChange('front-left', this.value)" style="font-size: 0.72rem; background: #121622; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.2rem 0.4rem;">
+                    <option value="SALIDA">🟢 Salida Emergencia</option>
+                    <option value="ENTRADA">🚪 Entrada Sala</option>
+                    <option value="CERRADA">🚫 Pared Cerrada</option>
+                  </select>
+                </div>
+
+                <!-- Delantera Derecha -->
+                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 0.35rem 0.6rem; border-radius: 5px; font-size: 0.75rem;">
+                  <span style="color: #fff; font-weight: 600;">Delantera Der.</span>
+                  <select id="selDoorFrontRight" onchange="onDoorSelectChange('front-right', this.value)" style="font-size: 0.72rem; background: #121622; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.2rem 0.4rem;">
+                    <option value="SALIDA">🟢 Salida Emergencia</option>
+                    <option value="ENTRADA">🚪 Entrada Sala</option>
+                    <option value="CERRADA">🚫 Pared Cerrada</option>
+                  </select>
+                </div>
+
+                <!-- Trasera Izquierda -->
+                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 0.35rem 0.6rem; border-radius: 5px; font-size: 0.75rem;">
+                  <span style="color: #fff; font-weight: 600;">Trasera Izq.</span>
+                  <select id="selDoorBackLeft" onchange="onDoorSelectChange('back-left', this.value)" style="font-size: 0.72rem; background: #121622; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.2rem 0.4rem;">
+                    <option value="ENTRADA">🚪 Entrada Sala</option>
+                    <option value="SALIDA">🟢 Salida Emergencia</option>
+                    <option value="CERRADA">🚫 Pared Cerrada</option>
+                  </select>
+                </div>
+
+                <!-- Trasera Derecha -->
+                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 0.35rem 0.6rem; border-radius: 5px; font-size: 0.75rem;">
+                  <span style="color: #fff; font-weight: 600;">Trasera Der.</span>
+                  <select id="selDoorBackRight" onchange="onDoorSelectChange('back-right', this.value)" style="font-size: 0.72rem; background: #121622; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.2rem 0.4rem;">
+                    <option value="ENTRADA">🚪 Entrada Sala</option>
+                    <option value="SALIDA">🟢 Salida Emergencia</option>
+                    <option value="CERRADA">🚫 Pared Cerrada</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             <!-- Opciones Técnicas (Pantalla y Sonido) -->
             <details style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.55rem 0.8rem;">
               <summary style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); cursor: pointer;">
@@ -1226,54 +1619,89 @@
             </details>
           </div>
 
-          <!-- Columna Derecha: Vista Previa y Maqueta Idéntica a la del Usuario -->
-          <div style="background: #080b13; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; display: flex; flex-direction: column; min-height: 440px; overflow: hidden;">
+          <!-- Columna Derecha: Vista Previa Fija y Siempre Visible -->
+          <div class="room-editor-preview">
             <!-- Encabezado de la maqueta -->
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.65rem; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div class="room-editor-preview-header">
               <span style="font-size: 0.85rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.4rem;">
                 👁️ Vista Idéntica a la Pantalla de los Usuarios
               </span>
-              <div style="display: flex; gap: 0.4rem; align-items: center; font-size: 0.72rem;">
+              <div style="display: flex; gap: 0.4rem; align-items: center; font-size: 0.72rem; flex-wrap: wrap;">
                 <span id="badgeEditorTotalSeats" class="badge" style="background: rgba(255,255,255,0.08); color: #fff; font-weight: 700;">60 Butacas</span>
-                <span id="badgeEditorStandardSeats" class="badge" style="background: rgba(37, 46, 66, 0.8); border: 1px solid #3b4766; color: #8be5ff; font-weight: 700;">40 Estándar</span>
+                <span id="badgeEditorStandardSeats" class="badge" style="background: rgba(37, 46, 66, 0.8); border: 1px solid #3b4766; color: #8be5ff; font-weight: 700;">38 Estándar</span>
                 <span id="badgeEditorVipSeats" class="badge" style="background: rgba(245, 197, 24, 0.15); border: 1px solid rgba(245, 197, 24, 0.4); color: var(--gold); font-weight: 700;">20 VIP</span>
+                <span id="badgeEditorWheelchairSeats" class="badge" style="background: rgba(41, 128, 185, 0.25); border: 1px solid #42a5f5; color: #90caf9; font-weight: 700;">♿ 2 Accesibles</span>
               </div>
             </div>
 
-            <!-- Sala de Cine Interactiva con Estructura Idéntica a seats.html -->
-            <section class="cinema-hall layout-curved-imax" id="roomEditorCinemaHall" style="padding: 1.5rem 1rem 1.8rem; border-radius: var(--radius-md); width: 100%; box-sizing: border-box; overflow-x: auto; flex: 1;">
+            <!-- Sala de Cine Interactiva con Estructura Arquitectónica Real -->
+            <section class="cinema-hall layout-curved-imax" id="roomEditorCinemaHall" style="padding: 0.6rem 0.6rem 0.8rem; border-radius: var(--radius-md); width: 100%; box-sizing: border-box; overflow-x: auto; flex: 1;">
               <!-- Distintivo Arquitectónico -->
-              <div class="hall-architecture-badge" id="roomEditorArchBadge" style="margin-bottom: 1rem;">
+              <div class="hall-architecture-badge" id="roomEditorArchBadge" style="margin-bottom: 0.45rem;">
                 🏛️ Maqueta: Anfiteatro Curvo IMAX
               </div>
 
-              <!-- Pantalla de Cine Curva Idéntica al Usuario -->
-              <div class="screen-wrapper" style="width: 82%; margin-bottom: 1.5rem;">
-                <div class="screen-curve"></div>
-                <div class="screen-light"></div>
-                <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+              <!-- Barra Frontal: Puerta Frontal Izq + Pantalla + Puerta Frontal Der -->
+              <div class="hall-screen-doors-bar">
+                <div class="hall-door-slot slot-left" id="slotDoorFrontLeft"></div>
+                <div class="screen-wrapper">
+                  <div class="screen-curve"></div>
+                  <div class="screen-light"></div>
+                  <span class="screen-text">PANTALLA DE PROYECCIÓN REAL</span>
+                </div>
+                <div class="hall-door-slot slot-right" id="slotDoorFrontRight"></div>
               </div>
 
-              <!-- Leyenda de Estados Idéntica al Usuario -->
-              <div class="seats-legend" style="margin-bottom: 1.4rem; justify-content: center; gap: 1.8rem;">
-                <div class="legend-item" style="cursor: pointer;" onclick="setVipPreset('none')" title="Clic para poner toda la sala en Estándar">
+              <!-- Leyenda Compacta de Estados de Butaca -->
+              <div class="seats-legend" style="margin: 0.35rem 0 0.55rem; justify-content: center; gap: 1.1rem; flex-wrap: wrap;">
+                <div class="legend-item" style="cursor: pointer;" onclick="setEditorBrush('standard')" title="Clic para activar pincel Estándar">
                   <span class="legend-seat available"></span>
                   <span id="editorLegendStd">Estándar</span>
                 </div>
-                <div class="legend-item" style="cursor: pointer;" onclick="setVipPreset('all')" title="Clic para poner toda la sala en VIP">
+                <div class="legend-item" style="cursor: pointer;" onclick="setEditorBrush('vip')" title="Clic para activar pincel VIP">
                   <span class="legend-seat vip"></span>
                   <span id="editorLegendVip">VIP Luxury</span>
                 </div>
+                <div class="legend-item" style="cursor: pointer;" onclick="setEditorBrush('wheelchair')" title="Clic para activar pincel Discapacitados">
+                  <span class="legend-seat wheelchair"></span>
+                  <span id="editorLegendWheelchair">Accesible ♿</span>
+                </div>
               </div>
 
-              <!-- Matriz de Asientos Exacta con perspectiva y 3D -->
-              <div class="seats-grid" id="roomEditorSeatGrid" style="width: 100%; display: flex; flex-direction: column; gap: 0.85rem; align-items: center; perspective: 600px;">
-                <!-- Renderizado idéntico por JS -->
+              <!-- Zona Central: Pasillo Izquierdo + Butacas + Pasillo Derecho (Por donde pasa la gente) -->
+              <div class="hall-seating-circulation">
+                <!-- Pasillo Izquierdo con Flujo de Circulación -->
+                <div class="hall-walkway" id="walkwayLeft">
+                  <span class="walkway-arrow" id="arrowTopLeft">↓</span>
+                  <span class="walkway-tag" id="tagWalkwayLeft">🚶 Pasillo Izq.</span>
+                  <span class="walkway-arrow" id="arrowBottomLeft">↓</span>
+                </div>
+
+                <!-- Matriz de Asientos Exacta con perspectiva y 3D -->
+                <div class="seats-grid" id="roomEditorSeatGrid" style="flex: 1; display: flex; flex-direction: column; gap: 0.65rem; align-items: center; perspective: 600px;">
+                  <!-- Renderizado idéntico por JS -->
+                </div>
+
+                <!-- Pasillo Derecho con Flujo de Circulación -->
+                <div class="hall-walkway" id="walkwayRight">
+                  <span class="walkway-arrow" id="arrowTopRight">↓</span>
+                  <span class="walkway-tag" id="tagWalkwayRight">🚶 Pasillo Der.</span>
+                  <span class="walkway-arrow" id="arrowBottomRight">↓</span>
+                </div>
+              </div>
+
+              <!-- Barra Posterior: Puerta Trasera Izq + Guía de Pasillos + Puerta Trasera Der -->
+              <div class="hall-doors-bottom-bar">
+                <div class="hall-door-slot slot-left" id="slotDoorBackLeft"></div>
+                <div style="font-size: 0.68rem; color: var(--text-muted); text-align: center; flex: 1;">
+                  <span>👣 Zona de Ingreso y Pasillos de Circulación</span>
+                </div>
+                <div class="hall-door-slot slot-right" id="slotDoorBackRight"></div>
               </div>
 
               <!-- Tip interactivo -->
-              <div style="margin-top: 1.5rem; font-size: 0.78rem; color: var(--gold); display: flex; align-items: center; justify-content: center; gap: 0.4rem; text-align: center;">
-                <span>💡 Clic en la letra de la fila o en cualquier butaca para alternar entre Estándar y VIP</span>
+              <div style="margin-top: 0.6rem; font-size: 0.74rem; color: var(--gold); display: flex; align-items: center; justify-content: center; gap: 0.4rem; text-align: center; flex-shrink: 0;">
+                <span>💡 Clic directo en cualquier puerta para cambiar a Entrada 🚪, Salida 🟢 o Pared 🚫</span>
               </div>
             </section>
           </div>
@@ -1371,7 +1799,35 @@
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- =======================================================================
+       MODAL: VISTA PREVIA E IMPRESIÓN OFICIAL DEL REPORTE EJECUTIVO (PDF)
+       ======================================================================= -->
+  <div class="modal-backdrop" id="modalAnalyticsPdfPreview">
+    <div class="modal-content" style="max-width: 950px; max-height: 90vh; display: flex; flex-direction: column; background: #12121a; border: 1.5px solid var(--gold);">
+      <div class="modal-header" style="background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--border-color);">
+        <h3 style="color: #fff; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+          <span>📑</span> Reporte Oficial de Auditoría y Ventas - Cine Majestad Multiplex
+        </h3>
+        <button class="modal-close" onclick="closeAnalyticsPrintPreviewModal()">✕</button>
+      </div>
+      <div style="padding: 0.8rem 1.5rem; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 0.5rem;">
+        <span style="font-size: 0.82rem; color: var(--text-secondary);">
+          Vista previa del informe contable. Puedes exportarlo a Excel o imprimirlo / guardarlo como PDF en tu dispositivo.
+        </span>
+        <div style="display: flex; gap: 0.6rem; align-items: center;">
+          <button class="btn btn-secondary btn-sm" onclick="exportAnalyticsToExcel()" style="color: #10b981; border-color: rgba(16, 185, 129, 0.4);">
+            📊 Guardar en Excel (.csv)
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="printAnalyticsReport()" style="background: #e50914; border-color: #e50914; font-weight: 700;">
+            🖨️ Imprimir / Guardar en PDF
+          </button>
+        </div>
+      </div>
+      <div id="analyticsPrintPreviewContent" style="padding: 1.8rem; overflow-y: auto; flex: 1; background: #0d0d14; color: #fff; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
+        <!-- Inyectado dinámicamente con estilos ejecutivos -->
+      </div>
+    </div>
+  </div>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>if (typeof io === 'undefined') document.write('<script src="/socket.io/socket.io.js"><\/script>');</script>

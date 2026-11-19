@@ -229,14 +229,25 @@ function renderWorkerShowtimes() {
     return;
   }
 
-  container.innerHTML = functionsList.map(fn => `
+  container.innerHTML = functionsList.map(fn => {
+    const vigencia = Storage.getMovieVigenciaInfo(fn.movie);
+
+    return `
     <div class="showtime-worker-card">
       <div class="showtime-card-top">
         <img src="${fn.movie.poster}" alt="${fn.movie.title}" class="showtime-mini-poster">
         <div class="showtime-meta-info" style="flex: 1;">
-          <h4>${fn.movie.title}</h4>
-          <p style="color: var(--text-secondary); font-size: 0.85rem;">🏛️ ${fn.movie.hall}</p>
-          <div style="display: flex; gap: 0.5rem; margin-top: 0.3rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.4rem;">
+            <h4>${fn.movie.title}</h4>
+            <span class="badge ${vigencia.isPresale ? 'badge-presale' : 'badge-now-showing'}" style="font-size: 0.65rem; padding: 0.2rem 0.5rem; flex-shrink: 0;">
+              ${vigencia.badgeText}
+            </span>
+          </div>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 2px;">🏛️ ${fn.movie.hall}</p>
+          <small style="font-size: 0.72rem; color: ${vigencia.isPresale ? '#ff66b2' : 'var(--gold)'}; display: block; margin-top: 2px; font-weight: 600;">
+            ${vigencia.isPresale ? '🚀' : '⏳'} ${vigencia.durationDays} días temporada • ${vigencia.statusLabel}
+          </small>
+          <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem; align-items: center;">
             <span class="badge" style="background: rgba(0, 210, 255, 0.15); color: var(--accent-blue); font-weight: 800; font-size: 0.9rem;">
               🕒 ${fn.time}
             </span>
@@ -261,7 +272,8 @@ function renderWorkerShowtimes() {
         </button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // Modal para que el trabajador vea los asientos de una función y realice ventas presenciales en taquilla (solo efectivo)
@@ -325,6 +337,96 @@ function openWorkerSeatModal(showtimeKey) {
   const rows = room.rows || ["A", "B", "C", "D", "E", "F"];
   const seatsPerRow = room.seatsPerRow || 10;
   const vipRows = room.vipRows || ["E", "F"];
+  const wheelchairSeats = Array.isArray(room.wheelchairSeats)
+    ? room.wheelchairSeats
+    : (room.wheelchairCols ? (room.rows.slice(0, 1).map(r => room.wheelchairCols.map(c => `${r}-${c}`)).flat()) : ["A-1", "A-2"]);
+
+  // Renderizar Puertas de Acceso y Evacuación de Emergencia en Taquilla del Trabajador
+  const doors = (Array.isArray(room.doors) && room.doors.length === 4) ? room.doors : [
+    { id: "front-left", active: true, type: "SALIDA" },
+    { id: "front-right", active: true, type: "SALIDA" },
+    { id: "back-left", active: true, type: "ENTRADA" },
+    { id: "back-right", active: false, type: "SALIDA" }
+  ];
+
+  const dFL = doors.find(d => d.id === "front-left") || { active: false, type: "SALIDA" };
+  const dFR = doors.find(d => d.id === "front-right") || { active: false, type: "SALIDA" };
+  const dBL = doors.find(d => d.id === "back-left") || { active: false, type: "ENTRADA" };
+  const dBR = doors.find(d => d.id === "back-right") || { active: false, type: "SALIDA" };
+
+  function createWorkerDoorBadge(door) {
+    if (!door.active) {
+      return `<div class="hall-door-badge door-closed" style="cursor: default;">🚫 PARED</div>`;
+    }
+    if (door.type === "ENTRADA") {
+      return `<div class="hall-door-badge door-entrance" style="cursor: default;">🚪 ENTRADA SALA</div>`;
+    }
+    return `<div class="hall-door-badge door-exit" style="cursor: default;">🟢 SALIDA EMERGENCIA</div>`;
+  }
+
+  const slotFL = document.querySelector("#slotDoorFrontLeftWorker");
+  const slotFR = document.querySelector("#slotDoorFrontRightWorker");
+  const slotBL = document.querySelector("#slotDoorBackLeftWorker");
+  const slotBR = document.querySelector("#slotDoorBackRightWorker");
+
+  if (slotFL) slotFL.innerHTML = createWorkerDoorBadge(dFL);
+  if (slotFR) slotFR.innerHTML = createWorkerDoorBadge(dFR);
+  if (slotBL) slotBL.innerHTML = createWorkerDoorBadge(dBL);
+  if (slotBR) slotBR.innerHTML = createWorkerDoorBadge(dBR);
+
+  // Pasillos de Circulación del Trabajador (Walkways: por donde pasa la gente)
+  const walkwayL = document.querySelector("#walkwayLeftWorker");
+  const walkwayR = document.querySelector("#walkwayRightWorker");
+  const tagL = document.querySelector("#tagWalkwayLeftWorker");
+  const tagR = document.querySelector("#tagWalkwayRightWorker");
+  const arrTopL = document.querySelector("#arrowTopLeftWorker");
+  const arrBotL = document.querySelector("#arrowBottomLeftWorker");
+  const arrTopR = document.querySelector("#arrowTopRightWorker");
+  const arrBotR = document.querySelector("#arrowBottomRightWorker");
+
+  const isLeftEntrance = (dBL.active && dBL.type === "ENTRADA") || (dFL.active && dFL.type === "ENTRADA");
+  const isLeftExit = (dBL.active && dBL.type === "SALIDA") || (dFL.active && dFL.type === "SALIDA");
+
+  if (walkwayL) {
+    walkwayL.classList.remove("walkway-entrance", "walkway-exit");
+    if (isLeftEntrance) {
+      walkwayL.classList.add("walkway-entrance");
+      if (tagL) tagL.textContent = "🚶 PASILLO ENTRADA (IZQ)";
+      if (arrTopL) arrTopL.textContent = "↓";
+      if (arrBotL) arrBotL.textContent = "↓";
+    } else if (isLeftExit) {
+      walkwayL.classList.add("walkway-exit");
+      if (tagL) tagL.textContent = "🏃 PASILLO SALIDA (IZQ)";
+      if (arrTopL) arrTopL.textContent = "↑";
+      if (arrBotL) arrBotL.textContent = "↑";
+    } else {
+      if (tagL) tagL.textContent = "🚶 PASILLO IZQ.";
+      if (arrTopL) arrTopL.textContent = "↕";
+      if (arrBotL) arrBotL.textContent = "↕";
+    }
+  }
+
+  const isRightEntrance = (dBR.active && dBR.type === "ENTRADA") || (dFR.active && dFR.type === "ENTRADA");
+  const isRightExit = (dBR.active && dBR.type === "SALIDA") || (dFR.active && dFR.type === "SALIDA");
+
+  if (walkwayR) {
+    walkwayR.classList.remove("walkway-entrance", "walkway-exit");
+    if (isRightEntrance) {
+      walkwayR.classList.add("walkway-entrance");
+      if (tagR) tagR.textContent = "🚶 PASILLO ENTRADA (DER)";
+      if (arrTopR) arrTopR.textContent = "↓";
+      if (arrBotR) arrBotR.textContent = "↓";
+    } else if (isRightExit) {
+      walkwayR.classList.add("walkway-exit");
+      if (tagR) tagR.textContent = "🏃 PASILLO SALIDA (DER)";
+      if (arrTopR) arrTopR.textContent = "↑";
+      if (arrBotR) arrBotR.textContent = "↑";
+    } else {
+      if (tagR) tagR.textContent = "🚶 PASILLO DER.";
+      if (arrTopR) arrTopR.textContent = "↕";
+      if (arrBotR) arrBotR.textContent = "↕";
+    }
+  }
 
   const occupied = Storage.getOccupiedSeats(showtimeKey);
   const locks = Storage.getSeatLocksForShowtime(showtimeKey);
@@ -339,8 +441,9 @@ function openWorkerSeatModal(showtimeKey) {
     total: rows.length * seatsPerRow
   };
 
-  function createWorkerSeatButton(row, col, isVipRow, isWheelchair = false) {
+  function createWorkerSeatButton(row, col, isVipRow) {
     const seatCode = `${row}-${col}`;
+    const isWheelchair = wheelchairSeats.includes(seatCode);
     const seat = document.createElement("button");
     seat.type = "button";
     seat.className = "seat";
@@ -352,7 +455,7 @@ function openWorkerSeatModal(showtimeKey) {
 
     if (isVipRow) seat.classList.add("vip");
     if (layoutType === "vip_lounge") seat.classList.add("vip-recliner");
-    if (isWheelchair) seat.classList.add("seat-wheelchair");
+    if (isWheelchair) seat.classList.add("wheelchair", "seat-wheelchair");
 
     // Curvatura radial idéntica a la vista de usuario y editor de admin
     if (layoutType === "curved_imax") {
@@ -441,7 +544,7 @@ function openWorkerSeatModal(showtimeKey) {
       const blockLeft = document.createElement("div");
       blockLeft.className = "stadium-block block-left";
       for (let col = 1; col <= leftCount; col++) {
-        blockLeft.appendChild(createWorkerSeatButton(row, col, isVipRow, row === rows[0] && col === 1));
+        blockLeft.appendChild(createWorkerSeatButton(row, col, isVipRow));
       }
       rowEl.appendChild(blockLeft);
 
@@ -467,7 +570,7 @@ function openWorkerSeatModal(showtimeKey) {
       const blockRight = document.createElement("div");
       blockRight.className = "stadium-block block-right";
       for (let col = leftCount + centerCount + 1; col <= seatsPerRow; col++) {
-        blockRight.appendChild(createWorkerSeatButton(row, col, isVipRow, row === rows[0] && col === seatsPerRow));
+        blockRight.appendChild(createWorkerSeatButton(row, col, isVipRow));
       }
       rowEl.appendChild(blockRight);
     }

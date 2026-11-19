@@ -219,6 +219,53 @@
   z-index: 2;
 }
 
+/* Insignias de Modalidad de Cartelera & Preventas */
+.badge-presale {
+  background: linear-gradient(135deg, rgba(255, 0, 128, 0.28), rgba(255, 0, 128, 0.1));
+  border: 1px solid rgba(255, 0, 128, 0.6);
+  color: #ff66b2;
+  box-shadow: 0 0 14px rgba(255, 0, 128, 0.4);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  backdrop-filter: blur(6px);
+}
+
+.badge-now-showing {
+  background: linear-gradient(135deg, rgba(245, 197, 24, 0.25), rgba(245, 197, 24, 0.1));
+  border: 1px solid rgba(245, 197, 24, 0.55);
+  color: #ffd54f;
+  box-shadow: 0 0 14px rgba(245, 197, 24, 0.3);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  backdrop-filter: blur(6px);
+}
+
+.movie-vigencia-badge-row {
+  margin: 0.45rem 0 0.65rem;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .rating-badge-floating {
   position: absolute;
   top: 0.9rem;

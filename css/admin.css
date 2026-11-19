@@ -248,6 +248,44 @@
   border: 1px solid rgba(229, 9, 20, 0.3);
 }
 
+/* Insignias de Modalidad de Cartelera & Preventas */
+.badge-presale {
+  background: linear-gradient(135deg, rgba(255, 0, 128, 0.22), rgba(255, 0, 128, 0.08));
+  border: 1px solid rgba(255, 0, 128, 0.55);
+  color: #ff66b2;
+  box-shadow: 0 0 12px rgba(255, 0, 128, 0.3);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.badge-now-showing {
+  background: linear-gradient(135deg, rgba(245, 197, 24, 0.2), rgba(245, 197, 24, 0.08));
+  border: 1px solid rgba(245, 197, 24, 0.5);
+  color: #ffd54f;
+  box-shadow: 0 0 12px rgba(245, 197, 24, 0.25);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.release-type-card:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
 /* ==========================================================================
    Gestor Visual de Esquemas de Asientos (Sala y Concurrencia en Vivo)
    ========================================================================== */
@@ -748,16 +786,120 @@ textarea.form-control {
    ========================================================================== */
 .room-editor-container {
   display: grid;
-  grid-template-columns: 330px 1fr;
+  grid-template-columns: 360px 1fr;
   gap: 1.5rem;
   padding: 1.2rem 1.6rem;
-  overflow-y: auto;
-  max-height: calc(88vh - 130px);
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-@media (max-width: 880px) {
+/* Columna Izquierda de Controles con Scroll Independiente */
+.room-editor-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  min-height: 0;
+  padding-right: 0.6rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) rgba(255, 255, 255, 0.05);
+}
+
+.room-editor-controls::-webkit-scrollbar {
+  width: 6px;
+}
+.room-editor-controls::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+}
+.room-editor-controls::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 4px;
+}
+.room-editor-controls::-webkit-scrollbar-thumb:hover {
+  background: #ffe066;
+}
+
+/* Columna Derecha de Maqueta: Fija y Siempre Visible al Bajar */
+.room-editor-preview {
+  background: #080b13;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  box-sizing: border-box;
+}
+
+.room-editor-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.8rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.room-editor-preview .cinema-hall {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 1rem 0.8rem 1.4rem;
+  border-radius: var(--radius-md);
+  width: 100%;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) rgba(255, 255, 255, 0.05);
+}
+
+.room-editor-preview .cinema-hall::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.room-editor-preview .cinema-hall::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+}
+.room-editor-preview .cinema-hall::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 4px;
+}
+.room-editor-preview .cinema-hall::-webkit-scrollbar-thumb:hover {
+  background: #ffe066;
+}
+
+@media (max-width: 960px) {
   .room-editor-container {
     grid-template-columns: 1fr;
+    overflow-y: auto;
+    height: auto;
+    max-height: calc(90vh - 130px);
+  }
+  .room-editor-controls {
+    overflow-y: visible;
+    height: auto;
+    padding-right: 0;
+  }
+  .room-editor-preview {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    max-height: 520px;
   }
 }
 
@@ -978,5 +1120,68 @@ textarea.form-control {
   .stats-grid {
     grid-template-columns: 1fr 1fr;
     gap: 0.8rem;
+  }
+}
+
+/* ==========================================================================
+   Estilos de Analíticas & Historial de 30 Días
+   ========================================================================== */
+.filter-period-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-period-btn:hover {
+  background: rgba(212, 175, 55, 0.12);
+  border-color: var(--gold);
+  color: #fff;
+}
+
+.filter-period-btn.active {
+  background: var(--gold) !important;
+  color: #000 !important;
+  border-color: var(--gold) !important;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.35);
+}
+
+#tableDailySales30Days th {
+  padding: 0.7rem 0.6rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  border-bottom: 1.5px solid var(--border-color);
+}
+
+#tableDailySales30Days td {
+  padding: 0.65rem 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+#tableDailySales30Days tr:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #analyticsPrintableDocument,
+  #analyticsPrintableDocument * {
+    visibility: visible;
+  }
+  #analyticsPrintableDocument {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-shadow: none !important;
   }
 }

@@ -66,6 +66,13 @@ const INITIAL_ROOMS = [
     rows: ["A", "B", "C", "D", "E", "F"],
     seatsPerRow: 10,
     vipRows: ["E", "F"],
+    wheelchairSeats: ["A-1", "A-2"],
+    doors: [
+      { id: "front-left", active: true, type: "SALIDA", label: "🟢 SALIDA DE EMERGENCIA" },
+      { id: "front-right", active: true, type: "ENTRADA", label: "🚪 ENTRADA SALA" },
+      { id: "back-left", active: true, type: "ENTRADA", label: "🚪 ENTRADA SALA" },
+      { id: "back-right", active: false, type: "SALIDA", label: "🟢 SALIDA DE EMERGENCIA" }
+    ],
     capacity: 60,
     screenType: "Curva Gigante 4K",
     soundSystem: "Dolby Atmos 64 Canales"
@@ -81,6 +88,13 @@ const INITIAL_ROOMS = [
     seatsPerRow: 10,
     vipRows: ["E", "F"],
     wheelchairCols: [1, 10],
+    wheelchairSeats: ["A-1", "A-10"],
+    doors: [
+      { id: "front-left", active: true, type: "SALIDA", label: "🟢 SALIDA DE EMERGENCIA" },
+      { id: "front-right", active: true, type: "SALIDA", label: "🟢 SALIDA DE EMERGENCIA" },
+      { id: "back-left", active: true, type: "ENTRADA", label: "🚪 ENTRADA SALA" },
+      { id: "back-right", active: true, type: "ENTRADA", label: "🚪 ENTRADA SALA" }
+    ],
     capacity: 60,
     screenType: "Plana 70mm Panavision",
     soundSystem: "DTS-X Surround"
@@ -95,6 +109,13 @@ const INITIAL_ROOMS = [
     rows: ["A", "B", "C", "D", "E"],
     seatsPerRow: 10,
     vipRows: ["E"],
+    wheelchairSeats: ["A-1", "A-2"],
+    doors: [
+      { id: "front-left", active: true, type: "SALIDA", label: "🟢 SALIDA DE EMERGENCIA" },
+      { id: "front-right", active: false, type: "SALIDA", label: "🟢 SALIDA DE EMERGENCIA" },
+      { id: "back-left", active: true, type: "ENTRADA", label: "🚪 ENTRADA SALA" },
+      { id: "back-right", active: false, type: "ENTRADA", label: "🚪 ENTRADA SALA" }
+    ],
     capacity: 50,
     screenType: "Microperforada 2K",
     soundSystem: "Dolby Atmos 360°"
@@ -109,13 +130,138 @@ const INITIAL_ROOMS = [
     rows: ["A", "B", "C", "D"],
     seatsPerRow: 8,
     vipRows: ["A", "B", "C", "D"],
+    wheelchairSeats: ["A-1", "A-2"],
+    doors: [
+      { id: "front-left", active: true, type: "SALIDA", label: "🟢 SALIDA DE EMERGENCIA" },
+      { id: "front-right", active: false, type: "SALIDA", label: "🟢 SALIDA DE EMERGENCIA" },
+      { id: "back-left", active: true, type: "ENTRADA", label: "🚪 ENTRADA SALA" },
+      { id: "back-right", active: true, type: "ENTRADA", label: "🚪 ENTRADA SALA" }
+    ],
     capacity: 32,
     screenType: "Pantalla Láser Premium",
     soundSystem: "Bowers & Wilkins Hi-Fi"
   }
 ];
 
-// Catálogo Inicial de Películas
+// Cálculo y Gestión de Vigencia en Cartelera y Preventas
+function calculateMovieEndDate(startDateStr, durationDays) {
+  if (!startDateStr) return "";
+  const parts = String(startDateStr).split("T")[0].split("-");
+  if (parts.length !== 3) return "";
+  const days = Math.max(1, parseInt(durationDays, 10) || 1);
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  d.setDate(d.getDate() + days - 1);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getMovieVigenciaInfo(movie) {
+  if (!movie) return {};
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const isPresale = movie.releaseType === "PREVENTA" || movie.isPresale === true;
+  const startDateStr = movie.startDate || (isPresale ? "2026-11-28" : "2026-11-15");
+  const durationDays = parseInt(movie.durationDays, 10) || 21;
+  const endDateStr = movie.endDate || calculateMovieEndDate(startDateStr, durationDays);
+
+  const startParts = String(startDateStr).split("T")[0].split("-");
+  const endParts = String(endDateStr).split("T")[0].split("-");
+
+  const startDate = startParts.length === 3 
+    ? new Date(parseInt(startParts[0], 10), parseInt(startParts[1], 10) - 1, parseInt(startParts[2], 10)) 
+    : today;
+  const endDate = endParts.length === 3 
+    ? new Date(parseInt(endParts[0], 10), parseInt(endParts[1], 10) - 1, parseInt(endParts[2], 10)) 
+    : today;
+
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const diffDaysFromToday = Math.round((endDate.getTime() - today.getTime()) / msPerDay);
+  const diffDaysToStart = Math.round((startDate.getTime() - today.getTime()) / msPerDay);
+
+  let statusLabel = "";
+  let badgeClass = "";
+  let badgeText = "";
+  let daysNotice = "";
+
+  if (isPresale) {
+    badgeClass = "badge-presale";
+    badgeText = "🎟️ PREVENTA";
+    if (diffDaysToStart > 0) {
+      statusLabel = `Estreno en ${diffDaysToStart} días`;
+      daysNotice = `Preventa Activa • Estreno el ${startDate.toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`;
+    } else {
+      statusLabel = "¡Preventa / Estreno Hoy!";
+      daysNotice = "¡Estreno en cines hoy!";
+    }
+  } else {
+    badgeClass = "badge-now-showing";
+    badgeText = "🔥 EN CARTELERA";
+    if (diffDaysFromToday > 0) {
+      statusLabel = `Quedan ${diffDaysFromToday} días en cartelera`;
+      daysNotice = `En cartelera: hasta el ${endDate.toLocaleDateString("es-ES", { day: "numeric", month: "short" })} (${diffDaysFromToday} días restantes)`;
+    } else if (diffDaysFromToday === 0) {
+      statusLabel = "Último día en cartelera";
+      daysNotice = "¡Último día en cartelera hoy!";
+    } else {
+      statusLabel = "Finalizada";
+      daysNotice = "Temporada finalizada en cartelera";
+    }
+  }
+
+  return {
+    isPresale,
+    releaseType: isPresale ? "PREVENTA" : "CARTELERA",
+    startDate: startDateStr,
+    durationDays,
+    endDate: endDateStr,
+    diffDaysFromToday,
+    diffDaysToStart,
+    statusLabel,
+    badgeClass,
+    badgeText,
+    daysNotice,
+    startDateFormatted: startDate.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }),
+    endDateFormatted: endDate.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })
+  };
+}
+
+function normalizeMovieData(movie, index = 0) {
+  if (!movie || typeof movie !== "object") return movie;
+
+  const isPresale = movie.releaseType === "PREVENTA" || movie.isPresale === true || (index === 3 && !movie.releaseType);
+  const releaseType = isPresale ? "PREVENTA" : (movie.releaseType || "CARTELERA");
+  
+  let defaultStart = "2026-11-10";
+  let defaultDays = 21;
+  if (isPresale) {
+    defaultStart = "2026-11-28";
+    defaultDays = 30;
+  } else if (index === 0) {
+    defaultStart = "2026-11-10";
+    defaultDays = 28;
+  } else if (index === 2) {
+    defaultStart = "2026-11-01";
+    defaultDays = 30;
+  }
+
+  const startDate = movie.startDate || defaultStart;
+  const durationDays = parseInt(movie.durationDays, 10) || defaultDays;
+  const endDate = movie.endDate || calculateMovieEndDate(startDate, durationDays);
+
+  return {
+    ...movie,
+    releaseType,
+    isPresale,
+    startDate,
+    durationDays,
+    endDate
+  };
+}
+
+// Catálogo Inicial de Películas con Vigencia en Cartelera y Preventa
 const INITIAL_MOVIES = [
   {
     id: "mov-01",
@@ -135,7 +281,12 @@ const INITIAL_MOVIES = [
     showtimes: ["14:30", "17:45", "21:00"],
     hall: "Sala 1 (IMAX Laser & Dolby)",
     roomId: "sala-1",
-    isFeatured: true
+    isFeatured: true,
+    releaseType: "CARTELERA",
+    isPresale: false,
+    startDate: "2026-11-10",
+    durationDays: 28,
+    endDate: "2026-12-07"
   },
   {
     id: "mov-02",
@@ -155,7 +306,12 @@ const INITIAL_MOVIES = [
     showtimes: ["13:00", "16:15", "19:30"],
     hall: "Sala 3 (Dolby Atmos 360°)",
     roomId: "sala-3",
-    isFeatured: false
+    isFeatured: false,
+    releaseType: "CARTELERA",
+    isPresale: false,
+    startDate: "2026-11-05",
+    durationDays: 21,
+    endDate: "2026-11-25"
   },
   {
     id: "mov-03",
@@ -175,7 +331,12 @@ const INITIAL_MOVIES = [
     showtimes: ["15:00", "18:45", "22:15"],
     hall: "Sala 2 (70mm Master Cinema)",
     roomId: "sala-2",
-    isFeatured: false
+    isFeatured: false,
+    releaseType: "CARTELERA",
+    isPresale: false,
+    startDate: "2026-11-01",
+    durationDays: 30,
+    endDate: "2026-11-30"
   },
   {
     id: "mov-04",
@@ -195,7 +356,12 @@ const INITIAL_MOVIES = [
     showtimes: ["17:00", "20:30"],
     hall: "Sala 1 (IMAX Laser & Dolby)",
     roomId: "sala-1",
-    isFeatured: false
+    isFeatured: false,
+    releaseType: "PREVENTA",
+    isPresale: true,
+    startDate: "2026-11-28",
+    durationDays: 30,
+    endDate: "2026-12-27"
   },
   {
     id: "mov-05",
@@ -215,7 +381,12 @@ const INITIAL_MOVIES = [
     showtimes: ["16:00", "19:00", "22:00"],
     hall: "Sala 4 (VIP Royal Lounge)",
     roomId: "sala-4",
-    isFeatured: false
+    isFeatured: false,
+    releaseType: "CARTELERA",
+    isPresale: false,
+    startDate: "2026-11-12",
+    durationDays: 21,
+    endDate: "2026-12-02"
   }
 ];
 
@@ -956,6 +1127,13 @@ const Storage = {
           return {
             ...(initR || {}),
             ...r,
+            wheelchairSeats: Array.isArray(r.wheelchairSeats) ? r.wheelchairSeats : (initR && initR.wheelchairSeats ? [...initR.wheelchairSeats] : ["A-1", "A-2"]),
+            doors: Array.isArray(r.doors) ? r.doors : (initR && initR.doors ? JSON.parse(JSON.stringify(initR.doors)) : [
+              { id: "front-left", active: true, type: "SALIDA" },
+              { id: "front-right", active: true, type: "ENTRADA" },
+              { id: "back-left", active: true, type: "ENTRADA" },
+              { id: "back-right", active: false, type: "SALIDA" }
+            ]),
             layoutType: r.layoutType || (initR ? initR.layoutType : "curved_imax"),
             layoutBadge: r.layoutBadge || (initR ? initR.layoutBadge : "🏛️ Maqueta: Anfiteatro Curvo IMAX"),
             layoutDesc: r.layoutDesc || (initR ? initR.layoutDesc : "Distribución arquitectónica de sala")
@@ -978,19 +1156,24 @@ const Storage = {
     return rooms.find(r => r.id === id) || rooms[0];
   },
 
-  // Gestión de Películas
+  // Gestión de Películas con Vigencia y Preventas
   getMovies: () => {
     const raw = localStorage.getItem("cinemajestad_movies");
-    if (!raw) {
-      localStorage.setItem("cinemajestad_movies", JSON.stringify(INITIAL_MOVIES));
-      return INITIAL_MOVIES;
+    let list = INITIAL_MOVIES;
+    if (raw) {
+      try {
+        list = JSON.parse(raw);
+      } catch (e) {
+        list = INITIAL_MOVIES;
+      }
     }
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      return INITIAL_MOVIES;
-    }
+    const normalized = (list || []).map((m, idx) => normalizeMovieData(m, idx));
+    return normalized;
   },
+
+  getMovieVigenciaInfo: (movie) => getMovieVigenciaInfo(movie),
+  calculateMovieEndDate: (startDate, durationDays) => calculateMovieEndDate(startDate, durationDays),
+  normalizeMovieData: (movie, index) => normalizeMovieData(movie, index),
 
   saveMovies: (movies) => {
     localStorage.setItem("cinemajestad_movies", JSON.stringify(movies));
@@ -1343,6 +1526,7 @@ const Storage = {
     booking.grandTotal = typeof booking.grandTotal === "number" ? booking.grandTotal : (typeof booking.total === "number" ? booking.total : 0);
     booking.total = booking.grandTotal;
     booking.status = booking.status || "CONFIRMADA";
+    booking.createdAt = booking.createdAt || new Date().toISOString();
     booking.date = booking.date || (new Date().toLocaleDateString("es-ES") + " " + new Date().toLocaleTimeString("es-ES", { hour: '2-digit', minute: '2-digit' }));
 
     const bookings = Storage.getBookings();

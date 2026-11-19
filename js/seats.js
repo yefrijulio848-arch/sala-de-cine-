@@ -77,13 +77,30 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Generar lista de próximos 7 días para el conmutador de función
-function getUpcomingDatesList(count = 7) {
+// Generar lista de fechas disponibles para el conmutador de función (con soporte de Cartelera y Preventas)
+function getUpcomingDatesList(count = 7, movie = null) {
   const dates = [];
+  let baseDate = new Date();
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let isFuturePresale = false;
+  let vigencia = null;
+
+  if (movie) {
+    vigencia = Storage.getMovieVigenciaInfo(movie);
+    if (vigencia.isPresale && vigencia.diffDaysToStart > 0) {
+      isFuturePresale = true;
+      const startParts = vigencia.startDate.split("-");
+      if (startParts.length === 3) {
+        baseDate = new Date(parseInt(startParts[0], 10), parseInt(startParts[1], 10) - 1, parseInt(startParts[2], 10));
+      }
+    }
+  }
+
   for (let i = 0; i < count; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
+    const d = new Date(baseDate);
+    d.setDate(baseDate.getDate() + i);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, "0");
     const dayNum = String(d.getDate()).padStart(2, "0");
@@ -94,9 +111,18 @@ function getUpcomingDatesList(count = 7) {
     const weekdayLong = d.toLocaleDateString("es-ES", { weekday: "long" });
     const monthLong = d.toLocaleDateString("es-ES", { month: "long" });
 
-    const dayNameShort = i === 0 ? "HOY" : (i === 1 ? "MAÑANA" : rawWeekday);
-    const shortLabel = i === 0 ? "Hoy" : (i === 1 ? "Mañana" : `${rawWeekday.charAt(0) + rawWeekday.slice(1).toLowerCase()} ${d.getDate()}`);
-    const fullLabel = i === 0 
+    let dayNameShort = rawWeekday;
+    let shortLabel = `${rawWeekday.charAt(0) + rawWeekday.slice(1).toLowerCase()} ${d.getDate()}`;
+
+    if (isFuturePresale && i === 0) {
+      dayNameShort = "ESTRENO";
+      shortLabel = `Estreno (${d.getDate()} ${rawMonth.slice(0, 3)})`;
+    } else if (!isFuturePresale) {
+      dayNameShort = i === 0 ? "HOY" : (i === 1 ? "MAÑANA" : rawWeekday);
+      shortLabel = i === 0 ? "Hoy" : (i === 1 ? "Mañana" : `${rawWeekday.charAt(0) + rawWeekday.slice(1).toLowerCase()} ${d.getDate()}`);
+    }
+
+    const fullLabel = (i === 0 && !isFuturePresale)
       ? `Hoy, ${weekdayLong.charAt(0).toUpperCase() + weekdayLong.slice(1)} ${d.getDate()} de ${monthLong}`
       : `${weekdayLong.charAt(0).toUpperCase() + weekdayLong.slice(1)} ${d.getDate()} de ${monthLong}`;
 
@@ -109,7 +135,8 @@ function getUpcomingDatesList(count = 7) {
       monthShort: rawMonth,
       shortLabel,
       fullLabel,
-      dayPricing
+      dayPricing,
+      isPresaleDay: isFuturePresale
     });
   }
   return dates;
@@ -124,22 +151,38 @@ function renderSeatViewSchedule() {
 
   if (!datesStrip || !timesStrip || !currentOrder) return;
 
-  const dates = getUpcomingDatesList(7);
   const movie = Storage.getMovieById(currentOrder.movieId) || { showtimes: [currentOrder.showtime] };
+  const vigencia = Storage.getMovieVigenciaInfo(movie);
+  const dates = getUpcomingDatesList(7, movie);
   const showtimes = movie.showtimes || [currentOrder.showtime];
 
   const currentDateIso = currentOrder.date || dates[0].iso;
-  const currentFormatted = currentOrder.dateFormatted || "Hoy";
+  const currentFormatted = currentOrder.dateFormatted || (vigencia.isPresale ? "Estreno" : "Hoy");
   const dayPricing = Storage.getDayPricingInfo(currentDateIso, movie);
 
   if (lblScheduleCurrent) {
     lblScheduleCurrent.textContent = `${currentFormatted} • ${currentOrder.showtime} (${dayPricing.tierLabel})`;
   }
 
-  // Banner explicativo de tarifas dinámicas en la sala
+  // Banner explicativo de tarifas dinámicas en la sala y preventas
   if (promoAlertEl) {
+    let alertHtml = "";
+    if (vigencia.isPresale) {
+      alertHtml += `
+        <div class="seat-schedule-alert presale" style="background: linear-gradient(135deg, rgba(255,0,128,0.22), rgba(255,0,128,0.06)); border: 1.5px solid rgba(255,0,128,0.5); color: #fff; padding: 0.85rem 1.1rem; border-radius: var(--radius-sm); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.8rem; box-shadow: 0 4px 16px rgba(255,0,128,0.25);">
+          <span style="font-size: 1.6rem;">🎟️</span>
+          <div>
+            <strong style="color: #ff66b2; font-size: 0.95rem; display: block;">¡Función de Preventa Exclusiva!</strong>
+            <span style="opacity: 0.95; font-size: 0.84rem;">
+              Estreno Oficial el <strong>${vigencia.startDateFormatted}</strong>. Compra tus entradas con antelación durante su temporada de <strong>${vigencia.durationDays} días</strong> y asegura las mejores butacas.
+            </span>
+          </div>
+        </div>
+      `;
+    }
+
     if (dayPricing.isWednesday) {
-      promoAlertEl.innerHTML = `
+      alertHtml += `
         <div class="seat-schedule-alert wednesday">
           <span style="font-size: 1.3rem;">🎉</span>
           <div>
@@ -149,7 +192,7 @@ function renderSeatViewSchedule() {
         </div>
       `;
     } else if (dayPricing.isWeekend) {
-      promoAlertEl.innerHTML = `
+      alertHtml += `
         <div class="seat-schedule-alert weekend">
           <span style="font-size: 1.3rem;">⭐</span>
           <div>
@@ -158,8 +201,8 @@ function renderSeatViewSchedule() {
           </div>
         </div>
       `;
-    } else {
-      promoAlertEl.innerHTML = `
+    } else if (!vigencia.isPresale) {
+      alertHtml += `
         <div class="seat-schedule-alert calm">
           <span style="font-size: 1.3rem;">🌿</span>
           <div>
@@ -169,6 +212,7 @@ function renderSeatViewSchedule() {
         </div>
       `;
     }
+    promoAlertEl.innerHTML = alertHtml;
   }
 
   // Renderizar píldoras de días con distintivos de promoción
@@ -414,6 +458,96 @@ function renderSeatsGrid() {
   const rows = currentRoom.rows || ["A", "B", "C", "D", "E", "F"];
   const seatsPerRow = currentRoom.seatsPerRow || 10;
   const vipRows = currentRoom.vipRows || ["E", "F"];
+  const wheelchairSeats = Array.isArray(currentRoom.wheelchairSeats)
+    ? currentRoom.wheelchairSeats
+    : (currentRoom.wheelchairCols ? (currentRoom.rows.slice(0, 1).map(r => currentRoom.wheelchairCols.map(c => `${r}-${c}`)).flat()) : ["A-1", "A-2"]);
+
+  // Renderizar Puertas de Acceso y Evacuación de Emergencia del Cliente
+  const doors = (Array.isArray(currentRoom.doors) && currentRoom.doors.length === 4) ? currentRoom.doors : [
+    { id: "front-left", active: true, type: "SALIDA" },
+    { id: "front-right", active: true, type: "SALIDA" },
+    { id: "back-left", active: true, type: "ENTRADA" },
+    { id: "back-right", active: false, type: "SALIDA" }
+  ];
+
+  const dFL = doors.find(d => d.id === "front-left") || { active: false, type: "SALIDA" };
+  const dFR = doors.find(d => d.id === "front-right") || { active: false, type: "SALIDA" };
+  const dBL = doors.find(d => d.id === "back-left") || { active: false, type: "ENTRADA" };
+  const dBR = doors.find(d => d.id === "back-right") || { active: false, type: "SALIDA" };
+
+  function createClientDoorBadge(door) {
+    if (!door.active) {
+      return `<div class="hall-door-badge door-closed" style="cursor: default;">🚫 PARED</div>`;
+    }
+    if (door.type === "ENTRADA") {
+      return `<div class="hall-door-badge door-entrance" style="cursor: default;">🚪 ENTRADA SALA</div>`;
+    }
+    return `<div class="hall-door-badge door-exit" style="cursor: default;">🟢 SALIDA EMERGENCIA</div>`;
+  }
+
+  const slotFL = document.querySelector("#slotDoorFrontLeftClient");
+  const slotFR = document.querySelector("#slotDoorFrontRightClient");
+  const slotBL = document.querySelector("#slotDoorBackLeftClient");
+  const slotBR = document.querySelector("#slotDoorBackRightClient");
+
+  if (slotFL) slotFL.innerHTML = createClientDoorBadge(dFL);
+  if (slotFR) slotFR.innerHTML = createClientDoorBadge(dFR);
+  if (slotBL) slotBL.innerHTML = createClientDoorBadge(dBL);
+  if (slotBR) slotBR.innerHTML = createClientDoorBadge(dBR);
+
+  // Pasillos de Circulación del Cliente
+  const walkwayL = document.querySelector("#walkwayLeftClient");
+  const walkwayR = document.querySelector("#walkwayRightClient");
+  const tagL = document.querySelector("#tagWalkwayLeftClient");
+  const tagR = document.querySelector("#tagWalkwayRightClient");
+  const arrTopL = document.querySelector("#arrowTopLeftClient");
+  const arrBotL = document.querySelector("#arrowBottomLeftClient");
+  const arrTopR = document.querySelector("#arrowTopRightClient");
+  const arrBotR = document.querySelector("#arrowBottomRightClient");
+
+  const isLeftEntrance = (dBL.active && dBL.type === "ENTRADA") || (dFL.active && dFL.type === "ENTRADA");
+  const isLeftExit = (dBL.active && dBL.type === "SALIDA") || (dFL.active && dFL.type === "SALIDA");
+
+  if (walkwayL) {
+    walkwayL.classList.remove("walkway-entrance", "walkway-exit");
+    if (isLeftEntrance) {
+      walkwayL.classList.add("walkway-entrance");
+      if (tagL) tagL.textContent = "🚶 PASILLO ENTRADA (IZQ)";
+      if (arrTopL) arrTopL.textContent = "↓";
+      if (arrBotL) arrBotL.textContent = "↓";
+    } else if (isLeftExit) {
+      walkwayL.classList.add("walkway-exit");
+      if (tagL) tagL.textContent = "🏃 PASILLO SALIDA (IZQ)";
+      if (arrTopL) arrTopL.textContent = "↑";
+      if (arrBotL) arrBotL.textContent = "↑";
+    } else {
+      if (tagL) tagL.textContent = "🚶 PASILLO IZQ.";
+      if (arrTopL) arrTopL.textContent = "↕";
+      if (arrBotL) arrBotL.textContent = "↕";
+    }
+  }
+
+  const isRightEntrance = (dBR.active && dBR.type === "ENTRADA") || (dFR.active && dFR.type === "ENTRADA");
+  const isRightExit = (dBR.active && dBR.type === "SALIDA") || (dFR.active && dFR.type === "SALIDA");
+
+  if (walkwayR) {
+    walkwayR.classList.remove("walkway-entrance", "walkway-exit");
+    if (isRightEntrance) {
+      walkwayR.classList.add("walkway-entrance");
+      if (tagR) tagR.textContent = "🚶 PASILLO ENTRADA (DER)";
+      if (arrTopR) arrTopR.textContent = "↓";
+      if (arrBotR) arrBotR.textContent = "↓";
+    } else if (isRightExit) {
+      walkwayR.classList.add("walkway-exit");
+      if (tagR) tagR.textContent = "🏃 PASILLO SALIDA (DER)";
+      if (arrTopR) arrTopR.textContent = "↑";
+      if (arrBotR) arrBotR.textContent = "↑";
+    } else {
+      if (tagR) tagR.textContent = "🚶 PASILLO DER.";
+      if (arrTopR) arrTopR.textContent = "↕";
+      if (arrBotR) arrBotR.textContent = "↕";
+    }
+  }
 
   // Estados de ocupación y candados en tiempo real
   const occupiedSeats = Storage.getOccupiedSeats(showtimeKey);
@@ -421,8 +555,9 @@ function renderSeatsGrid() {
   const mySessionId = Storage.getSessionId();
 
   // Función fábrica para crear cada botón de butaca
-  function createSeatButton(row, col, isVipRow, isWheelchair = false) {
+  function createSeatButton(row, col, isVipRow) {
     const seatCode = `${row}-${col}`;
+    const isWheelchair = wheelchairSeats.includes(seatCode);
     const isOccupied = occupiedSeats.includes(seatCode);
     const isSelectedByMe = currentOrder.seats && currentOrder.seats.some(s => s.code === seatCode);
     const lockedByOther = Storage.isSeatLockedByOther(showtimeKey, seatCode, mySessionId);
@@ -438,7 +573,7 @@ function renderSeatsGrid() {
 
     if (isVipRow) seat.classList.add("vip");
     if (layoutType === "vip_lounge") seat.classList.add("vip-recliner");
-    if (isWheelchair) seat.classList.add("seat-wheelchair");
+    if (isWheelchair) seat.classList.add("wheelchair", "seat-wheelchair");
 
     // Curvatura radial anfiteatro adaptada a la cantidad dinámica de columnas
     if (layoutType === "curved_imax") {
@@ -511,7 +646,7 @@ function renderSeatsGrid() {
       const blockLeft = document.createElement("div");
       blockLeft.className = "stadium-block block-left";
       for (let col = 1; col <= leftCount; col++) {
-        blockLeft.appendChild(createSeatButton(row, col, isVipRow, row === rows[0] && col === 1));
+        blockLeft.appendChild(createSeatButton(row, col, isVipRow));
       }
       rowEl.appendChild(blockLeft);
 
@@ -537,7 +672,7 @@ function renderSeatsGrid() {
       const blockRight = document.createElement("div");
       blockRight.className = "stadium-block block-right";
       for (let col = leftCount + centerCount + 1; col <= seatsPerRow; col++) {
-        blockRight.appendChild(createSeatButton(row, col, isVipRow, row === rows[0] && col === seatsPerRow));
+        blockRight.appendChild(createSeatButton(row, col, isVipRow));
       }
       rowEl.appendChild(blockRight);
     }
@@ -788,6 +923,20 @@ function updateSummary() {
   if (miniTime) miniTime.textContent = currentOrder.showtime;
   if (miniDate) miniDate.textContent = currentOrder.dateFormatted || currentOrder.date || "Hoy";
 
+  const vigenciaContainer = document.querySelector("#summaryVigenciaBadge");
+  const movie = Storage.getMovieById(currentOrder.movieId) || {};
+  if (vigenciaContainer && movie) {
+    const vigencia = Storage.getMovieVigenciaInfo(movie);
+    vigenciaContainer.innerHTML = `
+      <span class="badge ${vigencia.isPresale ? 'badge-presale' : 'badge-now-showing'}" style="font-size: 0.68rem; padding: 0.2rem 0.5rem;">
+        ${vigencia.badgeText}
+      </span>
+      <div style="font-size: 0.72rem; color: ${vigencia.isPresale ? '#ff66b2' : 'var(--gold)'}; margin-top: 0.25rem; font-weight: 600;">
+        ${vigencia.daysNotice}
+      </div>
+    `;
+  }
+
   if (seatsTagsContainer) {
     if (currentOrder.seats.length === 0) {
       seatsTagsContainer.innerHTML = `<span style="color: var(--text-muted); font-size: 0.85rem;">Ningún asiento seleccionado</span>`;
@@ -801,7 +950,6 @@ function updateSummary() {
   }
 
   // Cálculo dinámico de precios con soporte para fin de semana y promoción Miércoles 2x1
-  const movie = Storage.getMovieById(currentOrder.movieId) || {};
   const baseStd = currentOrder.basePriceStandard || movie.priceStandard || 6.50;
   const baseVip = currentOrder.basePriceVip || movie.priceVip || 10.00;
   const calc = Storage.calculateTicketsPrice(currentOrder.seats, currentOrder.date, baseStd, baseVip);

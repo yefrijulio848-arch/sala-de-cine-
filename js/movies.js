@@ -131,23 +131,36 @@ function renderHero() {
 
   const dateIso = currentSelectedDate ? currentSelectedDate.iso : "";
   const dateLabel = currentSelectedDate ? currentSelectedDate.shortLabel : "Hoy";
+  const vigencia = Storage.getMovieVigenciaInfo(featured);
 
   heroContainer.innerHTML = `
     <img src="${featured.backdrop}" alt="${featured.title}" class="hero-backdrop">
     <div class="hero-overlay"></div>
     <div class="hero-content">
-      <span class="hero-tag">👑 Gran Estreno en Cine Majestad</span>
+      <span class="hero-tag" style="${vigencia.isPresale ? 'background: linear-gradient(135deg, #ff007f, #b80058); box-shadow: 0 4px 15px rgba(255,0,128,0.4);' : ''}">
+        ${vigencia.isPresale ? '🎟️ Preventa Exclusiva en Cine Majestad' : '👑 Gran Estreno en Cine Majestad'}
+      </span>
       <h1 class="hero-title">${featured.title}</h1>
       <div class="hero-meta">
+        <span class="badge ${vigencia.isPresale ? 'badge-presale' : 'badge-now-showing'}">
+          ${vigencia.badgeText}
+        </span>
         <span class="badge badge-rating">⭐ ${featured.rating}</span>
         <span class="badge badge-age">${featured.ageRating}</span>
         <span>⏱️ ${featured.duration}</span>
         <span class="badge badge-format">${featured.formats.join(" • ")}</span>
       </div>
       <p class="hero-synopsis">${featured.synopsis}</p>
+      
+      <!-- Indicador de Temporada y Duración -->
+      <div style="margin-bottom: 1.5rem; display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); padding: 0.45rem 0.9rem; border-radius: var(--radius-full); font-size: 0.85rem;">
+        <span>${vigencia.isPresale ? '🚀' : '⏳'}</span>
+        <span style="font-weight: 700; color: ${vigencia.isPresale ? '#ff66b2' : 'var(--gold)'};">${vigencia.daysNotice}</span>
+      </div>
+
       <div class="hero-buttons">
-        <button class="btn btn-primary" onclick="startBooking('${featured.id}', '${featured.showtimes[0]}', '${dateIso}', '${dateLabel}')">
-          🎟️ Reservar Butacas (${dateLabel})
+        <button class="btn btn-primary" onclick="startBooking('${featured.id}', '${featured.showtimes[0]}', '${dateIso}', '${dateLabel}')" style="${vigencia.isPresale ? 'background: linear-gradient(135deg, #ff007f, #e50914); border-color: #ff007f;' : ''}">
+          ${vigencia.isPresale ? '🎟️ Comprar Preventa' : `🎟️ Reservar Butacas (${dateLabel})`}
         </button>
         <button class="btn btn-secondary" onclick="openTrailerModal('${featured.title}', '${featured.trailerUrl}')">
           ▶ Ver Tráiler Oficial
@@ -157,7 +170,7 @@ function renderHero() {
   `;
 }
 
-// Renderizar la cartelera completa con horarios y día seleccionado
+// Renderizar la cartelera completa con horarios, día seleccionado y modalidad
 function renderBillboard(category = "all") {
   currentCategory = category;
   const grid = document.querySelector("#moviesGrid");
@@ -166,7 +179,11 @@ function renderBillboard(category = "all") {
   const movies = Storage.getMovies();
   const filtered = category === "all" 
     ? movies 
-    : movies.filter(m => m.genre.toLowerCase() === category.toLowerCase());
+    : category === "cartelera"
+      ? movies.filter(m => (m.releaseType || "CARTELERA") === "CARTELERA" && !m.isPresale)
+      : category === "preventa"
+        ? movies.filter(m => (m.releaseType || "") === "PREVENTA" || m.isPresale === true)
+        : movies.filter(m => m.genre && m.genre.toLowerCase() === category.toLowerCase());
 
   const dateIso = currentSelectedDate ? currentSelectedDate.iso : "";
   const dateLabel = currentSelectedDate ? currentSelectedDate.shortLabel : "Hoy";
@@ -217,7 +234,8 @@ function renderBillboard(category = "all") {
   if (filtered.length === 0) {
     grid.innerHTML = `
       <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
-        <h3>No se encontraron películas en este género</h3>
+        <h3>No se encontraron películas para este filtro</h3>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem;">Prueba seleccionando otra categoría o la opción "🌟 Todas".</p>
       </div>
     `;
     return;
@@ -225,13 +243,17 @@ function renderBillboard(category = "all") {
 
   grid.innerHTML = filtered.map(movie => {
     const moviePricing = Storage.getDayPricingInfo(dateIso, movie);
+    const vigencia = Storage.getMovieVigenciaInfo(movie);
 
     return `
-    <div class="movie-card">
+    <div class="movie-card ${vigencia.isPresale ? 'card-presale-border' : ''}">
       <div class="poster-wrapper">
         <img src="${movie.poster}" alt="${movie.title}" class="poster-img" loading="lazy">
         <div class="poster-overlay"></div>
         <div class="card-badges">
+          <span class="badge ${vigencia.isPresale ? 'badge-presale' : 'badge-now-showing'}">
+            ${vigencia.badgeText}
+          </span>
           <span class="badge badge-format">${movie.formats[0]}</span>
           <span class="badge badge-age">${movie.ageRating}</span>
         </div>
@@ -240,11 +262,24 @@ function renderBillboard(category = "all") {
         </div>
       </div>
       <div class="card-content">
-        <span class="movie-genre">${movie.genre}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem;">
+          <span class="movie-genre">${movie.genre}</span>
+          <span style="font-size: 0.72rem; color: ${vigencia.isPresale ? '#ff66b2' : 'var(--gold)'}; font-weight: 700;">
+            ⏳ ${vigencia.durationDays} días temporada
+          </span>
+        </div>
         <h3 class="movie-card-title">${movie.title}</h3>
         <div class="movie-info-row">
           <span>⏱️ ${movie.duration}</span>
           <span>🏛️ ${movie.hall.split("(")[0]}</span>
+        </div>
+
+        <!-- Fila de Vigencia y Tiempo de Duración de la Película -->
+        <div class="movie-vigencia-badge-row">
+          <span>${vigencia.isPresale ? '🚀' : '📅'}</span>
+          <span style="font-weight: 700; color: ${vigencia.isPresale ? '#ff66b2' : 'var(--gold)'}; line-height: 1.2;">
+            ${vigencia.daysNotice}
+          </span>
         </div>
 
         <!-- Fila de Tarifas Dinámicas por Día -->
@@ -262,10 +297,12 @@ function renderBillboard(category = "all") {
         </div>
 
         <div class="showtimes-container">
-          <p class="showtimes-label">Horarios para <strong>${dateLabel}</strong>:</p>
+          <p class="showtimes-label">
+            ${vigencia.isPresale ? 'Horarios de Preventa:' : `Horarios para <strong>${dateLabel}</strong>:`}
+          </p>
           <div class="showtime-chips">
             ${movie.showtimes.map(time => `
-              <button class="time-chip" onclick="startBooking('${movie.id}', '${time}', '${dateIso}', '${dateLabel}')" title="Reservar para ${dateLabel} a las ${time}">
+              <button class="time-chip" onclick="startBooking('${movie.id}', '${time}', '${vigencia.isPresale ? vigencia.startDate : dateIso}', '${vigencia.isPresale ? 'Estreno' : dateLabel}')" title="${vigencia.isPresale ? 'Preventa Exclusiva' : `Reservar para ${dateLabel}`} a las ${time}">
                 ${time}
               </button>
             `).join('')}
@@ -273,8 +310,8 @@ function renderBillboard(category = "all") {
         </div>
 
         <div class="card-footer-btns">
-          <button class="btn btn-primary" onclick="startBooking('${movie.id}', '${movie.showtimes[0]}', '${dateIso}', '${dateLabel}')">
-            Comprar Boletos
+          <button class="btn btn-primary" onclick="startBooking('${movie.id}', '${movie.showtimes[0]}', '${vigencia.isPresale ? vigencia.startDate : dateIso}', '${vigencia.isPresale ? 'Estreno' : dateLabel}')" style="${vigencia.isPresale ? 'background: linear-gradient(135deg, #ff007f, #e50914); border-color: #ff007f;' : ''}">
+            ${vigencia.isPresale ? '🎟️ Comprar Preventa' : 'Comprar Boletos'}
           </button>
           <button class="btn btn-secondary" onclick="openTrailerModal('${movie.title}', '${movie.trailerUrl}')" title="Ver tráiler">
             ▶
