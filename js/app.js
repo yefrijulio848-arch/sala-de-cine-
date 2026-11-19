@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initNavbar();
   updateCartBadge();
   initUserProfileModal();
+  initNavDrawer();
   checkPageAccess();
 
   // Escuchar si otra pestaña o acción cambió el rol activo o estado de sesión
@@ -13,6 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (event.type === "ROLE_CHANGED" || event.type === "AUTH_STATE_CHANGED") {
       updateNavbarForRole();
       checkPageAccess();
+      if (document.body.classList.contains("drawer-open")) {
+        renderNavDrawerContent();
+      }
     }
   });
 });
@@ -53,7 +57,7 @@ function updateNavbarForRole() {
   const oldRoleModal = document.querySelector("#roleSwitchModal");
   if (oldRoleModal) oldRoleModal.remove();
 
-  // 2. Inyectar o actualizar el botón de Usuario / Login en la barra
+  // 2. Inyectar o actualizar el botón de Usuario / Login y las 3 Rayas (Menú)
   const navActions = document.querySelector(".nav-actions");
   if (navActions) {
     let userBtn = document.querySelector("#userAccountNavBtn");
@@ -62,13 +66,25 @@ function updateNavbarForRole() {
       userBtn.id = "userAccountNavBtn";
       userBtn.style.display = "inline-flex";
       userBtn.style.alignItems = "center";
-      userBtn.style.gap = "0.5rem";
+      userBtn.style.gap = "0.6rem";
       navActions.insertBefore(userBtn, navActions.firstChild);
     }
 
+    const isStaffOrAdmin = authUser && ["TRABAJADOR", "TAQUILLERO", "CONFITERIA", "GERENTE", "ADMIN"].includes(authUser.rol);
+    const isAdmin = authUser && (authUser.rol === "ADMIN" || authUser.rol === "GERENTE");
+    const isSpecialPage = currentPath.endsWith("admin.html") || currentPath.endsWith("trabajador.html");
+
+    // Botón de las 3 rayas (☰)
+    const burgerHtml = (isStaffOrAdmin || isSpecialPage) ? `
+      <button class="menu-burger-btn" id="menuBurgerBtn" onclick="toggleNavDrawer()" aria-label="Abrir Menú de Opciones" title="Menú de Navegación y Acciones (3 Rayas)">
+        <span class="burger-bar bar-top"></span>
+        <span class="burger-bar bar-mid"></span>
+        <span class="burger-bar bar-bot"></span>
+      </button>
+    ` : '';
+
     if (authUser) {
       const isStaff = ["TRABAJADOR", "TAQUILLERO", "CONFITERIA", "GERENTE", "ADMIN"].includes(authUser.rol);
-      const isAdmin = authUser.rol === "ADMIN" || authUser.rol === "GERENTE";
       const icon = isAdmin ? "👑" : (isStaff ? "👔" : "👤");
       const roleClass = isAdmin ? "role-admin" : (isStaff ? "role-trabajador" : "");
       const roleText = isAdmin ? "Admin" : (isStaff ? "Personal" : "Cliente");
@@ -77,15 +93,14 @@ function updateNavbarForRole() {
         <button class="role-badge-btn ${roleClass}" onclick="openUserProfileModal()" title="Mi Perfil (${roleText})">
           ${icon} ${authUser.nombre} <span style="font-size: 0.72rem; opacity: 0.85;">(${roleText})</span>
         </button>
-        <button class="btn btn-secondary btn-sm nav-logout-btn" onclick="logoutUser()" title="Cerrar Sesión y volver a la Cartelera" style="font-size: 0.78rem; padding: 0.35rem 0.65rem; color: #ff6b6b; border-color: rgba(255, 107, 107, 0.3); display: inline-flex; align-items: center; gap: 0.3rem;">
-          🚪 <span class="nav-logout-text">Cerrar Sesión</span>
-        </button>
+        ${burgerHtml}
       `;
     } else {
       userBtn.innerHTML = `
         <a href="login.html" class="btn btn-secondary btn-sm" style="font-size: 0.82rem; padding: 0.45rem 0.85rem;" title="Iniciar sesión o registrarse">
           🔑 Iniciar Sesión
         </a>
+        ${burgerHtml}
       `;
     }
   }
@@ -411,5 +426,302 @@ function logoutUser() {
   setTimeout(() => {
     window.location.href = "index.html";
   }, 450);
+}
+
+// =============================================================================
+// MENÚ DE 3 RAYAS (HAMBURGER DRAWER) - PANELES ADMIN Y TRABAJADOR
+// =============================================================================
+
+function initNavDrawer() {
+  // Asegurar backdrop oscuro
+  if (!document.querySelector("#appNavDrawerBackdrop")) {
+    const backdrop = document.createElement("div");
+    backdrop.id = "appNavDrawerBackdrop";
+    backdrop.className = "nav-drawer-backdrop";
+    backdrop.onclick = closeNavDrawer;
+    document.body.appendChild(backdrop);
+  }
+
+  // Asegurar panel lateral
+  if (!document.querySelector("#appNavDrawerPanel")) {
+    const panel = document.createElement("aside");
+    panel.id = "appNavDrawerPanel";
+    panel.className = "nav-drawer-panel";
+    panel.setAttribute("aria-label", "Menú de Navegación y Acciones");
+    document.body.appendChild(panel);
+  }
+
+  // Escuchar tecla Escape
+  document.removeEventListener("keydown", handleNavDrawerKeyDown);
+  document.addEventListener("keydown", handleNavDrawerKeyDown);
+}
+
+function handleNavDrawerKeyDown(e) {
+  if (e.key === "Escape" && document.body.classList.contains("drawer-open")) {
+    closeNavDrawer();
+  }
+}
+
+function toggleNavDrawer() {
+  if (document.body.classList.contains("drawer-open")) {
+    closeNavDrawer();
+  } else {
+    openNavDrawer();
+  }
+}
+
+function openNavDrawer() {
+  initNavDrawer();
+  renderNavDrawerContent();
+  document.body.classList.add("drawer-open");
+  const burgerBtn = document.querySelector("#menuBurgerBtn");
+  if (burgerBtn) burgerBtn.classList.add("open");
+}
+
+function closeNavDrawer() {
+  document.body.classList.remove("drawer-open");
+  const burgerBtn = document.querySelector("#menuBurgerBtn");
+  if (burgerBtn) burgerBtn.classList.remove("open");
+}
+
+function renderNavDrawerContent() {
+  const panel = document.querySelector("#appNavDrawerPanel");
+  if (!panel) return;
+
+  const authUser = Storage.getAuthUser();
+  const currentPath = window.location.pathname;
+  const isAdminPage = currentPath.endsWith("admin.html");
+  const isWorkerPage = currentPath.endsWith("trabajador.html");
+  const currentRole = (authUser && authUser.rol) ? authUser.rol : Storage.ROLES.CLIENTE;
+  const isAdmin = currentRole === "ADMIN" || currentRole === "GERENTE";
+  const isStaff = ["TRABAJADOR", "TAQUILLERO", "CONFITERIA", "GERENTE", "ADMIN"].includes(currentRole);
+
+  const userName = authUser ? authUser.nombre : "Invitado";
+  const userRoleText = isAdmin ? "Administrador Supremo" : (isStaff ? (authUser.rol === "CONFITERIA" ? "Operador de Dulcería" : (authUser.rol === "TAQUILLERO" ? "Operador de Taquilla" : "Personal de Operaciones")) : "Cliente");
+  const userIcon = isAdmin ? "👑" : (isStaff ? "👔" : "👤");
+
+  // Identificar pestaña activa actual
+  let activeTab = "";
+  if (isAdminPage) {
+    const activeBtn = document.querySelector(".admin-tab-btn.active");
+    if (activeBtn) activeTab = activeBtn.getAttribute("data-tab") || "";
+  } else if (isWorkerPage) {
+    const activeBtn = document.querySelector(".worker-tab-btn.active");
+    if (activeBtn) activeTab = activeBtn.getAttribute("data-tab") || "";
+  }
+
+  // 1. Acciones Rápidas (Nuevos) para Admin
+  let quickActionsHtml = "";
+  if (isAdminPage || isAdmin) {
+    quickActionsHtml = `
+      <div>
+        <div class="drawer-section-title">⚡ Acciones Rápidas (+ Nuevos)</div>
+        <div class="drawer-actions-grid">
+          <button class="drawer-action-btn primary" onclick="handleDrawerAction('movie')">
+            ➕ Película
+          </button>
+          <button class="drawer-action-btn" onclick="handleDrawerAction('snack')">
+            🍿 Snack
+          </button>
+          <button class="drawer-action-btn" onclick="handleDrawerAction('supplier')">
+            🚚 Proveedor
+          </button>
+          <button class="drawer-action-btn" onclick="handleDrawerAction('worker')">
+            👔 + Trabajador
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // 2. Módulos Específicos
+  let modulesHtml = "";
+  if (isAdminPage || isAdmin) {
+    modulesHtml = `
+      <div>
+        <div class="drawer-section-title">👑 Secciones de Administración</div>
+        <nav class="drawer-menu-list">
+          <button class="drawer-menu-item ${activeTab === 'movies' ? 'active' : ''}" onclick="navigateAdminSection('movies')">
+            <span>🎬 Cartelera y Películas</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+          <button class="drawer-menu-item ${activeTab === 'seats-manager' ? 'active' : ''}" onclick="navigateAdminSection('seats-manager')">
+            <span>💺 Salas y Esquemas de Asientos</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+          <button class="drawer-menu-item ${activeTab === 'candybar' ? 'active' : ''}" onclick="navigateAdminSection('candybar')">
+            <span>🍿 Dulcería & Confitería</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+          <button class="drawer-menu-item ${activeTab === 'suppliers' ? 'active' : ''}" onclick="navigateAdminSection('suppliers')">
+            <span>🚚 Proveedores</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+          <button class="drawer-menu-item ${activeTab === 'financials' ? 'active' : ''}" onclick="navigateAdminSection('financials')">
+            <span>💰 Finanzas & Rentabilidad</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+          <button class="drawer-menu-item ${activeTab === 'roles-users' ? 'active' : ''}" onclick="navigateAdminSection('roles-users')">
+            <span>👔 Personal y Trabajadores</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+          <button class="drawer-menu-item ${activeTab === 'bookings' ? 'active' : ''}" onclick="navigateAdminSection('bookings')">
+            <span>🎟️ Historial de Ventas</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+          <button class="drawer-menu-item ${activeTab === 'analytics' ? 'active' : ''}" onclick="navigateAdminSection('analytics')">
+            <span>📊 Analíticas & Gráficos</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+          <button class="drawer-menu-item ${activeTab === 'settings' ? 'active' : ''}" onclick="navigateAdminSection('settings')">
+            <span>⚙️ Configuración del Cine</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+        </nav>
+      </div>
+    `;
+  } else if (isWorkerPage || isStaff) {
+    modulesHtml = `
+      <div>
+        <div class="drawer-section-title">👔 Módulos Operativos del Trabajador</div>
+        <nav class="drawer-menu-list">
+          <button class="drawer-menu-item ${activeTab === 'print' ? 'active' : ''}" onclick="navigateWorkerSection('print')">
+            <span>🎟️ 1. Taquilla & Impresión de Boletos</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+          <button class="drawer-menu-item ${activeTab === 'food' ? 'active' : ''}" onclick="navigateWorkerSection('food')">
+            <span>🍿 2. Atender Comidas & Dulcería (POS)</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+          <button class="drawer-menu-item ${activeTab === 'showtimes' ? 'active' : ''}" onclick="navigateWorkerSection('showtimes')">
+            <span>📅 3. Programación de Funciones</span>
+            <span style="font-size: 0.75rem; opacity: 0.7;">›</span>
+          </button>
+        </nav>
+      </div>
+    `;
+  }
+
+  // 3. Navegación General
+  const externalNavHtml = `
+    <div>
+      <div class="drawer-section-title">🌐 Navegación General</div>
+      <nav class="drawer-menu-list">
+        <a href="index.html" class="drawer-menu-item ${currentPath.endsWith('index.html') || currentPath.endsWith('/') ? 'active' : ''}" onclick="closeNavDrawer()">
+          <span>🎬 Cartelera de Películas</span>
+          <span>↗</span>
+        </a>
+        <a href="candybar.html" class="drawer-menu-item ${currentPath.endsWith('candybar.html') ? 'active' : ''}" onclick="closeNavDrawer()">
+          <span>🍿 Dulcería & Confitería</span>
+          <span>↗</span>
+        </a>
+        ${(isAdmin || isStaff) ? `
+          <a href="trabajador.html" class="drawer-menu-item ${isWorkerPage ? 'active' : ''}" onclick="closeNavDrawer()">
+            <span>👔 Portal del Trabajador</span>
+            <span>↗</span>
+          </a>
+        ` : ''}
+        ${isAdmin ? `
+          <a href="admin.html" class="drawer-menu-item ${isAdminPage ? 'active' : ''}" onclick="closeNavDrawer()">
+            <span>👑 Panel Administrativo</span>
+            <span>↗</span>
+          </a>
+        ` : ''}
+      </nav>
+    </div>
+  `;
+
+  panel.innerHTML = `
+    <div class="drawer-header">
+      <div class="drawer-header-title">
+        <span style="color: var(--gold);">👑</span>
+        <span>Cine Majestad</span>
+      </div>
+      <button class="drawer-close-btn" onclick="closeNavDrawer()" title="Cerrar Menú (Esc)">✕</button>
+    </div>
+
+    <div class="drawer-body">
+      <!-- Tarjeta de Usuario -->
+      <div class="drawer-user-card">
+        <div class="drawer-user-avatar">${userIcon}</div>
+        <div class="drawer-user-info" style="flex: 1;">
+          <h4>${userName}</h4>
+          <p>${userRoleText}</p>
+          <span style="font-size: 0.7rem; color: #00e676; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem; margin-top: 0.2rem;">
+            ● En Turno / Sesión Activa
+          </span>
+        </div>
+      </div>
+
+      <!-- Acciones Rápidas -->
+      ${quickActionsHtml}
+
+      <!-- Módulos de Administración / Trabajador -->
+      ${modulesHtml}
+
+      <!-- Navegación General -->
+      ${externalNavHtml}
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn btn-secondary btn-sm" onclick="openUserProfileModal(); closeNavDrawer();" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+        👤 Mi Perfil y Cuenta
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="logoutUser(); closeNavDrawer();" style="width: 100%; color: #ff5252; border-color: rgba(255, 82, 82, 0.4); display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+        🚪 Cerrar Sesión (Volver a Cartelera)
+      </button>
+    </div>
+  `;
+}
+
+function handleDrawerAction(type) {
+  closeNavDrawer();
+  if (type === "movie") {
+    if (typeof openMovieModal === "function") {
+      openMovieModal(false);
+    } else {
+      window.location.href = "admin.html#new-movie";
+    }
+  } else if (type === "snack") {
+    if (typeof openSnackModal === "function") {
+      openSnackModal(false);
+    } else {
+      window.location.href = "admin.html#new-snack";
+    }
+  } else if (type === "supplier") {
+    if (typeof openSupplierModal === "function") {
+      openSupplierModal(false);
+    } else {
+      window.location.href = "admin.html#new-supplier";
+    }
+  } else if (type === "worker") {
+    if (typeof openUserModal === "function") {
+      openUserModal();
+    } else {
+      window.location.href = "admin.html#new-worker";
+    }
+  }
+}
+
+function navigateAdminSection(tabName) {
+  closeNavDrawer();
+  if (window.location.pathname.endsWith("admin.html")) {
+    if (typeof switchAdminTab === "function") {
+      switchAdminTab(tabName);
+    }
+  } else {
+    window.location.href = `admin.html?tab=${tabName}`;
+  }
+}
+
+function navigateWorkerSection(tabName) {
+  closeNavDrawer();
+  if (window.location.pathname.endsWith("trabajador.html")) {
+    if (typeof switchWorkerTab === "function") {
+      switchWorkerTab(tabName);
+    }
+  } else {
+    window.location.href = `trabajador.html?tab=${tabName}`;
+  }
 }
 

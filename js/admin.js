@@ -160,6 +160,11 @@ function initAdminTabs() {
       switchAdminTab(targetTab);
     });
   });
+
+  const urlTab = new URLSearchParams(window.location.search).get("tab");
+  if (urlTab) {
+    switchAdminTab(urlTab);
+  }
 }
 
 function switchAdminTab(tabName) {

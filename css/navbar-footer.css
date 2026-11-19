@@ -445,3 +445,286 @@
   margin-bottom: 1.2rem;
 }
 
+/* ==========================================================================
+   BOTÓN DE 3 RAYAS (HAMBURGER) Y MENÚ LATERAL (DRAWER) - ADMIN Y TRABAJADOR
+   ========================================================================== */
+
+/* Botón de 3 Rayas */
+.menu-burger-btn {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 42px;
+  height: 42px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 9px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  z-index: 1060;
+  vertical-align: middle;
+}
+
+.menu-burger-btn:hover {
+  background: rgba(245, 197, 24, 0.14);
+  border-color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px var(--gold-glow);
+}
+
+.burger-bar {
+  display: block;
+  width: 100%;
+  height: 2.5px;
+  background: var(--gold);
+  border-radius: 2px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, background-color 0.3s ease;
+  transform-origin: center;
+}
+
+/* Transformación de las 3 Rayas en X al presionar */
+.menu-burger-btn.open {
+  background: rgba(229, 9, 20, 0.15);
+  border-color: rgba(229, 9, 20, 0.5);
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.menu-burger-btn.open .bar-top {
+  transform: translateY(7px) rotate(45deg);
+  background: #ff5252;
+}
+
+.menu-burger-btn.open .bar-mid {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.menu-burger-btn.open .bar-bot {
+  transform: translateY(-7px) rotate(-45deg);
+  background: #ff5252;
+}
+
+/* Backdrop Fondo Oscuro Desenfoque */
+.nav-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1040;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+body.drawer-open .nav-drawer-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Panel Deslizable Lateral */
+.nav-drawer-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 390px;
+  max-width: 90vw;
+  background: linear-gradient(180deg, #131622 0%, #0c0e15 100%);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: -15px 0 45px rgba(0, 0, 0, 0.75);
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(105%);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+body.drawer-open .nav-drawer-panel {
+  transform: translateX(0);
+}
+
+/* Cabecera del Drawer */
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 1.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.drawer-header-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.drawer-close-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.drawer-close-btn:hover {
+  background: rgba(255, 82, 82, 0.15);
+  border-color: #ff5252;
+  color: #fff;
+}
+
+/* Cuerpo con Scroll Suave */
+.drawer-body {
+  padding: 1.25rem 1.4rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+}
+
+/* Tarjeta de Usuario en Drawer */
+.drawer-user-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.drawer-user-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(245, 197, 24, 0.2), rgba(229, 9, 20, 0.2));
+  border: 1px solid var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.drawer-user-info h4 {
+  font-size: 0.98rem;
+  color: #fff;
+  margin: 0 0 0.2rem;
+}
+
+.drawer-user-info p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+/* Secciones de Opciones */
+.drawer-section-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Cuadrícula de Acciones Rápidas (Nuevos) */
+.drawer-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.drawer-action-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.drawer-action-btn.primary {
+  background: rgba(229, 9, 20, 0.15);
+  border-color: rgba(229, 9, 20, 0.4);
+  color: #ff6b72;
+}
+
+.drawer-action-btn:hover {
+  background: rgba(245, 197, 24, 0.15);
+  border-color: var(--gold);
+  color: var(--gold);
+  transform: translateY(-2px);
+}
+
+/* Lista de Módulos / Pestañas */
+.drawer-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.drawer-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.9rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.drawer-menu-item:hover,
+.drawer-menu-item.active {
+  background: rgba(245, 197, 24, 0.1);
+  border-color: rgba(245, 197, 24, 0.35);
+  color: #fff;
+  transform: translateX(4px);
+}
+
+.drawer-menu-item.active {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* Footer del Drawer */
+.drawer-footer {
+  padding: 1.1rem 1.4rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
