@@ -88,6 +88,16 @@
       </div>
     </div>
 
+    <!-- Estado de Sincronización e Interacción entre Módulos -->
+    <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-sm); padding: 0.65rem 1.2rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.8rem;">
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <span style="display: inline-block; width: 10px; height: 10px; background: #00e676; border-radius: 50%; box-shadow: 0 0 8px #00e676;"></span>
+        <strong style="color: #6ee7b7; font-size: 0.86rem; letter-spacing: 0.3px;">Sincronización Inter-Módulos Activa:</strong>
+        <span style="color: var(--text-secondary); font-size: 0.82rem;">Cartelera ⇄ Butacas ⇄ Inventario Dulcería ⇄ Finanzas ⇄ Analíticas 30 Días</span>
+      </div>
+      <span style="font-size: 0.78rem; background: rgba(255, 255, 255, 0.06); padding: 0.2rem 0.6rem; border-radius: 4px; color: var(--gold);">⚡ Enlace en Tiempo Real (Socket.io & Eventos)</span>
+    </div>
+
     <!-- Pestañas del Panel de Administración -->
     <nav class="admin-tabs" id="adminTabsNav">
       <button class="admin-tab-btn active" data-tab="movies">🎬 Cartelera y Películas</button>
@@ -1794,6 +1804,102 @@
           style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color);">
           <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
           <button type="submit" class="btn btn-primary">Contratar y Crear Cuenta de Trabajador 👔</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       MODAL: REGISTRAR / EDITAR PROVEEDOR
+       ======================================================================= -->
+  <div class="modal-backdrop" id="supplierFormModal">
+    <div class="modal-content" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3 id="modalSupplierTitle" style="color: #fff;">Registrar Nuevo Proveedor</h3>
+        <button class="modal-close" onclick="closeSupplierModal()">✕</button>
+      </div>
+
+      <form id="supplierForm">
+        <input type="hidden" id="supplierIdInput">
+        <div class="form-grid" style="padding: 1.5rem;">
+          <div class="form-group form-group-full">
+            <label for="inputSupplierCompany">Nombre de la Empresa / Razón Social *</label>
+            <input type="text" id="inputSupplierCompany" class="form-control" placeholder="Ej. Distribuidora Maíz del Valle SAS" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSupplierNit">NIT o RUT</label>
+            <input type="text" id="inputSupplierNit" class="form-control" placeholder="Ej. 900.123.456-7">
+          </div>
+
+          <div class="form-group">
+            <label for="inputSupplierContact">Persona de Contacto *</label>
+            <input type="text" id="inputSupplierContact" class="form-control" placeholder="Ej. Juan Pérez" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSupplierPhone">Teléfono / WhatsApp *</label>
+            <input type="tel" id="inputSupplierPhone" class="form-control" placeholder="+57 312 456 7890" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSupplierEmail">Correo Electrónico *</label>
+            <input type="email" id="inputSupplierEmail" class="form-control" placeholder="ventas@proveedor.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSupplierCategory">Categoría de Insumos *</label>
+            <select id="inputSupplierCategory" class="form-control" required>
+              <option value="Maíz y Granos">Maíz y Granos</option>
+              <option value="Bebidas">Bebidas y Refrescos</option>
+              <option value="Empaques & Vasos">Empaques & Vasos</option>
+              <option value="Dulces y Chocolates">Dulces y Chocolates</option>
+              <option value="Insumos Generales">Insumos Generales</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSupplierProfitMargin">Margen de Ganancia (%) *</label>
+            <input type="number" id="inputSupplierProfitMargin" class="form-control" step="0.1" min="0" max="100" value="50.0" required>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSupplierCommission">Comisión Acordada (%)</label>
+            <input type="number" id="inputSupplierCommission" class="form-control" step="0.1" min="0" max="100" value="0.0">
+          </div>
+
+          <div class="form-group">
+            <label for="inputSupplierPaymentTerms">Términos de Pago *</label>
+            <select id="inputSupplierPaymentTerms" class="form-control" required>
+              <option value="Contado">Contado</option>
+              <option value="Crédito 15 días">Crédito 15 días</option>
+              <option value="Crédito 30 días">Crédito 30 días</option>
+              <option value="Crédito 45 días">Crédito 45 días</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="inputSupplierStatus">Estado *</label>
+            <select id="inputSupplierStatus" class="form-control" required>
+              <option value="ACTIVO">ACTIVO</option>
+              <option value="INACTIVO">INACTIVO</option>
+            </select>
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="inputSupplierAddress">Dirección o Bodega</label>
+            <input type="text" id="inputSupplierAddress" class="form-control" placeholder="Zona Industrial, Bodega 12">
+          </div>
+
+          <div class="form-group form-group-full">
+            <label for="inputSupplierNotes">Notas Comerciales y Acuerdos</label>
+            <textarea id="inputSupplierNotes" class="form-control" rows="2" placeholder="Condiciones de despacho, tiempos de entrega..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color);">
+          <button type="button" class="btn btn-secondary" onclick="closeSupplierModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Proveedor 🚚</button>
         </div>
       </form>
     </div>

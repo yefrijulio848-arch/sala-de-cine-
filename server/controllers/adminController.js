@@ -201,10 +201,22 @@ exports.createUser = async (req, res) => {
       rol_id: role ? role.id : (rol_id || 5)
     });
 
+    const safeUser = {
+      id: newUser.id,
+      nombre: newUser.nombre,
+      apellido: newUser.apellido,
+      email: newUser.email,
+      telefono: newUser.telefono,
+      rol: newUser.rol,
+      rol_id: newUser.rol_id,
+      activo: newUser.activo,
+      creado_en: newUser.creado_en
+    };
+
     return res.status(201).json({
       success: true,
       message: "Usuario registrado con éxito en la base de datos.",
-      data: newUser
+      data: safeUser
     });
   } catch (error) {
     console.error("[Admin Create User Error]:", error);

@@ -361,6 +361,18 @@ const PaymentModal = {
         <p style="color: var(--text-secondary); font-size: 0.88rem;">Conectando con Cine Majestad Payments Gateway</p>
       `;
     }
+
+    // Purga preventiva de campos de tarjeta sensibles al cerrar el modal
+    const numInput = document.querySelector("#inputCardNumber");
+    const expInput = document.querySelector("#inputCardExpiry");
+    const cvvInput = document.querySelector("#inputCardCvv");
+    if (numInput) numInput.value = "";
+    if (expInput) expInput.value = "";
+    if (cvvInput) cvvInput.value = "";
+    const displayNum = document.querySelector("#cardDisplayNumber");
+    const displayCvv = document.querySelector("#cardDisplayCvv");
+    if (displayNum) displayNum.textContent = "•••• •••• •••• ••••";
+    if (displayCvv) displayCvv.textContent = "•••";
   },
 
   switchMethod(method) {
@@ -517,6 +529,15 @@ const PaymentModal = {
 
     const brand = document.querySelector("#cardBrandLabel")?.textContent || "Tarjeta";
     const last4 = numClean.slice(-4);
+
+    // Protección de información sensible: Purga inmediata de CVV y número en memoria
+    if (cvvInput) cvvInput.value = "";
+    if (numInput) numInput.value = "";
+    const displayNum = document.querySelector("#cardDisplayNumber");
+    const displayCvv = document.querySelector("#cardDisplayCvv");
+    if (displayNum) displayNum.textContent = `•••• •••• •••• ${last4}`;
+    if (displayCvv) displayCvv.textContent = "•••";
+
     this.executePaymentTransaction(`${brand} (•••• ${last4})`);
   },
 

@@ -70,6 +70,16 @@ app.use("/api/*", (req, res) => {
   res.status(404).json({ success: false, message: "Endpoint no encontrado." });
 });
 
+// Manejador global seguro de errores (Protección de información sensible: no expone stack traces)
+app.use((err, req, res, next) => {
+  console.error("[Cine Majestad Server Error]:", err.message || err);
+  const status = err.status || 500;
+  res.status(status).json({
+    success: false,
+    message: status === 500 ? "Error interno en el servidor. Por favor intente más tarde." : err.message
+  });
+});
+
 // Puerto y host de ejecución (0.0.0.0 obligatorio para despliegues en la nube / contenedores)
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || "0.0.0.0";

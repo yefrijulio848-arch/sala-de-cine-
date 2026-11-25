@@ -1443,6 +1443,18 @@ const Store = {
       state.temporaryHolds.delete(`${showtimeKey}__${code}`);
     });
 
+    // Descontar inventario de confitería/snacks SIEMPRE para sincronización inter-módulos
+    if (newBooking.snacks && Array.isArray(newBooking.snacks)) {
+      newBooking.snacks.forEach(snackItem => {
+        const sId = snackItem.id || "snack-01";
+        const sQty = snackItem.qty || snackItem.quantity || 1;
+        const inMem = state.snacks.find(s => s.id === sId || s.name === snackItem.name);
+        if (inMem && typeof inMem.stock === "number") {
+          inMem.stock = Math.max(0, inMem.stock - sQty);
+        }
+      });
+    }
+
     state.bookings.unshift(newBooking);
 
     // Persistir en MySQL

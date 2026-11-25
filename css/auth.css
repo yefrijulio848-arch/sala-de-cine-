@@ -138,15 +138,89 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
+.form-control.is-invalid {
+  border-color: #ff5252 !important;
+  background: rgba(255, 82, 82, 0.08) !important;
+  box-shadow: 0 0 0 2px rgba(255, 82, 82, 0.25) !important;
+}
+
+.form-control.is-valid {
+  border-color: #00e676 !important;
+  background: rgba(0, 230, 118, 0.05) !important;
+}
+
 .form-error-feedback {
   color: #ff5252;
   font-size: 0.8rem;
-  margin-top: 0.3rem;
+  margin-top: 0.35rem;
   display: none;
+  font-weight: 500;
 }
 
 .form-error-feedback.visible {
   display: block;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Banner de Bloqueo por 5 Intentos Fallidos */
+.auth-lockout-banner {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(185, 28, 28, 0.28));
+  border: 1.5px solid #ef4444;
+  border-radius: var(--radius-md);
+  padding: 1.2rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.25);
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.auth-lockout-banner .lockout-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.auth-lockout-banner .lockout-info h4 {
+  color: #fca5a5;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+
+.auth-lockout-banner .lockout-info p {
+  color: #fee2e2;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin: 0 0 0.8rem;
+}
+
+.auth-lockout-banner .lockout-timer-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.auth-lockout-banner .lockout-timer-box span {
+  font-size: 0.8rem;
+  color: #fca5a5;
+}
+
+.auth-lockout-banner .lockout-timer-box strong {
+  font-size: 1.2rem;
+  color: #fff;
+  letter-spacing: 1.5px;
+  font-family: monospace;
 }
 
 .auth-alert {

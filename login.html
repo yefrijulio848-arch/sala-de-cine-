@@ -56,6 +56,22 @@
       <!-- Alertas Dinámicas -->
       <div class="auth-alert" id="authAlert"></div>
 
+      <!-- Banner de Bloqueo de Seguridad por 5 Intentos Fallidos -->
+      <div class="auth-lockout-banner" id="loginLockoutBanner" style="display: none;">
+        <div class="lockout-icon">🔒</div>
+        <div class="lockout-info">
+          <h4>Acceso Bloqueado por Seguridad</h4>
+          <p>Has alcanzado el límite de <strong>5 intentos fallidos</strong> consecutivos. Por políticas de seguridad del sistema, el formulario ha sido bloqueado temporalmente durante 15 minutos.</p>
+          <div class="lockout-timer-box">
+            <span>Tiempo de espera restante:</span>
+            <strong id="lockoutCountdown">15:00</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Indicador de Intentos Restantes -->
+      <div id="loginAttemptsBadge" style="display: none; margin-bottom: 1rem; font-size: 0.82rem; color: #ffb74d; background: rgba(255, 183, 77, 0.12); border: 1px solid rgba(255, 183, 77, 0.35); border-radius: var(--radius-sm); padding: 0.5rem 0.8rem; text-align: center;"></div>
+
       <!-- =====================================================================
            FORMULARIO 1: INICIAR SESIÓN
            ===================================================================== -->

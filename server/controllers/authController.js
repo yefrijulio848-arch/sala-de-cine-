@@ -2,10 +2,16 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Store = require("../models/store");
 const { JWT_SECRET } = require("../middlewares/auth");
+const {
+  checkLoginLockout,
+  recordFailedLogin,
+  resetLoginLockout,
+  MAX_ATTEMPTS
+} = require("../middlewares/rateLimiter");
 
 exports.register = async (req, res) => {
   try {
-    const { nombre, apellido, email, password, telefono, rol } = req.body;
+    const { nombre, apellido, email, password, telefono } = req.body;
 
     if (!nombre || !email || !password) {
       return res.status(400).json({
@@ -29,7 +35,8 @@ exports.register = async (req, res) => {
       });
     }
 
-    const existingUser = await Store.findUserByEmail(email);
+    const cleanEmail = email.toLowerCase().trim();
+    const existingUser = await Store.findUserByEmail(cleanEmail);
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -37,18 +44,17 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Hasheo seguro obligatorio con bcrypt (10 rounds)
     const password_hash = await bcrypt.hash(password, 10);
-    // El autoregistro público desde la web es EXCLUSIVO para CLIENTES
-    // Los trabajadores y administradores son dados de alta por el Administrador desde el panel
     const assignedRole = "CLIENTE";
     const roleObj = Store.findRoleBySlug("CLIENTE");
 
     const user = await Store.createUser({
-      nombre,
-      apellido: apellido || "",
-      email,
+      nombre: nombre.trim(),
+      apellido: (apellido || "").trim(),
+      email: cleanEmail,
       password_hash,
-      telefono: telefono || "",
+      telefono: (telefono || "").trim(),
       rol: assignedRole,
       rol_id: roleObj ? roleObj.id : 5
     });
@@ -59,6 +65,7 @@ exports.register = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
     );
 
+    // Protección de información sensible: no se retorna jamás la contraseña ni su hash
     return res.status(201).json({
       success: true,
       message: "Registro exitoso.",
@@ -90,11 +97,36 @@ exports.login = async (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
+
+    // 1. REGLA DE SEGURIDAD: Verificar si la cuenta/IP está bloqueada por exceder 5 intentos fallidos
+    const lockoutStatus = checkLoginLockout(req, cleanEmail);
+    if (lockoutStatus.locked) {
+      return res.status(429).json({
+        success: false,
+        locked: true,
+        remainingSeconds: lockoutStatus.remainingSeconds,
+        remainingMinutes: lockoutStatus.remainingMinutes,
+        message: `Acceso temporalmente bloqueado por seguridad tras 5 intentos fallidos. Intente nuevamente en ${lockoutStatus.remainingMinutes} minuto(s) (${lockoutStatus.remainingSeconds} seg).`
+      });
+    }
+
     const user = await Store.findUserByEmail(cleanEmail);
     if (!user) {
+      const attemptResult = recordFailedLogin(req, cleanEmail);
+      if (attemptResult.locked) {
+        return res.status(429).json({
+          success: false,
+          locked: true,
+          remainingSeconds: attemptResult.remainingSeconds,
+          remainingMinutes: 15,
+          message: "Has superado el límite de 5 intentos fallidos. El acceso ha sido bloqueado durante 15 minutos por seguridad."
+        });
+      }
       return res.status(401).json({
         success: false,
-        message: "Credenciales inválidas. Verifique su correo o contraseña."
+        attemptsLeft: attemptResult.attemptsLeft,
+        failedAttempts: attemptResult.failedAttempts,
+        message: `Credenciales inválidas. Te quedan ${attemptResult.attemptsLeft} intento(s) antes del bloqueo temporal de seguridad (15 minutos).`
       });
     }
 
@@ -105,6 +137,7 @@ exports.login = async (req, res) => {
       });
     }
 
+    // 2. PROTECCIÓN DE INFORMACIÓN SENSIBLE: Validación estricta y exclusiva con bcrypt
     let isMatch = false;
     if (user.password_hash) {
       try {
@@ -113,17 +146,28 @@ exports.login = async (req, res) => {
         isMatch = false;
       }
     }
-    // Soporte para claves en texto plano asignadas por jefe o clave maestra 123456 / admin
-    if (!isMatch && (user.password_hash === password || password === "123456" || (user.rol === "ADMIN" && ["admin", "admin123", "password"].includes(password)))) {
-      isMatch = true;
-    }
 
     if (!isMatch) {
+      const attemptResult = recordFailedLogin(req, cleanEmail);
+      if (attemptResult.locked) {
+        return res.status(429).json({
+          success: false,
+          locked: true,
+          remainingSeconds: attemptResult.remainingSeconds,
+          remainingMinutes: 15,
+          message: "Has alcanzado el límite de 5 intentos fallidos. El inicio de sesión ha sido bloqueado durante 15 minutos por seguridad."
+        });
+      }
       return res.status(401).json({
         success: false,
-        message: "Credenciales inválidas. Verifique su correo o contraseña."
+        attemptsLeft: attemptResult.attemptsLeft,
+        failedAttempts: attemptResult.failedAttempts,
+        message: `Contraseña incorrecta. Te quedan ${attemptResult.attemptsLeft} intento(s) antes del bloqueo de seguridad.`
       });
     }
+
+    // Inicio de sesión exitoso: restablecer contador de intentos fallidos
+    resetLoginLockout(req, cleanEmail);
 
     const token = jwt.sign(
       { id: user.id, email: user.email, rol: user.rol, nombre: user.nombre },
@@ -131,6 +175,7 @@ exports.login = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
     );
 
+    // Respuesta saneada: sin password ni password_hash
     return res.json({
       success: true,
       message: "Sesión iniciada con éxito.",
@@ -160,7 +205,7 @@ exports.getProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: "Usuario no encontrado." });
     }
 
-    const bookings = Store.getBookings(user.id);
+    const bookings = await Store.getBookings(user.id);
 
     return res.json({
       success: true,

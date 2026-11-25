@@ -2857,6 +2857,19 @@ async function handleUserFormSubmit(event) {
     return;
   }
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showToast("El correo corporativo no tiene un formato válido.", "error");
+    document.querySelector("#inputUserEmail")?.classList.add("is-invalid");
+    return;
+  }
+
+  if (password.length < 6) {
+    showToast("La contraseña asignada debe tener al menos 6 caracteres.", "error");
+    document.querySelector("#inputUserPassword")?.classList.add("is-invalid");
+    return;
+  }
+
   const roleObj = Storage.getRoleById(rol_id) || Storage.getRoleBySlug("TAQUILLERO");
   let createdInBackend = false;
 

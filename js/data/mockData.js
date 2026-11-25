@@ -1537,6 +1537,29 @@ const Storage = {
       bookings.unshift(booking);
     }
     localStorage.setItem("cinemajestad_completed_bookings", JSON.stringify(bookings));
+
+    // Sincronización Inter-Módulos: Descontar stock de Dulcería/Inventario al completarse la compra
+    if (booking.snacks && Array.isArray(booking.snacks) && booking.snacks.length > 0) {
+      try {
+        const currentSnacks = Storage.getSnacks();
+        let changed = false;
+        booking.snacks.forEach(item => {
+          const target = currentSnacks.find(s => s.id === item.id || s.name === item.name);
+          if (target && typeof target.stock === "number") {
+            const qty = item.quantity || item.qty || 1;
+            target.stock = Math.max(0, target.stock - qty);
+            changed = true;
+          }
+        });
+        if (changed) {
+          Storage.saveSnacks(currentSnacks);
+          Storage.broadcastChange("SNACKS_UPDATED", currentSnacks);
+        }
+      } catch (snkErr) {
+        console.warn("[Inter-Module Stock Sync Warning]:", snkErr);
+      }
+    }
+
     Storage.broadcastChange("BOOKING_SAVED", booking);
     return booking;
   },
